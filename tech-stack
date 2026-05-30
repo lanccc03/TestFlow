@@ -1,0 +1,192 @@
+## 技术栈
+
+### 总体架构
+
+项目采用 Electron 桌面端 + Python 本地后端的架构。
+
+Electron 负责桌面应用壳、窗口管理、前端资源加载、应用打包和本地后端进程管理。Python 后端负责业务逻辑、测试框架适配、脚本执行、SSH/SCP、报告处理和数据持久化。
+
+运行方式：
+
+1. 用户启动 Electron 应用。
+2. Electron 主进程启动本地 Python 后端服务。
+3. 前端页面通过 HTTP API 和 WebSocket 访问 `127.0.0.1` 上的后端服务。
+4. Python 后端读取脚本 YAML、测试框架配置和关键字元数据。
+5. 执行器调用现有 `pytest` 测试框架及 `stability/feature` 中的关键字函数。
+6. 执行结果写入本地数据存储，并返回给前端展示。
+
+### 桌面端
+
+- Electron：桌面应用壳、窗口管理、本地后端进程管理、应用打包。
+- Electron 主进程：负责启动和停止 Python 后端，监听后端健康状态。
+- Electron 预加载脚本：只暴露必要的安全 API，避免前端直接访问 Node.js 能力。
+- Electron 渲染进程：承载前端 Web 应用。
+
+选择原因：
+
+- 能提供桌面应用体验，方便测试人员在本地使用。
+- 可以同时集成 Web 前端和本地 Python 后端。
+- 后续支持打包为独立安装包。
+
+### 前端
+
+- React：构建测试脚本编辑、执行历史、报告查看、SSH 终端等交互界面。
+- TypeScript：提高前端模型、接口和状态管理的类型安全。
+- Vite：作为前端开发和构建工具，启动快，配置轻。
+- Tailwind CSS：提供稳定的样式基础。
+- shadcn/ui：提供可组合、可维护的基础 UI 组件。
+- lucide-react：提供统一图标。
+- xterm.js：实现 Web SSH 终端显示和输入体验。
+
+前端职责：
+
+- 脚本编辑器。
+- 脚本管理页面。
+- 关键字列表和参数表单。
+- 执行任务状态展示。
+- 执行历史和报告页面。
+- SSH 终端和命令库联想。
+- SCP 文件传输界面。
+
+### 后端
+
+- Python：与现有自动化测试框架保持一致，降低框架适配成本。
+- uv：管理 Python 版本、依赖、虚拟环境和后端启动命令。
+- FastAPI：提供本地 HTTP API 和 WebSocket 服务。
+- Pydantic：定义 API、脚本、关键字和报告的数据模型。
+- pytest：复用现有测试框架能力。
+- PyYAML：读写测试脚本 YAML。
+- asyncssh：实现 SSH 终端和 SCP 文件传输能力。
+
+后端职责：
+
+- 脚本元数据管理。
+- YAML 脚本读写和版本管理。
+- 关键字元数据管理。
+- 执行任务创建、调度和状态跟踪。
+- 执行器与 `pytest` / `stability/feature` 的适配。
+- 执行日志和报告数据处理。
+- SSH/SCP 连接管理。
+- 命令库管理。
+
+### 数据存储
+
+- SQLite：作为本地默认数据库。
+- SQLModel：作为数据访问层。
+- Alembic：负责数据库 schema 迁移。
+
+建议存储内容：
+
+- 脚本元数据。
+- 脚本版本信息。
+- 关键字元数据。
+- 执行任务。
+- 执行报告索引。
+- 命令库。
+
+YAML 脚本文件建议单独存放，数据库保存文件路径、版本、摘要和关联元数据。
+
+### 前后端通信
+
+- HTTP API：用于脚本管理、关键字管理、命令库、报告查询等普通请求。
+- WebSocket：用于执行任务状态、实时日志、SSH 终端输入输出、SCP 进度推送。
+
+通信边界：
+
+- 前端不直接调用测试框架。
+- 前端不直接访问 SSH/SCP 库。
+- Electron 不承担业务后端职责，只负责本地进程和桌面能力。
+- Python 后端统一提供业务接口。
+
+### 测试执行架构
+
+平台侧新增执行器，负责连接可视化脚本和现有测试框架。
+
+执行器职责：
+
+- 读取 YAML 脚本。
+- 读取测试框架已有环境和设备配置。
+- 校验关键字和参数。
+- 将脚本步骤解析为可执行调用。
+- 调用 `stability/feature` 中的关键字函数。
+- 驱动或集成 `pytest` 执行流程。
+- 收集每一步的状态、耗时、输入、输出、错误信息和日志。
+- 生成或整理报告数据。
+
+执行器与 `pytest` 的集成方式后续再细化，优先考虑保持测试框架原有执行能力和报告能力。
+
+### SSH/SCP 架构
+
+SSH/SCP 功能由 Python 后端实现，前端只负责交互展示。
+
+- SSH 连接信息由用户手动输入账号密码。
+- 默认不持久化 SSH/SCP 密码。
+- 后端通过 WebSocket 转发终端输入和输出。
+- 命令库由后端保存，前端在终端输入时提供联想。
+- SCP 传输进度通过 WebSocket 推送给前端。
+
+### 推荐目录结构
+
+```text
+TestFlow/
+  apps/
+    desktop/          # Electron 主进程、预加载脚本、打包配置
+    web/              # React + Vite 前端
+  backend/            # Python + FastAPI 后端
+    app/
+      api/            # HTTP API 和 WebSocket 路由
+      core/           # 配置、日志、启动生命周期
+      models/         # Pydantic / 数据库模型
+      services/       # 脚本、关键字、任务、报告、SSH/SCP 服务
+      executor/       # YAML 执行器和 pytest 适配
+      storage/        # 数据库访问和文件存储
+    tests/
+    pyproject.toml
+    uv.lock
+  data/               # 本地运行数据，后续可加入 .gitignore
+    scripts/          # YAML 测试脚本
+    reports/          # 执行报告和日志
+  project-scope
+  tech-stack
+```
+
+### 开发工具链
+
+前端和桌面端：
+
+- Node.js。
+- pnpm。
+- Vite。
+- Electron Builder。
+
+后端：
+
+- Python。
+- uv。
+- FastAPI。
+- pytest。
+- ruff：代码检查和格式化。
+- pyright：可选的类型检查。
+- PyInstaller：生产打包时将 Python 后端构建为本地可执行文件。
+
+### 技术决策
+
+- 使用 Electron，而不是纯 Web 平台，因为本项目需要本地测试框架、本地配置、SSH/SCP 和桌面分发能力。
+- 使用 Python 后端，而不是把后端逻辑写在 Electron/Node 中，因为现有测试框架基于 Python 和 `pytest`。
+- 使用 FastAPI，而不是直接通过 Electron IPC 调 Python 脚本，因为 HTTP/WebSocket 边界更清晰，也方便后续拆分或调试。
+- 使用 SQLite 作为本地默认数据库，避免早期引入外部数据库部署成本。
+- 使用 SQLModel 作为数据访问层，减少 Pydantic 模型和数据库模型之间的重复定义。
+- 使用 PyYAML 处理测试脚本，优先满足 MVP 的读写和校验需求。
+- 使用 Electron Builder 打包桌面应用。
+- 生产打包时使用 PyInstaller 构建 Python 后端可执行文件；开发模式下仍使用 `uv run` 启动后端。
+- 使用 YAML 保存测试脚本，符合项目范围中已确认的脚本格式决策。
+
+### 后续需要细化
+
+- PyInstaller 后端可执行文件的构建脚本、输出目录和 Electron Builder 资源路径。
+- 后端端口分配、健康检查和异常退出处理。
+- 前后端 API 契约和 WebSocket 消息格式。
+- YAML 脚本 schema。
+- 关键字元数据来源和维护方式。
+- 执行器直接调用关键字函数时，与 `pytest` 运行约定和报告输出之间的适配细节。
+- 数据目录在不同操作系统上的存放位置。
