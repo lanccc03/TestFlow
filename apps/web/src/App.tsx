@@ -14,7 +14,7 @@ function App() {
         <article>
           <span>Frontend</span>
           <strong>Vite dev server</strong>
-          <code>http://127.0.0.1:5173</code>
+          <code>http://127.0.0.1:5174</code>
         </article>
         <article>
           <span>Backend</span>

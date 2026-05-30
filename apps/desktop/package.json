@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check": "tsc -p tsconfig.json --noEmit",
-    "dev": "pnpm build && concurrently -k -n web,electron -c cyan,magenta \"pnpm --filter @testflow/web dev\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\""
+    "dev": "pnpm build && concurrently -k -n web,electron -c cyan,magenta \"pnpm --filter @testflow/web dev\" \"wait-on tcp:5174 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5174 electron .\""
   },
   "devDependencies": {
     "@types/node": "^24.12.4",
