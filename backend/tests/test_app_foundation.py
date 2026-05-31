@@ -41,9 +41,9 @@ def test_api_route_groups_are_registered(tmp_path: Path) -> None:
         responses = [client.get(endpoint) for endpoint in endpoints]
 
     assert [response.status_code for response in responses] == [200] * len(endpoints)
-    assert [response.json() for response in responses] == [
-        {"items": []},
-        {"items": []},
+    assert responses[0].json()["items"][0]["name"] == "wait"
+    assert responses[1].json() == {"items": []}
+    assert [response.json() for response in responses[2:]] == [
         {"items": []},
         {"items": []},
         {"items": []},

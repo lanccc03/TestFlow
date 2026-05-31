@@ -414,6 +414,131 @@ textarea {
   padding: 16px;
 }
 
+.catalog-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+}
+
+.catalog-section {
+  background: #f8fbfc;
+  border: 1px solid #d8e4e7;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.catalog-section h2,
+.catalog-section p,
+.catalog-item h3,
+.catalog-item p,
+.keyword-item h3,
+.keyword-item p {
+  margin: 0;
+}
+
+.catalog-section h2 {
+  color: #172026;
+  font-size: 17px;
+}
+
+.catalog-section > p {
+  color: #65767c;
+  font-size: 13px;
+}
+
+.catalog-list,
+.keyword-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.catalog-item,
+.keyword-item {
+  background: #ffffff;
+  border: 1px solid #dbe6e9;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.catalog-item {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.catalog-item h3,
+.keyword-item h3 {
+  color: #172026;
+  font-size: 15px;
+}
+
+.catalog-item p,
+.keyword-item p,
+.keyword-item span {
+  color: #65767c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.compact-meta {
+  display: flex;
+  gap: 10px;
+  margin: 0;
+}
+
+.compact-meta div {
+  background: #eef5f6;
+  border-radius: 7px;
+  min-width: 64px;
+  padding: 7px 9px;
+}
+
+.compact-meta dt,
+.compact-meta dd {
+  margin: 0;
+}
+
+.compact-meta dt {
+  color: #66777d;
+  font-size: 11px;
+}
+
+.compact-meta dd {
+  color: #17383f;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.keyword-title-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.catalog-placeholder,
+.catalog-error {
+  align-items: center;
+  background: #eef5f6;
+  border: 1px dashed #c6d8dd;
+  border-radius: 8px;
+  color: #526970;
+  display: flex;
+  font-size: 13px;
+  gap: 8px;
+  min-height: 72px;
+  padding: 14px;
+}
+
+.catalog-error {
+  background: #fff7f4;
+  border-color: #f0c4b6;
+  color: #933f24;
+}
+
 .loading-row {
   align-items: center;
   color: #617278;
@@ -469,6 +594,7 @@ code {
 }
 
 @media (max-width: 1180px) {
+  .catalog-layout,
   .overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -502,6 +628,7 @@ code {
   }
 
   .nav-list,
+  .catalog-layout,
   .overview-grid {
     grid-template-columns: 1fr;
   }
