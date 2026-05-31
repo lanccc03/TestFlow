@@ -5,6 +5,7 @@ import {
   Cable,
   CheckCircle2,
   ChevronRight,
+  LoaderCircle,
   Laptop,
   RefreshCcw,
   Server,
@@ -12,7 +13,17 @@ import {
 } from 'lucide-react'
 
 import { appRoutes, navGroups } from './app/routes'
-import { Badge, Button, ErrorState, LoadingState } from './components/ui'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ApiError, createApiClient, type HealthResponse } from './lib/api'
 import {
   createWebSocketClient,
@@ -196,13 +207,13 @@ function App() {
               title="后端服务"
               icon={Server}
               badge={
-                <Badge
+                <StatusBadge
                   tone={
                     backendStatus.state === 'running' ? 'success' : 'warning'
                   }
                 >
                   {backendStateLabels[backendStatus.state]}
-                </Badge>
+                </StatusBadge>
               }
             >
               <code>{backendStatus.healthUrl}</code>
@@ -212,7 +223,7 @@ function App() {
             <StatusCard
               title="健康检查"
               icon={CheckCircle2}
-              badge={<Badge tone={health ? 'success' : 'danger'}>HTTP</Badge>}
+              badge={<StatusBadge tone={health ? 'success' : 'danger'}>HTTP</StatusBadge>}
             >
               {isHealthLoading ? (
                 <LoadingState label="正在检查后端" />
@@ -239,7 +250,7 @@ function App() {
               title="WebSocket"
               icon={websocketStatus.state === 'connected' ? Cable : WifiOff}
               badge={
-                <Badge
+                <StatusBadge
                   tone={
                     websocketStatus.state === 'connected'
                       ? 'success'
@@ -247,7 +258,7 @@ function App() {
                   }
                 >
                   {websocketStateLabels[websocketStatus.state]}
-                </Badge>
+                </StatusBadge>
               }
             >
               <code>{websocketUrl}</code>
@@ -257,7 +268,7 @@ function App() {
             <StatusCard
               title="桌面环境"
               icon={Laptop}
-              badge={<Badge>{desktopInfo ? 'Electron' : 'Browser'}</Badge>}
+              badge={<Badge variant="secondary">{desktopInfo ? 'Electron' : 'Browser'}</Badge>}
             >
               <p>
                 {desktopInfo
@@ -269,7 +280,7 @@ function App() {
                   variant="secondary"
                   onClick={() => window.location.reload()}
                 >
-                  <RefreshCcw aria-hidden="true" size={15} />
+                  <RefreshCcw aria-hidden="true" data-icon="inline-start" />
                   刷新状态
                 </Button>
               )}
@@ -305,14 +316,51 @@ function StatusCard({
   title: string
 }) {
   return (
-    <article className="status-card">
-      <div className="card-heading">
-        <Icon aria-hidden="true" size={18} />
-        <strong>{title}</strong>
-        {badge}
-      </div>
+    <Card className="status-card" size="sm">
+      <CardHeader className="card-heading">
+        <Icon aria-hidden="true" />
+        <CardTitle>{title}</CardTitle>
+        <CardAction>{badge}</CardAction>
+      </CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  )
+}
+
+function StatusBadge({
+  children,
+  tone,
+}: {
+  children: React.ReactNode
+  tone: 'danger' | 'success' | 'warning'
+}) {
+  if (tone === 'danger') {
+    return <Badge variant="destructive">{children}</Badge>
+  }
+
+  return (
+    <Badge variant={tone === 'success' ? 'default' : 'secondary'}>
       {children}
-    </article>
+    </Badge>
+  )
+}
+
+function LoadingState({ label }: { label: string }) {
+  return (
+    <div className="loading-row" role="status">
+      <LoaderCircle aria-hidden="true" className="spinner" />
+      <span>{label}</span>
+      <Skeleton className="h-2 w-20" />
+    </div>
+  )
+}
+
+function ErrorState({ message, title }: { message: string; title: string }) {
+  return (
+    <Alert variant="destructive">
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   )
 }
 

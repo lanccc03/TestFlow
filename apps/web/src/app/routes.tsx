@@ -12,7 +12,13 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 
-import { EmptyState } from '../components/ui'
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
 
 export type AppRoute = {
   path: string
@@ -41,11 +47,17 @@ function PlaceholderPage({
         <h1>{title}</h1>
         <span>{description}</span>
       </div>
-      <EmptyState
-        icon={FileCode2}
-        title={action}
-        description="阶段三先提供稳定路由、布局和状态框架；业务表单、执行器和报告数据会在后续阶段逐步接入。"
-      />
+      <Empty className="state-box">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <FileCode2 aria-hidden="true" />
+          </EmptyMedia>
+          <EmptyTitle>{action}</EmptyTitle>
+          <EmptyDescription>
+            阶段三先提供稳定路由、布局和状态框架；业务表单、执行器和报告数据会在后续阶段逐步接入。
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     </section>
   )
 }
