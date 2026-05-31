@@ -166,6 +166,11 @@ textarea {
   font-weight: 700;
 }
 
+.nav-link-active:hover {
+  background: #e7f7f3;
+  color: #0e383b;
+}
+
 .workspace {
   display: grid;
   grid-template-rows: auto 1fr;

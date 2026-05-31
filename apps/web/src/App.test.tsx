@@ -1,7 +1,11 @@
+/// <reference types="node" />
+
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 
 const httpGet = vi.hoisted(() => vi.fn())
 const httpPost = vi.hoisted(() => vi.fn())
@@ -188,6 +192,27 @@ describe('App', () => {
     expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
     expect(screen.getByText('wait')).toBeInTheDocument()
     expect(screen.getByText('等待指定秒数')).toBeInTheDocument()
+  })
+
+  it('only marks the exact navigation route as active', async () => {
+    renderApp(['/scripts/new'])
+
+    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /脚本管理/ })).not.toHaveClass(
+      'nav-link-active',
+    )
+    expect(screen.getByRole('link', { name: /脚本编辑器/ })).toHaveClass(
+      'nav-link-active',
+    )
+  })
+
+  it('keeps the selected navigation item styling while hovered', () => {
+    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
+
+    expect(css).toMatch(/\.nav-link-active:hover\s*{/)
+    expect(css).toMatch(
+      /\.nav-link-active:hover\s*{[^}]*background:\s*#e7f7f3;[^}]*color:\s*#0e383b;/s,
+    )
   })
 
   it('filters scripts and deletes a listed script', async () => {

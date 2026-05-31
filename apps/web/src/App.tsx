@@ -137,6 +137,7 @@ function App() {
                     className={({ isActive }) =>
                       `nav-link${isActive ? ' nav-link-active' : ''}`
                     }
+                    end
                     key={route.path}
                     to={route.path}
                   >
