@@ -9,8 +9,9 @@
     "dev:desktop": "pnpm --filter @testflow/desktop dev",
     "check:web": "pnpm --filter @testflow/web check",
     "check:desktop": "pnpm --filter @testflow/desktop check",
+    "test:desktop": "pnpm --filter @testflow/desktop test",
     "check:backend": "cd backend && uv run ruff check .",
     "test:backend": "cd backend && uv run pytest",
-    "check": "pnpm check:web && pnpm check:desktop && pnpm check:backend && pnpm test:backend"
+    "check": "pnpm check:web && pnpm check:desktop && pnpm test:desktop && pnpm check:backend && pnpm test:backend"
   }
 }

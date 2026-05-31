@@ -73,6 +73,17 @@ article {
   padding: 18px;
 }
 
+.backend-card {
+  border-color: #bdd0d4;
+}
+
+.backend-card-heading {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
 article span {
   color: #66777f;
   font-size: 13px;
@@ -81,6 +92,45 @@ article span {
 
 article strong {
   font-size: 18px;
+}
+
+article p,
+article small {
+  color: #596970;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+article small {
+  color: #8a3d2b;
+  overflow-wrap: anywhere;
+}
+
+.backend-state {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 6px 8px;
+  text-transform: uppercase;
+}
+
+.backend-state-running {
+  background: #dff4e4;
+  color: #226333;
+}
+
+.backend-state-starting,
+.backend-state-stopped {
+  background: #e8eef0;
+  color: #50646c;
+}
+
+.backend-state-failed,
+.backend-state-exited {
+  background: #ffe5dc;
+  color: #914126;
 }
 
 code {

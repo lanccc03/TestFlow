@@ -1,0 +1,102 @@
+import assert from 'node:assert/strict'
+import { EventEmitter } from 'node:events'
+import { test } from 'node:test'
+
+import { BackendProcessManager } from '../dist/main/backend-process.js'
+
+class FakeChildProcess extends EventEmitter {
+  killed = false
+  pid = 4242
+
+  kill(signal = 'SIGTERM') {
+    this.killed = true
+    this.signal = signal
+    this.emit('exit', 0, signal)
+    return true
+  }
+}
+
+test('starts backend process and reports running after health check passes', async () => {
+  const child = new FakeChildProcess()
+  const healthChecks = [false, true]
+  const statusChanges = []
+  const manager = new BackendProcessManager({
+    command: 'uv',
+    args: ['run', 'fastapi'],
+    cwd: '/repo/backend',
+    healthUrl: 'http://127.0.0.1:8000/health',
+    spawnProcess: () => child,
+    fetchHealth: async () => ({ ok: healthChecks.shift() ?? true }),
+    pollIntervalMs: 5,
+  })
+  manager.onStatusChange((status) => statusChanges.push(status.state))
+
+  await manager.start()
+
+  assert.equal(manager.getStatus().state, 'running')
+  assert.equal(manager.getStatus().pid, 4242)
+  assert.deepEqual(statusChanges, ['starting', 'running'])
+})
+
+test('reuses an already healthy backend without spawning another process', async () => {
+  let spawnCount = 0
+  const manager = new BackendProcessManager({
+    command: 'uv',
+    args: ['run', 'fastapi'],
+    cwd: '/repo/backend',
+    healthUrl: 'http://127.0.0.1:8000/health',
+    spawnProcess: () => {
+      spawnCount += 1
+      return new FakeChildProcess()
+    },
+    fetchHealth: async () => ({ ok: true }),
+    pollIntervalMs: 5,
+  })
+
+  await manager.start()
+
+  assert.equal(spawnCount, 0)
+  assert.equal(manager.getStatus().state, 'running')
+}
+)
+
+test('reports failed when backend process exits before becoming healthy', async () => {
+  const child = new FakeChildProcess()
+  const manager = new BackendProcessManager({
+    command: 'uv',
+    args: ['run', 'fastapi'],
+    cwd: '/repo/backend',
+    healthUrl: 'http://127.0.0.1:8000/health',
+    spawnProcess: () => {
+      setImmediate(() => child.emit('exit', 1, null))
+      return child
+    },
+    fetchHealth: async () => ({ ok: false }),
+    pollIntervalMs: 5,
+  })
+
+  const startPromise = manager.start()
+  await assert.rejects(startPromise, /exited before becoming healthy/)
+  assert.equal(manager.getStatus().state, 'failed')
+})
+
+test('stop terminates a running backend process and reports stopped', async () => {
+  const child = new FakeChildProcess()
+  const healthChecks = [false, true]
+  const manager = new BackendProcessManager({
+    command: 'uv',
+    args: ['run', 'fastapi'],
+    cwd: '/repo/backend',
+    healthUrl: 'http://127.0.0.1:8000/health',
+    spawnProcess: () => child,
+    fetchHealth: async () => ({ ok: healthChecks.shift() ?? true }),
+    pollIntervalMs: 5,
+  })
+
+  await manager.start()
+  await manager.stop()
+
+  assert.equal(child.killed, true)
+  assert.equal(manager.getStatus().state, 'stopped')
+}
+)
