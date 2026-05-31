@@ -1,3 +1,5 @@
+import axios, { type AxiosInstance } from 'axios'
+
 export type HealthResponse = {
   data_dir: string
   service: string
@@ -11,7 +13,7 @@ export type ItemList<T = unknown> = {
 
 type ApiClientOptions = {
   baseUrl: string
-  fetcher?: typeof fetch
+  httpClient?: AxiosInstance
 }
 
 export class ApiError extends Error {
@@ -26,18 +28,20 @@ export class ApiError extends Error {
 
 export function createApiClient({
   baseUrl,
-  fetcher = fetch,
+  httpClient = axios.create({
+    baseURL: baseUrl,
+    headers: {
+      Accept: 'application/json',
+    },
+  }),
 }: ApiClientOptions) {
   async function request<T>(path: string): Promise<T> {
-    const response = await fetcher(`${baseUrl}${path}`, {
-      headers: { Accept: 'application/json' },
-    })
-
-    if (!response.ok) {
-      throw new ApiError(await readErrorMessage(response), response.status)
+    try {
+      const response = await httpClient.get<T>(path)
+      return response.data
+    } catch (error) {
+      throw normalizeApiError(error)
     }
-
-    return (await response.json()) as T
   }
 
   return {
@@ -46,15 +50,29 @@ export function createApiClient({
   }
 }
 
-async function readErrorMessage(response: Response) {
-  try {
-    const payload = (await response.json()) as { detail?: unknown }
-    if (typeof payload.detail === 'string') {
-      return payload.detail
-    }
-  } catch {
-    // Fall through to the status text when the backend did not return JSON.
+function normalizeApiError(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status ?? 0
+    const message = readAxiosErrorMessage(error.response?.data)
+
+    return new ApiError(
+      message ?? error.response?.statusText ?? error.message,
+      status,
+    )
   }
 
-  return response.statusText || `Request failed with ${response.status}`
+  return error
+}
+
+function readAxiosErrorMessage(data: unknown) {
+  if (
+    data &&
+    typeof data === 'object' &&
+    'detail' in data &&
+    typeof data.detail === 'string'
+  ) {
+    return data.detail
+  }
+
+  return undefined
 }

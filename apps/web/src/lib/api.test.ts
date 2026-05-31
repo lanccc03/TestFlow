@@ -1,37 +1,41 @@
 import { describe, expect, it, vi } from 'vitest'
+import type { AxiosInstance } from 'axios'
 
 import { ApiError, createApiClient } from './api'
 
 describe('createApiClient', () => {
   it('returns health data from the backend', async () => {
-    const fetcher = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
+    const httpClient = {
+      get: vi.fn().mockResolvedValue({
+        data: {
           data_dir: '/tmp/testflow',
           service: 'testflow-backend',
           status: 'ok',
           version: '0.1.0',
-        }),
-      ),
-    )
-    const api = createApiClient({ baseUrl: 'http://backend.test', fetcher })
+        },
+      }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
     await expect(api.getHealth()).resolves.toMatchObject({
       service: 'testflow-backend',
       status: 'ok',
     })
-    expect(fetcher).toHaveBeenCalledWith('http://backend.test/health', {
-      headers: { Accept: 'application/json' },
-    })
+    expect(httpClient.get).toHaveBeenCalledWith('/health')
   })
 
-  it('normalizes failed responses into ApiError', async () => {
-    const fetcher = vi
-      .fn()
-      .mockResolvedValue(
-        new Response(JSON.stringify({ detail: 'No route' }), { status: 404 }),
-      )
-    const api = createApiClient({ baseUrl: 'http://backend.test', fetcher })
+  it('normalizes axios failed responses into ApiError', async () => {
+    const httpClient = {
+      get: vi.fn().mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          data: { detail: 'No route' },
+          status: 404,
+          statusText: 'Not Found',
+        },
+      }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
     await expect(api.listItems('/api/scripts')).rejects.toMatchObject({
       message: 'No route',

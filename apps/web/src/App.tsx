@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Navigate, NavLink, Route, Routes } from 'react-router'
 import {
   Cable,
@@ -48,6 +49,7 @@ const websocketStateLabels: Record<WebSocketStatus['state'], string> = {
 
 const backendBaseUrl = 'http://127.0.0.1:8000'
 const websocketUrl = 'ws://127.0.0.1:8000/ws'
+const api = createApiClient({ baseUrl: backendBaseUrl })
 
 function App() {
   const [backendStatus, setBackendStatus] = useState<BackendStatus>({
@@ -55,9 +57,6 @@ function App() {
     state: window.testflow ? 'starting' : 'stopped',
   })
   const [desktopInfo, setDesktopInfo] = useState<DesktopInfo | undefined>()
-  const [health, setHealth] = useState<HealthResponse | undefined>()
-  const [healthError, setHealthError] = useState<string | undefined>()
-  const [isHealthLoading, setIsHealthLoading] = useState(true)
   const [websocketStatus, setWebsocketStatus] = useState<WebSocketStatus>({
     state: 'connecting',
   })
@@ -65,7 +64,13 @@ function App() {
     string | undefined
   >()
 
-  const api = useMemo(() => createApiClient({ baseUrl: backendBaseUrl }), [])
+  const healthQuery = useQuery<HealthResponse>({
+    queryKey: ['health'],
+    queryFn: api.getHealth,
+    refetchInterval: 5000,
+  })
+  const health = healthQuery.data
+  const isHealthLoading = healthQuery.isPending
 
   useEffect(() => {
     if (!window.testflow) {
@@ -92,38 +97,6 @@ function App() {
       unsubscribe()
     }
   }, [])
-
-  useEffect(() => {
-    let isMounted = true
-
-    async function loadHealth() {
-      setIsHealthLoading(true)
-      try {
-        const response = await api.getHealth()
-        if (isMounted) {
-          setHealth(response)
-          setHealthError(undefined)
-        }
-      } catch (error) {
-        if (isMounted) {
-          setHealth(undefined)
-          setHealthError(formatError(error))
-        }
-      } finally {
-        if (isMounted) {
-          setIsHealthLoading(false)
-        }
-      }
-    }
-
-    void loadHealth()
-    const interval = window.setInterval(loadHealth, 5000)
-
-    return () => {
-      isMounted = false
-      window.clearInterval(interval)
-    }
-  }, [api])
 
   useEffect(() => {
     const client = createWebSocketClient({ url: websocketUrl })
@@ -241,7 +214,11 @@ function App() {
               ) : (
                 <ErrorState
                   title="健康检查不可用"
-                  message={healthError ?? '无法连接本地后端'}
+                  message={
+                    healthQuery.error
+                      ? formatError(healthQuery.error)
+                      : '无法连接本地后端'
+                  }
                 />
               )}
             </StatusCard>
