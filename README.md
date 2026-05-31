@@ -1,6 +1,6 @@
 # TestFlow
 
-TestFlow is an Electron desktop app with a React/Vite frontend and a local FastAPI backend. Phase 0 provides the runnable development skeleton for the desktop shell, web app, and Python service.
+TestFlow is an Electron desktop app with a React/Vite frontend and a local FastAPI backend. The current skeleton includes the desktop shell, web app, Python service, API client, and live status checks.
 
 ## Prerequisites
 
@@ -43,6 +43,12 @@ pnpm check:web
 pnpm check:desktop
 ```
 
+Run frontend unit tests:
+
+```bash
+pnpm --filter @testflow/web test
+```
+
 Run backend lint and tests:
 
 ```bash
@@ -50,7 +56,7 @@ pnpm check:backend
 pnpm test:backend
 ```
 
-Run all phase 0 checks:
+Run all checks:
 
 ```bash
 pnpm check
