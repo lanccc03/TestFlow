@@ -539,6 +539,235 @@ textarea {
   color: #933f24;
 }
 
+.script-workspace {
+  align-content: start;
+}
+
+.script-page-heading,
+.editor-section-heading,
+.script-title-row,
+.step-toolbar,
+.editor-actions {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+}
+
+.script-page-heading {
+  justify-content: space-between;
+}
+
+.editor-actions,
+.step-toolbar {
+  flex-wrap: wrap;
+}
+
+.script-filters,
+.form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.script-filters label,
+.form-grid label,
+.param-list label {
+  display: grid;
+  gap: 6px;
+}
+
+.script-filters span,
+.form-grid span,
+.param-list span {
+  color: #53666d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+input,
+select,
+textarea {
+  background: #ffffff;
+  border: 1px solid #cbdde1;
+  border-radius: 7px;
+  color: #172026;
+  min-height: 36px;
+  padding: 7px 9px;
+  width: 100%;
+}
+
+textarea {
+  min-height: 74px;
+  resize: vertical;
+}
+
+input[type="checkbox"] {
+  height: 18px;
+  min-height: 18px;
+  width: 18px;
+}
+
+.form-wide {
+  grid-column: 1 / -1;
+}
+
+.script-layout,
+.editor-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.script-layout {
+  grid-template-columns: minmax(0, 1.2fr) minmax(300px, 0.8fr);
+}
+
+.editor-grid {
+  grid-template-columns: minmax(280px, 0.8fr) minmax(320px, 1fr);
+}
+
+.step-editor {
+  grid-column: 1 / -1;
+}
+
+.script-list-section,
+.keyword-sidebar,
+.editor-section {
+  background: #f8fbfc;
+  border: 1px solid #d8e4e7;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.script-list-section h2,
+.keyword-sidebar h2,
+.editor-section h2,
+.script-list-item h3,
+.script-list-item p {
+  margin: 0;
+}
+
+.script-list-section h2,
+.keyword-sidebar h2,
+.editor-section h2 {
+  color: #172026;
+  font-size: 17px;
+}
+
+.script-list {
+  display: grid;
+  gap: 10px;
+}
+
+.script-list-item {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dbe6e9;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 14px;
+}
+
+.script-list-item p {
+  color: #65767c;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.script-title-row {
+  justify-content: flex-start;
+  margin-bottom: 4px;
+}
+
+.script-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.script-tags span {
+  background: #eef5f6;
+  border-radius: 999px;
+  color: #345961;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+}
+
+.script-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.step-list {
+  display: grid;
+  gap: 8px;
+}
+
+.step-list-item {
+  background: #ffffff;
+  border: 1px solid #dbe6e9;
+  border-radius: 8px;
+  color: #172026;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+  padding: 10px;
+  text-align: left;
+}
+
+.step-list-item-active {
+  border-color: #79c7bd;
+  box-shadow: 0 0 0 2px rgba(121, 199, 189, 0.18);
+}
+
+.step-list-item span,
+.step-list-item em {
+  color: #65767c;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.step-list-item strong {
+  font-size: 14px;
+}
+
+.param-list {
+  display: grid;
+  gap: 10px;
+}
+
+.validation-panel,
+.save-message {
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.validation-panel {
+  background: #fff7f4;
+  border: 1px solid #f0c4b6;
+  color: #933f24;
+}
+
+.validation-panel p {
+  margin: 0;
+}
+
+.save-message {
+  background: #e6f7ed;
+  border: 1px solid #bbe7c9;
+  color: #20703a;
+  font-weight: 800;
+}
+
 .loading-row {
   align-items: center;
   color: #617278;
@@ -595,8 +824,13 @@ code {
 
 @media (max-width: 1180px) {
   .catalog-layout,
+  .editor-grid,
   .overview-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .script-layout {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -629,7 +863,14 @@ code {
 
   .nav-list,
   .catalog-layout,
+  .editor-grid,
   .overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .script-filters,
+  .form-grid,
+  .script-list-item {
     grid-template-columns: 1fr;
   }
 }

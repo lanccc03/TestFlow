@@ -37,6 +37,9 @@ export type ScriptSummary = {
   enabled_step_count: number
   revision: number
   updated_at: string
+  status: 'draft' | 'published'
+  tags: string[]
+  group: string
 }
 
 export type ScriptVariable = {
@@ -60,6 +63,9 @@ export type TestScript = {
   id: string
   name: string
   description: string
+  status: 'draft' | 'published'
+  tags: string[]
+  group: string
   variables: ScriptVariable[]
   steps: ScriptStep[]
   version?: {
@@ -74,11 +80,13 @@ type ApiClientOptions = {
 }
 
 export class ApiError extends Error {
+  readonly details: unknown
   readonly status: number
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, details?: unknown) {
     super(message)
     this.name = 'ApiError'
+    this.details = details
     this.status = status
   }
 }
@@ -113,12 +121,23 @@ export function createApiClient({
     }
   }
 
+  async function remove(path: string): Promise<void> {
+    try {
+      await httpClient.delete(path)
+    } catch (error) {
+      throw normalizeApiError(error)
+    }
+  }
+
   return {
     getHealth: () => request<HealthResponse>('/health'),
     listKeywords: () => request<ItemList<KeywordMetadata>>('/api/keywords'),
     listScripts: () => request<ItemList<ScriptSummary>>('/api/scripts'),
+    getScript: (scriptId: string) =>
+      request<TestScript>(`/api/scripts/${scriptId}`),
     saveScript: (script: TestScript) =>
       post<TestScript, TestScript>('/api/scripts', script),
+    deleteScript: (scriptId: string) => remove(`/api/scripts/${scriptId}`),
     listItems: <T = unknown>(path: string) => request<ItemList<T>>(path),
   }
 }
@@ -131,10 +150,26 @@ function normalizeApiError(error: unknown) {
     return new ApiError(
       message ?? error.response?.statusText ?? error.message,
       status,
+      readAxiosErrorDetails(error.response?.data),
     )
   }
 
   return error
+}
+
+function readAxiosErrorDetails(data: unknown) {
+  if (
+    data &&
+    typeof data === 'object' &&
+    'error' in data &&
+    data.error &&
+    typeof data.error === 'object' &&
+    'details' in data.error
+  ) {
+    return data.error.details
+  }
+
+  return undefined
 }
 
 function readAxiosErrorMessage(data: unknown) {

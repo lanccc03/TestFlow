@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.config import Settings
 
 ParameterType = Literal["string", "integer", "number", "boolean", "object", "array"]
+ScriptStatus = Literal["draft", "published"]
 
 
 class KeywordParameter(BaseModel):
@@ -56,6 +57,9 @@ class TestScript(BaseModel):
     id: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9_-]*$")
     name: str
     description: str = ""
+    status: ScriptStatus = "draft"
+    tags: list[str] = Field(default_factory=list)
+    group: str = ""
     variables: list[ScriptVariable] = Field(default_factory=list)
     steps: list[ScriptStep] = Field(default_factory=list)
     version: ScriptVersion | None = None
@@ -69,6 +73,9 @@ class ScriptSummary(BaseModel):
     enabled_step_count: int
     revision: int
     updated_at: str
+    status: ScriptStatus
+    tags: list[str] = Field(default_factory=list)
+    group: str = ""
 
 
 class ScriptValidationIssue(BaseModel):
@@ -106,9 +113,10 @@ def read_script(settings: Settings, script_id: str) -> TestScript:
 
 def save_script(settings: Settings, script: TestScript) -> tuple[TestScript, bool]:
     keywords = {keyword.name: keyword for keyword in load_keywords(settings)}
-    issues = validate_script(script, keywords)
-    if issues:
-        raise ScriptValidationError(issues)
+    if script.status == "published":
+        issues = validate_script(script, keywords)
+        if issues:
+            raise ScriptValidationError(issues)
 
     script_path = _script_path(settings, script.id)
     was_created = not script_path.exists()
@@ -136,6 +144,15 @@ def save_script(settings: Settings, script: TestScript) -> tuple[TestScript, boo
         encoding="utf-8",
     )
     return saved_script, was_created
+
+
+def delete_script(settings: Settings, script_id: str) -> bool:
+    script_path = _script_path(settings, script_id)
+    if not script_path.exists():
+        return False
+
+    script_path.unlink()
+    return True
 
 
 def validate_script(
@@ -206,6 +223,9 @@ def _script_to_summary(script: TestScript) -> ScriptSummary:
         enabled_step_count=sum(1 for step in script.steps if step.enabled),
         revision=version.revision if version else 1,
         updated_at=version.updated_at if version else "",
+        status=script.status,
+        tags=script.tags,
+        group=script.group,
     )
 
 

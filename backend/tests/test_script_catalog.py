@@ -76,9 +76,119 @@ def test_creates_saves_and_reads_structured_yaml_script(tmp_path: Path) -> None:
             "enabled_step_count": 1,
             "revision": 1,
             "updated_at": create_response.json()["version"]["updated_at"],
+            "status": "draft",
+            "tags": [],
+            "group": "",
         }
     ]
     assert (settings.scripts_dir / "smoke-cockpit.yaml").is_file()
+
+
+def test_creates_draft_script_with_incomplete_keyword_parameters(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path)
+    payload = {
+        "id": "draft-cockpit",
+        "name": "座舱草稿",
+        "description": "未完成脚本",
+        "status": "draft",
+        "tags": ["smoke", "cockpit"],
+        "group": "stability",
+        "steps": [
+            {
+                "id": "step-1",
+                "keyword": "wait",
+                "params": {},
+            }
+        ],
+    }
+
+    with TestClient(create_app(settings)) as client:
+        create_response = client.post("/api/scripts", json=payload)
+        list_response = client.get("/api/scripts")
+
+    assert create_response.status_code == 201
+    assert create_response.json()["status"] == "draft"
+    assert create_response.json()["tags"] == ["smoke", "cockpit"]
+    assert create_response.json()["group"] == "stability"
+    assert list_response.json()["items"][0] == {
+        "id": "draft-cockpit",
+        "name": "座舱草稿",
+        "description": "未完成脚本",
+        "step_count": 1,
+        "enabled_step_count": 1,
+        "revision": 1,
+        "updated_at": create_response.json()["version"]["updated_at"],
+        "status": "draft",
+        "tags": ["smoke", "cockpit"],
+        "group": "stability",
+    }
+    saved_yaml = (settings.scripts_dir / "draft-cockpit.yaml").read_text(
+        encoding="utf-8",
+    )
+    assert "status: draft" in saved_yaml
+    assert "tags:" in saved_yaml
+    assert "group: stability" in saved_yaml
+
+
+def test_rejects_published_script_with_missing_required_keyword_parameter(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.post(
+            "/api/scripts",
+            json={
+                "id": "published-missing-param",
+                "name": "发布缺少参数",
+                "status": "published",
+                "steps": [
+                    {
+                        "id": "step-1",
+                        "keyword": "wait",
+                        "params": {},
+                    }
+                ],
+            },
+        )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["details"] == [
+        {
+            "field": "steps[0].params.seconds",
+            "message": "Missing required parameter",
+        }
+    ]
+
+
+def test_deletes_script_yaml_file(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    payload = {
+        "id": "delete-me",
+        "name": "待删除脚本",
+        "steps": [],
+    }
+
+    with TestClient(create_app(settings)) as client:
+        create_response = client.post("/api/scripts", json=payload)
+        delete_response = client.delete("/api/scripts/delete-me")
+        detail_response = client.get("/api/scripts/delete-me")
+
+    assert create_response.status_code == 201
+    assert delete_response.status_code == 204
+    assert detail_response.status_code == 404
+    assert not (settings.scripts_dir / "delete-me.yaml").exists()
+
+
+def test_returns_404_when_deleting_missing_script(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.delete("/api/scripts/missing")
+
+    assert response.status_code == 404
 
 
 def test_increments_script_revision_when_saving_existing_script(
@@ -123,6 +233,7 @@ def test_rejects_script_with_missing_required_keyword_parameter(
             json={
                 "id": "missing-param",
                 "name": "缺少参数",
+                "status": "published",
                 "steps": [
                     {
                         "id": "step-1",
@@ -152,6 +263,7 @@ def test_rejects_script_with_unknown_keyword(tmp_path: Path) -> None:
             json={
                 "id": "unknown-keyword",
                 "name": "未知关键字",
+                "status": "published",
                 "steps": [
                     {
                         "id": "step-1",
@@ -180,6 +292,7 @@ def test_rejects_script_with_wrong_parameter_type(tmp_path: Path) -> None:
             json={
                 "id": "wrong-type",
                 "name": "参数类型错误",
+                "status": "published",
                 "steps": [
                     {
                         "id": "step-1",

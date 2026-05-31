@@ -71,6 +71,9 @@ describe('createApiClient', () => {
               enabled_step_count: 1,
               revision: 2,
               updated_at: '2026-05-31T12:00:00+00:00',
+              status: 'published',
+              tags: ['smoke'],
+              group: 'stability',
             },
           ],
         },
@@ -88,6 +91,40 @@ describe('createApiClient', () => {
       ],
     })
     expect(httpClient.get).toHaveBeenCalledWith('/api/scripts')
+  })
+
+  it('returns a script detail from the backend', async () => {
+    const httpClient = {
+      get: vi.fn().mockResolvedValue({
+        data: {
+          id: 'smoke-cockpit',
+          name: '座舱冒烟测试',
+          description: '基础稳定性巡检',
+          status: 'draft',
+          tags: [],
+          group: '',
+          variables: [],
+          steps: [],
+        },
+      }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
+
+    await expect(api.getScript('smoke-cockpit')).resolves.toMatchObject({
+      id: 'smoke-cockpit',
+      status: 'draft',
+    })
+    expect(httpClient.get).toHaveBeenCalledWith('/api/scripts/smoke-cockpit')
+  })
+
+  it('deletes a script through the backend', async () => {
+    const httpClient = {
+      delete: vi.fn().mockResolvedValue({ data: undefined }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
+
+    await expect(api.deleteScript('smoke-cockpit')).resolves.toBeUndefined()
+    expect(httpClient.delete).toHaveBeenCalledWith('/api/scripts/smoke-cockpit')
   })
 
   it('normalizes axios failed responses into ApiError', async () => {
@@ -130,6 +167,39 @@ describe('createApiClient', () => {
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
     await expect(api.listScripts()).rejects.toMatchObject({
+      message: 'Script validation failed',
+      status: 422,
+      details: [],
+    })
+  })
+
+  it('exposes backend field-level error details', async () => {
+    const details = [
+      {
+        field: 'steps[0].params.seconds',
+        message: 'Missing required parameter',
+      },
+    ]
+    const httpClient = {
+      get: vi.fn().mockRejectedValue({
+        isAxiosError: true,
+        response: {
+          data: {
+            error: {
+              code: 'script_validation_error',
+              message: 'Script validation failed',
+              details,
+            },
+          },
+          status: 422,
+          statusText: 'Unprocessable Entity',
+        },
+      }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
+
+    await expect(api.listScripts()).rejects.toMatchObject({
+      details,
       message: 'Script validation failed',
       status: 422,
     })

@@ -1,6 +1,5 @@
 import {
   Activity,
-  AlertTriangle,
   Clock3,
   FileCode2,
   FileText,
@@ -12,9 +11,7 @@ import {
   SquareTerminal,
 } from 'lucide-react'
 import type React from 'react'
-import { useQuery } from '@tanstack/react-query'
 
-import { Badge } from '@/components/ui/badge'
 import {
   Empty,
   EmptyDescription,
@@ -22,7 +19,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { createApiClient, type KeywordMetadata, type ScriptSummary } from '@/lib/api'
+import { ScriptEditorPage, ScriptListPage } from '@/features/scripts/ScriptPages'
 
 export type AppRoute = {
   path: string
@@ -31,10 +28,10 @@ export type AppRoute = {
   navGroup: 'scripts' | 'execution' | 'tools'
   icon: typeof FolderKanban
   element: React.ReactNode
+  navHidden?: boolean
 }
 
 const upcomingLabel = '等待后续阶段接入数据'
-const api = createApiClient({ baseUrl: 'http://127.0.0.1:8000' })
 
 function PlaceholderPage({
   action,
@@ -67,156 +64,6 @@ function PlaceholderPage({
   )
 }
 
-function ScriptManagementPage() {
-  const scriptsQuery = useQuery({
-    queryKey: ['scripts'],
-    queryFn: api.listScripts,
-  })
-  const keywordsQuery = useQuery({
-    queryKey: ['keywords'],
-    queryFn: api.listKeywords,
-  })
-  const scripts = scriptsQuery.data?.items ?? []
-  const keywords = keywordsQuery.data?.items ?? []
-
-  return (
-    <section className="content-panel">
-      <div className="section-heading">
-        <p>阶段四</p>
-        <h1>脚本管理</h1>
-        <span>浏览 YAML 脚本和已启用的关键字元数据。</span>
-      </div>
-
-      <div className="catalog-layout">
-        <CatalogSection
-          description="来自 /api/scripts 的 YAML 脚本摘要。"
-          isError={scriptsQuery.isError}
-          isLoading={scriptsQuery.isPending}
-          title="脚本列表"
-        >
-          {scripts.length > 0 ? (
-            <div className="catalog-list">
-              {scripts.map((script) => (
-                <ScriptSummaryItem key={script.id} script={script} />
-              ))}
-            </div>
-          ) : (
-            <EmptyListMessage label="暂无脚本" />
-          )}
-        </CatalogSection>
-
-        <CatalogSection
-          description="来自 /api/keywords 的可用关键字定义。"
-          isError={keywordsQuery.isError}
-          isLoading={keywordsQuery.isPending}
-          title="关键字库"
-        >
-          {keywords.length > 0 ? (
-            <div className="keyword-grid">
-              {keywords.map((keyword) => (
-                <KeywordItem key={keyword.name} keyword={keyword} />
-              ))}
-            </div>
-          ) : (
-            <EmptyListMessage label="暂无关键字" />
-          )}
-        </CatalogSection>
-      </div>
-    </section>
-  )
-}
-
-function CatalogSection({
-  children,
-  description,
-  isError,
-  isLoading,
-  title,
-}: {
-  children: React.ReactNode
-  description: string
-  isError: boolean
-  isLoading: boolean
-  title: string
-}) {
-  if (isLoading) {
-    return (
-      <section className="catalog-section">
-        <h2>{title}</h2>
-        <p>{description}</p>
-        <div className="catalog-placeholder">正在加载</div>
-      </section>
-    )
-  }
-
-  if (isError) {
-    return (
-      <section className="catalog-section">
-        <h2>{title}</h2>
-        <p>{description}</p>
-        <div className="catalog-error">
-          <AlertTriangle aria-hidden="true" size={16} />
-          后端数据不可用
-        </div>
-      </section>
-    )
-  }
-
-  return (
-    <section className="catalog-section">
-      <h2>{title}</h2>
-      <p>{description}</p>
-      {children}
-    </section>
-  )
-}
-
-function ScriptSummaryItem({ script }: { script: ScriptSummary }) {
-  return (
-    <article className="catalog-item">
-      <div>
-        <h3>{script.name}</h3>
-        <p>{script.description || script.id}</p>
-      </div>
-      <dl className="compact-meta">
-        <div>
-          <dt>步骤</dt>
-          <dd>
-            {script.enabled_step_count}/{script.step_count}
-          </dd>
-        </div>
-        <div>
-          <dt>版本</dt>
-          <dd>v{script.revision}</dd>
-        </div>
-      </dl>
-    </article>
-  )
-}
-
-function KeywordItem({ keyword }: { keyword: KeywordMetadata }) {
-  return (
-    <article className="keyword-item">
-      <div className="keyword-title-row">
-        <h3>{keyword.name}</h3>
-        <Badge variant={keyword.enabled ? 'default' : 'secondary'}>
-          {keyword.module}
-        </Badge>
-      </div>
-      <p>{keyword.description}</p>
-      <span>
-        {keyword.parameters.length > 0
-          ? `${keyword.parameters.length} 个参数`
-          : '无参数'}
-      </span>
-    </article>
-  )
-}
-
-function EmptyListMessage({ label }: { label: string }) {
-  return <div className="catalog-placeholder">{label}</div>
-}
-
 export const appRoutes: AppRoute[] = [
   {
     path: '/scripts',
@@ -224,7 +71,7 @@ export const appRoutes: AppRoute[] = [
     description: '管理 YAML 测试脚本列表、搜索和入口操作。',
     navGroup: 'scripts',
     icon: FolderKanban,
-    element: <ScriptManagementPage />,
+    element: <ScriptListPage />,
   },
   {
     path: '/scripts/new',
@@ -232,13 +79,16 @@ export const appRoutes: AppRoute[] = [
     description: '通过关键字和参数表单编辑测试脚本。',
     navGroup: 'scripts',
     icon: FileCode2,
-    element: (
-      <PlaceholderPage
-        title="脚本编辑器"
-        description="可视化编排关键字步骤、变量和脚本元数据。"
-        action="编辑器将在阶段五启用"
-      />
-    ),
+    element: <ScriptEditorPage />,
+  },
+  {
+    path: '/scripts/:scriptId',
+    label: '脚本详情',
+    description: '编辑已有 YAML 测试脚本。',
+    navGroup: 'scripts',
+    icon: FileCode2,
+    element: <ScriptEditorPage />,
+    navHidden: true,
   },
   {
     path: '/tasks',

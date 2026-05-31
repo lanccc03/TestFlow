@@ -131,7 +131,7 @@ function App() {
                 {group.label}
               </div>
               {appRoutes
-                .filter((route) => route.navGroup === group.id)
+                .filter((route) => route.navGroup === group.id && !route.navHidden)
                 .map((route) => (
                   <NavLink
                     className={({ isActive }) =>

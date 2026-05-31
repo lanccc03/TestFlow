@@ -1,7 +1,10 @@
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
+from app.api import websocket_endpoint
 from app.config import Settings
 from app.main import create_app
 
@@ -59,6 +62,21 @@ def test_websocket_route_is_registered(tmp_path: Path) -> None:
                 "type": "connection",
                 "status": "connected",
             }
+
+
+@pytest.mark.anyio
+async def test_websocket_endpoint_ignores_client_disconnect() -> None:
+    class DisconnectingWebSocket:
+        async def accept(self) -> None:
+            return None
+
+        async def send_json(self, _message: dict[str, str]) -> None:
+            raise WebSocketDisconnect(code=1006)
+
+        async def close(self) -> None:
+            return None
+
+    await websocket_endpoint(DisconnectingWebSocket())  # type: ignore[arg-type]
 
 
 def test_http_errors_use_common_error_response_format(tmp_path: Path) -> None:

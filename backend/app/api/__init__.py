@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Request, Response, WebSocket
+from starlette.websockets import WebSocketDisconnect
 
 from app.errors import error_response
 from app.script_catalog import (
     ScriptValidationError,
     TestScript,
+    delete_script,
     list_scripts,
     load_keywords,
     read_script,
@@ -37,7 +39,14 @@ def list_script_summaries(request: Request) -> dict[str, list[dict[str, object]]
 
 @api_router.get("/scripts/{script_id}")
 def get_script(script_id: str, request: Request) -> dict[str, object]:
-    script = read_script(request.app.state.settings, script_id)
+    try:
+        script = read_script(request.app.state.settings, script_id)
+    except FileNotFoundError:
+        return error_response(
+            status_code=404,
+            code="not_found",
+            message="Script not found",
+        )
     return script.model_dump(mode="json")
 
 
@@ -61,8 +70,24 @@ def save_script_endpoint(
     return saved_script.model_dump(mode="json")
 
 
+@api_router.delete("/scripts/{script_id}", status_code=204)
+def delete_script_endpoint(script_id: str, request: Request) -> Response:
+    was_deleted = delete_script(request.app.state.settings, script_id)
+    if not was_deleted:
+        return error_response(
+            status_code=404,
+            code="not_found",
+            message="Script not found",
+        )
+
+    return Response(status_code=204)
+
+
 @websocket_router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
-    await websocket.accept()
-    await websocket.send_json({"type": "connection", "status": "connected"})
-    await websocket.close()
+    try:
+        await websocket.accept()
+        await websocket.send_json({"type": "connection", "status": "connected"})
+        await websocket.close()
+    except WebSocketDisconnect:
+        return
