@@ -250,32 +250,36 @@
 
 阶段 6 和阶段 7 采用进程内 Adapter + 事件流协议。TestFlow 平台层负责任务生命周期、WebSocket、历史和报告；自动化框架只通过 `backend/autotest/entry.py` 接入。当前先以 mock runtime 实现同一协议，后续完整框架源码集成时替换为真实 runtime。详细设计见 `docs/superpowers/specs/2026-06-01-phase-6-7-automation-adapter-design.md`。
 
+### 进度
+
+已完成第一版进程内 Adapter + mock runtime 执行闭环。验证命令：`cd backend && uv run pytest`、`cd backend && uv run ruff check .`、`pnpm --filter @testflow/web test`、`pnpm check:web`、`pnpm check`，并通过浏览器 smoke 验证单脚本执行、实时日志、失败步骤和取消。
+
 ### 任务
 
-- [ ] 定义执行任务状态：
+- [x] 定义执行任务状态：
   - pending。
   - running。
   - passed。
   - failed。
   - canceled。
   - error。
-- [ ] 实现执行任务创建 API。
-- [ ] 实现后端本地任务调度，第一版支持单机串行执行。
-- [ ] 实现测试框架配置读取。
-- [ ] 实现关键字函数注册和查找。
-- [ ] 实现 YAML 步骤到关键字函数调用的解析。
-- [ ] 实现执行上下文：
+- [x] 实现执行任务创建 API。
+- [x] 实现后端本地任务调度，第一版支持单机串行执行。
+- [x] 实现测试框架配置读取。
+- [x] 实现关键字函数注册和查找。
+- [x] 实现 YAML 步骤到关键字函数调用的解析。
+- [x] 实现执行上下文：
   - 任务 ID。
   - 脚本版本。
   - 执行环境。
   - 目标设备。
   - 变量。
   - 日志路径。
-- [ ] 实现步骤级结果收集。
-- [ ] 实现执行日志写入。
-- [ ] 实现任务取消。
-- [ ] 实现 WebSocket 实时推送任务状态和日志。
-- [ ] 第一版执行器直接调用关键字函数，并通过 pytest 适配层保留与现有测试框架报告和运行约定的衔接边界。
+- [x] 实现步骤级结果收集。
+- [x] 实现执行日志写入。
+- [x] 实现任务取消。
+- [x] 实现 WebSocket 实时推送任务状态和日志。
+- [x] 第一版执行器直接调用关键字函数，并通过 pytest 适配层保留与现有测试框架报告和运行约定的衔接边界。
 
 ### 验收标准
 
