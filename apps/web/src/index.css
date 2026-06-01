@@ -171,41 +171,6 @@ textarea {
   color: #2b565d;
 }
 
-.state-box {
-  align-content: center;
-  background: #f6fafb;
-  border: 1px dashed #c6d8dd;
-  border-radius: 8px;
-  color: #496169;
-  display: grid;
-  gap: 10px;
-  justify-items: center;
-  min-height: 220px;
-  padding: 28px;
-  text-align: center;
-}
-
-.state-box strong {
-  color: #172026;
-  font-size: 16px;
-}
-
-.state-box p {
-  color: #617278;
-  font-size: 14px;
-  line-height: 1.55;
-  margin: 0;
-  max-width: 560px;
-}
-
-.state-box-error {
-  background: #fff7f4;
-  border-color: #f0c4b6;
-  color: #933f24;
-  min-height: 0;
-  padding: 16px;
-}
-
 .catalog-layout {
   display: grid;
   gap: 16px;

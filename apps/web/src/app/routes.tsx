@@ -12,13 +12,7 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from '@/components/ui/empty'
+import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import { TaskPage } from '@/features/execution/TaskPage'
 import { ScriptEditorPage, ScriptListPage } from '@/features/scripts/ScriptPages'
 import { CommandLibraryPage, SshTerminalPage } from '@/features/tools/ToolPages'
@@ -45,24 +39,18 @@ function PlaceholderPage({
   title: string
 }) {
   return (
-    <section className="content-panel">
-      <div className="section-heading">
-        <p>{upcomingLabel}</p>
-        <h1>{title}</h1>
-        <span>{description}</span>
-      </div>
-      <Empty className="state-box">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <FileCode2 aria-hidden="true" />
-          </EmptyMedia>
-          <EmptyTitle>{action}</EmptyTitle>
-          <EmptyDescription>
-            阶段三先提供稳定路由、布局和状态框架；业务表单、执行器和报告数据会在后续阶段逐步接入。
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    </section>
+    <PagePanel>
+      <PageHeader
+        eyebrow={upcomingLabel}
+        title={title}
+        subtitle={description}
+      />
+      <EmptyState
+        icon={<FileCode2 aria-hidden="true" />}
+        title={action}
+        description="阶段三先提供稳定路由、布局和状态框架；业务表单、执行器和报告数据会在后续阶段逐步接入。"
+      />
+    </PagePanel>
   )
 }
 
