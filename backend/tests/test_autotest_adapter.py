@@ -139,3 +139,42 @@ def test_cancellation_before_first_step_finishes_canceled() -> None:
 
     assert event_types(events) == ["run_started", "run_finished"]
     assert events[1].status == "canceled"
+
+
+def test_real_asyncio_task_cancellation_propagates() -> None:
+    request = make_request(
+        [
+            FrameworkStep(
+                id="step-1",
+                index=0,
+                keyword="wait",
+                description="Wait long enough to cancel the task",
+                enabled=True,
+                params={"seconds": 2},
+            )
+        ]
+    )
+
+    async def run_and_cancel() -> list[FrameworkEvent]:
+        events: list[FrameworkEvent] = []
+
+        async def collect() -> None:
+            async for event in run_script(request):
+                events.append(event)
+
+        task = asyncio.create_task(collect())
+        await asyncio.sleep(0.01)
+        task.cancel()
+
+        try:
+            await task
+        except asyncio.CancelledError:
+            return events
+
+        raise AssertionError(
+            f"expected task cancellation to propagate, got {event_types(events)}"
+        )
+
+    events = asyncio.run(run_and_cancel())
+
+    assert event_types(events) == ["run_started", "step_started"]

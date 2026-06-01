@@ -13,6 +13,10 @@ class MockKeywordError(Exception):
     """Raised when the mock runtime cannot execute a keyword."""
 
 
+class MockRunCanceled(Exception):
+    """Raised when the mock cancellation token requests a cooperative stop."""
+
+
 async def run_script(
     request: FrameworkRunRequest,
 ) -> AsyncIterator[FrameworkEvent]:
@@ -33,7 +37,7 @@ async def run_script(
 
         try:
             output, step_events = await _run_step(request, step)
-        except asyncio.CancelledError:
+        except MockRunCanceled:
             yield _step_event("step_finished", request, step, status="canceled")
             yield FrameworkEvent(
                 type="run_finished",
@@ -93,7 +97,7 @@ async def _run_step(
     step: FrameworkStep,
 ) -> tuple[dict[str, Any] | None, list[FrameworkEvent]]:
     if request.cancellation_token.is_canceled:
-        raise asyncio.CancelledError
+        raise MockRunCanceled
 
     match step.keyword:
         case "log.message":
@@ -134,10 +138,12 @@ async def _sleep_with_cancellation(
     remaining = min(seconds, MAX_WAIT_SECONDS)
     while remaining > 0:
         if request.cancellation_token.is_canceled:
-            raise asyncio.CancelledError
+            raise MockRunCanceled
         interval = min(WAIT_POLL_SECONDS, remaining)
         await asyncio.sleep(interval)
         remaining -= interval
+    if request.cancellation_token.is_canceled:
+        raise MockRunCanceled
 
 
 def _step_event(
