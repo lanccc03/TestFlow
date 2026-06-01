@@ -122,11 +122,7 @@ function App() {
 
       <div className="grid min-w-0 grid-rows-[auto_1fr]">
         <header className="flex min-h-18 items-center justify-between gap-4 border-b bg-card/90 px-7 py-3.5 max-sm:px-4 max-md:flex-col max-md:items-start">
-          <div>
-            <p className="m-0 block text-xs text-muted-foreground">前端应用壳与基础交互框架</p>
-            <strong className="mt-0.5 block text-lg font-semibold text-foreground">阶段三</strong>
-          </div>
-          <div className="flex flex-wrap justify-end gap-2.5" aria-label="系统状态">
+<div className="flex flex-wrap justify-end gap-2.5" aria-label="系统状态">
             <StatusPill
               icon={Server}
               label="后端服务"
