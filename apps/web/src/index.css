@@ -808,6 +808,16 @@ input[type="checkbox"] {
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
+.execution-selected-script > *,
+.execution-task-card .script-title-row,
+.execution-task-card h3,
+.execution-task-item > div,
+.execution-task-item h3,
+.execution-task-item p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .execution-selected-script span {
   color: #65767c;
   font-size: 13px;
@@ -823,6 +833,12 @@ input[type="checkbox"] {
 .execution-task-item {
   align-items: center;
   grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.execution-task-card .detail-list dd,
+.execution-task-item .compact-meta dd {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .execution-task-item p {

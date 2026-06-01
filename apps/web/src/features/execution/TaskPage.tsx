@@ -1,5 +1,5 @@
 import { Play, Square } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   useMutation,
   useQuery,
@@ -29,6 +29,7 @@ export function TaskPage() {
   const [targetDevice, setTargetDevice] = useState('')
   const [activeTask, setActiveTask] = useState<ExecutionTask | null>(null)
   const [liveLogs, setLiveLogs] = useState<string[]>([])
+  const activeTaskIdRef = useRef<string | null>(null)
 
   const scriptsQuery = useQuery({
     queryKey: ['scripts'],
@@ -66,6 +67,7 @@ export function TaskPage() {
         variables: {},
       }),
     onSuccess: async (task) => {
+      activeTaskIdRef.current = task.id
       setActiveTask(task)
       setLiveLogs(task.logs.map(formatLogEntry))
       await queryClient.invalidateQueries({ queryKey: ['tasks'] })
@@ -88,13 +90,19 @@ export function TaskPage() {
           return
         }
 
-        if (message.task) {
+        const activeTaskId = activeTaskIdRef.current
+        const messageTaskId = message.task_id ?? message.task?.id
+        const isPageTask = Boolean(activeTaskId && messageTaskId === activeTaskId)
+
+        if (isPageTask && message.task) {
           setActiveTask(message.task)
         }
-        if (message.type === 'log' && message.message) {
+        if (isPageTask && message.type === 'log' && message.message) {
           setLiveLogs((current) => [...current, formatEventLog(message)])
         }
-        void queryClient.invalidateQueries({ queryKey: ['tasks'] })
+        if (shouldRefreshTasks(message.type)) {
+          void queryClient.invalidateQueries({ queryKey: ['tasks'] })
+        }
       },
     )
 
@@ -114,8 +122,9 @@ export function TaskPage() {
   }
 
   function cancelExecution() {
-    if (activeTask) {
-      cancelMutation.mutate(activeTask.id)
+    const task = activeTask
+    if (canCancelTask(task)) {
+      cancelMutation.mutate(task.id)
     }
   }
 
@@ -182,7 +191,7 @@ export function TaskPage() {
             开始执行
           </Button>
           <Button
-            disabled={!activeTask || cancelMutation.isPending}
+            disabled={!canCancelTask(activeTask) || cancelMutation.isPending}
             onClick={cancelExecution}
             type="button"
             variant="secondary"
@@ -332,6 +341,18 @@ function isExecutionEventMessage(value: unknown): value is ExecutionEventMessage
   }
 
   return typeof value.type === 'string'
+}
+
+function shouldRefreshTasks(type: ExecutionUpdateEvent['type']) {
+  return (
+    type === 'task_status' ||
+    type === 'step_status' ||
+    type === 'task_finished'
+  )
+}
+
+function canCancelTask(task: ExecutionTask | null): task is ExecutionTask {
+  return task?.status === 'pending' || task?.status === 'running'
 }
 
 function statusVariant(status: TaskStatus) {
