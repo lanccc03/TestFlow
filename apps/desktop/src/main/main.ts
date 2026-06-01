@@ -67,6 +67,7 @@ function createBackendManager(): BackendProcessManager {
     args,
     command,
     cwd: backendCwd,
+    env: { PYTHONUTF8: "1" },
     healthUrl: BACKEND_HEALTH_URL,
   });
 }
