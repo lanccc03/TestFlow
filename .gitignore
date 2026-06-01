@@ -16,6 +16,9 @@ out/
 *.tsbuildinfo
 .worktrees/
 
+# Superpowers brainstorm artifacts
+.superpowers/
+
 # Local runtime data
 data/*
 !data/scripts/
