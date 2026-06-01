@@ -1,179 +1,291 @@
-# CSS 重构设计方案：全面 Tailwind 化
+# CSS 重构设计方案：严格 Tailwind 化
 
 **日期**: 2026-06-01
-**状态**: 已确认
-**范围**: `apps/web/src/index.css` 及所有引用自定义 CSS class 的组件
+**状态**: 设计已确认
+**范围**: `apps/web/src/index.css`、`apps/web/src/components/ui/`、应用外壳、路由占位页、脚本页、执行页、工具页及相关前端测试
 
 ---
 
 ## 目标
 
-将 `apps/web` 项目从"双轨样式体系"（shadcn CSS 变量 + 硬编码手工 CSS）统一为以 shadcn CSS 变量为唯一颜色源、Tailwind utilities + shadcn 组件为唯一表现层的单一样式体系。
+将 `apps/web` 从“shadcn token + 大量业务 CSS class”的双轨样式体系，收敛为 **shadcn token + shadcn 组件 + Tailwind utilities** 的单一表现层。
+
+本次接受 shadcn 默认 neutral 视觉方向。现有 teal 主色、深色侧边栏、浅 teal 页面背景等品牌感不要求保留；它们会被 shadcn 默认 token 和组件变体替换。
+
+最终 `apps/web/src/index.css` 只保留：
+
+- Tailwind、动画、shadcn 和字体 import
+- `@custom-variant dark`
+- `:root` token
+- `.dark` token 覆盖
+- `@theme inline`
+- shadcn `@layer base`
+- 必要的全局 reset，例如 `box-sizing`、`body margin`、`#root min-height`
+
+## 非目标
+
+- 不做暗色模式验收，不新增 dark mode 切换入口。
+- 不重做业务流程、路由结构或数据交互。
+- 不进行完整 UI 重设计，只允许适度整理重复布局和低风险结构。
+- 不保留业务样式 class 作为兼容层。
 
 ## 关键决策
 
 | 决策 | 选择 |
 |---|---|
-| 修复策略 | **全面 Tailwind 化** — 删除自定义 CSS，改用 Tailwind utilities |
-| UI 组件 | **用 shadcn 组件替换** — `<Button>`, `<Badge>`, `<Card>` 等替代自定义 .button-* .badge-* |
-| 品牌色 | **完全使用 shadcn 默认色板** — 不引入自定义品牌变量，使用项目已有的 oklch token |
+| 视觉目标 | 完全接受 shadcn 默认 neutral 外观 |
+| CSS 严格度 | 删除所有业务 CSS class，不保留带样式的项目级 class |
+| 表单策略 | 补齐 shadcn 官方形态的 `Input`、`Textarea`、`Select`、`Checkbox` |
+| 页面结构 | 允许适度整理重复布局，但不改变业务流程 |
+| 暗色模式 | 保留 token，不纳入本次验收 |
+| 验证标准 | 自动检查 + 浏览器抽样检查核心桌面路由 |
+| 文档粒度 | 设计方案 + 分阶段迁移顺序 |
 
 ## 架构对比
 
 ### 现状
 
-```
-CSS Variables (shadcn token)     手工 CSS (~750 行硬编码)
-        │                              │
-        ▼                              ▼
-  shadcn 组件 (少量使用)         自定义 class (大量使用)
-        │                              │
-        └──────────┬───────────────────┘
-                   ▼
-              页面渲染（暗色模式下自定义部分不变色）
+```text
+shadcn token               手写 CSS 业务 class
+     │                              │
+     ▼                              ▼
+少量 shadcn 组件              大量自定义 class
+     │                              │
+     └──────────────┬───────────────┘
+                    ▼
+          页面样式来源混杂，class 和 CSS 文件强耦合
 ```
 
 ### 目标
 
+```text
+shadcn token
+     │
+     ├── shadcn 基础组件
+     │      Button / Badge / Card / Alert / Empty
+     │      Input / Textarea / Select / Checkbox
+     │
+     └── Tailwind utilities
+            页面布局、响应式、状态样式、局部组合
 ```
-CSS Variables (shadcn token) — 唯一颜色源
-        │
-        ├──▶ shadcn 组件 (Button, Badge, Card, Alert, Empty 等)
-        │
-        └──▶ Tailwind Utilities (bg-card, text-muted-foreground, border-border 等)
-```
 
-## 颜色映射
+业务页面可以使用 Tailwind utility class，但不得继续依赖 `.content-panel`、`.script-layout`、`.nav-link-active`、`.catalog-placeholder`、`.validation-panel` 等业务 class。
 
-所有硬编码颜色统一映射到 shadcn 默认 token（项目已有的 `:root` 变量）：
+## 颜色策略
 
-| 当前硬编码 | 用途 | 目标 token |
-|---|---|---|
-| `#eef3f5` | 页面背景 | `bg-background` |
-| `#ffffff` | 卡片/面板背景 | `bg-card` |
-| `#10232a` | 侧边栏背景 | `bg-sidebar` |
-| `#172026` | 主文字 | `text-foreground` |
-| `#64757b` / `#65767c` / `#66777d` | 次要文字 | `text-muted-foreground` |
-| `#eef5f6` / `#f8fbfc` | 次要背景 | `bg-secondary` / `bg-muted` |
-| `#0f5c61` | 主按钮 | `bg-primary` |
-| `#d6e1e5` / `#cbdde1` / `#dbe6e9` | 边框 | `border-border` |
-| `#933f24` | 错误文字 | `text-destructive` |
-| `#fff7f4` | 错误背景 | `bg-destructive/10` |
-| `#e6f7ed` / `#dff5e6` | 成功背景 | `bg-green-50`（Tailwind 内置） |
-| `#20703a` / `#22643a` | 成功文字 | `text-green-700`（Tailwind 内置） |
-| `#fff4df` / `#fff0d1` | 警告背景 | `bg-amber-50`（Tailwind 内置） |
-| `#8a5a10` / `#87560b` | 警告文字 | `text-amber-700`（Tailwind 内置） |
-| `#79c7bd` | 品牌强调 | `bg-primary/60`（近似） |
-| `#e7f7f3` | 活跃导航 | `bg-primary/10` |
+本次不是逐个保真映射旧颜色，而是统一切换到 shadcn 默认 neutral token。
 
-## 文件变更计划
+- 页面背景使用 `bg-background`。
+- 面板和卡片使用 `bg-card text-card-foreground border-border` 或 shadcn `Card`。
+- 主要操作使用 shadcn `Button` 默认 variant。
+- 次要信息使用 `text-muted-foreground`、`bg-muted`、`bg-secondary`。
+- 错误状态使用 `Alert variant="destructive"`、`text-destructive`。
+- 成功/警告状态优先使用现有 shadcn `Badge` variant；如需要补充语义色，限制在局部 Tailwind utility，不新增品牌 token。
+- 侧边栏也使用 `bg-sidebar text-sidebar-foreground` 等默认 sidebar token，不保留现有深色 teal 外观。
 
-### 1. `index.css` — 大幅删减
+由于接受 neutral 外观，视觉验收重点是层级、可读性、布局稳定性，而不是旧色值还原。
 
-**删除 (~750 行)**:
-- 所有硬编码颜色的自定义 class（`.sidebar`, `.brand`, `.nav-link`, `.topbar`, `.status-pill`, `.main-content`, `.content-panel`, `.section-heading`, `.catalog-*`, `.script-*`, `.editor-*`, `.step-*`, `.param-*`, `.validation-panel`, `.tool-*`, `.execution-*`, `.ssh-*`, `.terminal-*`, `.suggestion-*`, `.command-*`, `code`, `.button`, `.badge`, `.state-box`, `.compact-meta`, `.keyword-*`, `.form-*`, `.save-message`, `.catalog-placeholder`, `.catalog-error` 等）
-- 自定义的 `input`, `select`, `textarea`, `button` 基础样式（shadcn 的 `@layer base` 已覆盖）
-- 自定义响应式断点 `@media (max-width: 1180px)`, `@media (max-width: 820px)`, `@media (max-width: 640px)`
+## 基础组件设计
 
-**保留**:
-- `@import "tailwindcss"`, `@import "tw-animate-css"`, `@import "shadcn/tailwind.css"`, `@import "@fontsource-variable/geist"`
-- `@custom-variant dark`
-- `:root` CSS 变量定义
-- `.dark` 变量覆盖
-- `@theme inline` 块
-- `@layer base` 块（shadcn 生成的）
-- `* { box-sizing: border-box }`, `body { margin: 0 }`, `#root { min-height: 100vh }` 等全局重置
-- `@font-face` 如果有的话
+### shadcn 表单组件
 
-**新增**:
-- 无需新增变量 — 当前 `:root` 中已包含完整的 sidebar token（`--sidebar`, `--sidebar-foreground` 等，第 42-49 行）
+新增或引入以下基础 UI 组件到 `apps/web/src/components/ui/`：
 
-### 2. `App.tsx` — 中等修改
+- `input.tsx`
+- `textarea.tsx`
+- `select.tsx`
+- `checkbox.tsx`
 
-- 侧边栏布局：`.app-frame` → `grid grid-cols-[264px_1fr] min-h-screen`
-- 侧边栏：`.sidebar` → `bg-sidebar text-sidebar-foreground flex flex-col gap-7 py-[22px] px-[14px]`
-- 品牌区：`.brand` → `flex items-center gap-3`
-- 品牌图标：`.brand-mark` → shadcn 风格圆角图标
-- 导航链接：`.nav-link` → Tailwind 原子类 + `NavLink` 的 `className` 回调
-- 顶部栏：`.topbar` → `flex items-center justify-between bg-card/86 border-b min-h-[72px]`
-- 状态标签：`.status-pill` → 自定义 StatusPill 组件使用 shadcn Badge 变体
-- 导入 shadcn Card 组件用于内容区域
+组件 API 和导入方式遵循 shadcn 当前组件形态。实现时优先使用 shadcn CLI 添加组件；若 CLI 与本项目 monorepo 路径不匹配，则参考已存在的 `button.tsx`、`badge.tsx`、`card.tsx` 风格手动补齐。
 
-### 3. `ScriptPages.tsx` — 中等修改
+页面迁移必须先把原生 `input`、`select`、`textarea`、`input[type="checkbox"]` 替换为这些组件或由这些组件组成的结构，再删除 `index.css` 中的全局表单控件样式。
 
-- 布局容器：`.script-workspace` → `grid gap-6 content-start`
-- 页面标题区：`.script-page-heading` → `flex items-center justify-between`
-- 筛选表单：`.script-filters` → `grid grid-cols-4 gap-3`
-- 脚本列表卡片：`.script-list-item` → shadcn Card 或自定义 div + Tailwind
-- 脚本标签：`.script-tags span` → shadcn Badge variant="secondary"
-- 步骤列表：`.step-list-item` → `button` + Tailwind + 条件 active 样式
-- 编辑器表单：`.editor-grid` → `grid grid-cols-2 gap-4`
-- 表单输入：`.form-grid` → `grid grid-cols-4 gap-3`
-- 验证面板：`.validation-panel` → shadcn Alert variant="destructive"
-- 保存消息：`.save-message` → shadcn Alert 或绿色背景 div
-- 加载/空状态：`.catalog-placeholder` → shadcn Empty 组件或 Tailwind 样式
+### 低风险结构组件
 
-### 4. `ToolPages.tsx` — 中等修改
+允许新增少量项目结构组件，用于消除重复 Tailwind 长串，但不得封装业务逻辑：
 
-- 命令库布局：`.tool-grid` → `grid grid-cols-[320px_1fr] gap-4`
-- 命令列表卡片：`.command-item` → Tailwind + shadcn Badge
-- 搜索框：`.tool-search` → Tailwind 表单样式
-- SSH 连接表单：`.ssh-connect-panel` → Tailwind 表单 + shadcn Card
-- 终端面板：`.terminal-shell` → `bg-gray-950 border rounded-lg overflow-hidden`
-- 命令联想：`.suggestion-item` → shadcn Button variant="ghost" 或自定义按钮
-- `parseTags` 函数：从 `ToolPages.tsx` 中删除，统一使用 `@/lib/utils` 中提取的公共函数
+- `PagePanel`：替代 `content-panel`，负责页面主容器。
+- `PageHeader`：替代 `section-heading` 和常见右侧 action 区。
+- `EmptyState` 或规范化 shadcn `Empty` 用法：替代 `catalog-placeholder`。
+- `Alert` 组合用法：替代 `validation-panel`、`catalog-error`、`save-message`。
 
-### 5. `TaskPage.tsx` — 中等修改
+列表项优先用 `Card` 和 Tailwind 组合，不新增 `.script-list-item`、`.command-item`、`.execution-task-item` 这类业务 class。
 
-- 执行控制区：`.execution-controls` → Tailwind 布局
-- 任务卡片：`.execution-task-card` → shadcn Card
-- 任务摘要：`.execution-task-item` → shadcn Card variant
-- 日志列表：`.execution-log-list` → Tailwind + `overflow-auto max-h-[420px]`
-- 脚本摘要：`.execution-selected-script` → shadcn Card
+## 文件变更范围
 
-### 6. `lib/utils.ts` — 轻微修改
+### `index.css`
 
-- 新增 `parseTags(value: string): string[]` — 从 `ScriptPages.tsx` 和 `ToolPages.tsx` 提取的公共函数
-- 保留已有的 `cn()` 函数
+删除：
+
+- 所有业务 class，包括应用外壳、导航、页面面板、脚本页、执行页、工具页、终端、列表、表单、状态、空状态、错误状态等 class。
+- 全局 `input`、`select`、`textarea`、`button` 业务样式。
+- 自定义响应式断点块。
+- 全局 `code` 业务样式；日志和命令展示改为局部 Tailwind。
+
+保留：
+
+- import、token、theme、base layer 和必要 reset。
+
+### `components/ui/`
+
+保留现有 shadcn 组件，并补齐表单组件：
+
+- `button.tsx`
+- `badge.tsx`
+- `card.tsx`
+- `alert.tsx`
+- `empty.tsx`
+- `skeleton.tsx`
+- `input.tsx`
+- `textarea.tsx`
+- `select.tsx`
+- `checkbox.tsx`
+
+### `App.tsx`
+
+- `app-frame`、`sidebar`、`brand`、`nav-*`、`topbar`、`status-*` 全部改为 Tailwind/shadcn。
+- `NavLink` 使用 `className` 回调表达 active 样式，但不输出 `nav-link-active`。
+- active 状态测试依赖 `aria-current="page"` 或 route 语义，不依赖 class。
+- `StatusPill` 使用 `Badge` 或明确的 Tailwind 组合。
+
+### `app/routes.tsx`
+
+- 替换 `content-panel`、`section-heading`、`state-box`。
+- 占位页使用 `PagePanel`、`PageHeader`、`Empty`/`EmptyState`。
+
+### `features/scripts/ScriptPages.tsx`
+
+- 替换 `script-workspace`、`script-page-heading`、`script-filters`、`script-layout`、`script-list-section`、`keyword-sidebar`。
+- 表单控件改用 shadcn 表单组件。
+- `ScriptListItem`、关键字卡片、步骤列表使用 `Card`/`Button`/`Badge` + Tailwind。
+- `validation-panel` 改用 `Alert variant="destructive"`。
+- `save-message` 改用 `Alert` 或 `Badge`/`Card` 组合。
+- `catalog-placeholder` 改为 `Empty`/`EmptyState`。
+- `parseTags` 可提取到 `lib/utils.ts`，避免脚本页和工具页重复。
+
+### `features/execution/TaskPage.tsx`
+
+- 替换 `execution-*`、`editor-section`、`form-grid`、`compact-meta` 等 class。
+- 任务控制表单使用 shadcn 表单组件。
+- 当前任务、最近任务、选中脚本摘要使用 `Card` + Tailwind。
+- 日志区域使用局部 `code`/`pre` Tailwind 样式，保留 `overflow-auto max-h-[420px]` 类行为。
+- 错误状态使用 `Alert`。
+
+### `features/tools/ToolPages.tsx`
+
+- 替换 `tool-*`、`command-*`、`ssh-*`、`terminal-*`、`suggestion-*` 等 class。
+- 命令库表单和 SSH 表单使用 shadcn 表单组件。
+- 命令列表和联想项使用 `Card`/`Button`/`Badge` + Tailwind。
+- xterm 终端容器保留必要尺寸、深色终端局部样式和 `overflow-hidden`，但样式写在 JSX Tailwind 中。
+- `parseTags` 删除本地重复实现，改用 `@/lib/utils` 公共函数。
+
+### `lib/utils.ts`
+
+- 保留 `cn()`。
+- 新增 `parseTags(value: string): string[]`，供脚本页和工具页复用。
+
+### 测试
+
+测试不保持原样。必须更新因 class 删除而失效的断言：
+
+- `App.test.tsx` 中 `nav-link-active` class 断言改为 `aria-current` 或路由语义断言。
+- 删除读取 `src/index.css` 匹配 `.nav-link-active:hover` 的测试。
+- 现有业务行为测试继续保留；只迁移与样式 class 强耦合的部分。
 
 ## 响应式策略
 
-删除所有自定义 `@media` 断点查询，改用 Tailwind 内置响应式前缀：
+删除自定义 `@media`，用 Tailwind 响应式前缀表达布局：
 
-| 原断点 | Tailwind class |
+| 原断点 | 迁移方向 |
 |---|---|
-| `@media (max-width: 640px)` | `max-sm:` |
-| `@media (max-width: 820px)` | `max-md:` 或 `max-lg:` |
-| `@media (max-width: 1180px)` | `max-xl:` |
+| `@media (max-width: 1180px)` | `max-xl:` 或 `lg:`/`xl:` 正向布局 |
+| `@media (max-width: 820px)` | `max-lg:` / `md:` / `lg:` |
+| `@media (max-width: 640px)` | `max-sm:` / `sm:` |
 
-具体断点微调在组件实现时根据实际效果选择最接近的 Tailwind 断点。
+实现时优先保持现有信息架构：桌面多列、窄屏单列。允许适度调整网格比例和间距，但不改变页面功能入口。
 
-## 不变内容
+## 分阶段迁移顺序
 
-以下内容保持不变：
-- shadcn UI 组件（[src/components/ui/](src/components/ui/) 全部保留）
-- `vite.config.ts`, `tsconfig.*.json`, `eslint.config.js`
-- `package.json` 依赖
-- 测试文件（App.test.tsx, ScriptPages 暂无独立测试, ToolPages.test.tsx, TaskPage.test.tsx）
-- `@/lib/api.ts` — API 类型和客户端
-- `@/lib/websocket.ts` — WebSocket 客户端
-- `src/test/setup.ts`, `src/testflow.d.ts`
+### 1. 基础 UI 与测试策略
 
-## 风险
+- 补齐 `Input`、`Textarea`、`Select`、`Checkbox`。
+- 更新 `App.test.tsx` 的导航 active 测试，移除 CSS 文本断言。
+- 暂不删除旧 CSS，避免页面在迁移中间态失去样式。
+
+### 2. 应用外壳
+
+- 迁移 `App.tsx` 的主布局、侧边栏、导航、顶栏、状态标签。
+- 确认 `nav-link-active` 不再被引用。
+- 删除外壳相关 CSS。
+
+### 3. 公共页面结构
+
+- 迁移 `app/routes.tsx`。
+- 建立最小结构组件或规范化 `PagePanel`、`PageHeader`、`Empty`、`Alert` 用法。
+- 删除 `content-panel`、`section-heading`、`state-box`、`catalog-placeholder`、`catalog-error` 等共享 CSS。
+
+### 4. 脚本页
+
+- 迁移 `ScriptPages.tsx`。
+- 提取 `parseTags` 到 `lib/utils.ts`。
+- 删除 `script-*`、`keyword-*`、`step-*`、`param-*`、`editor-*`、`form-*` 等已无引用 CSS。
+
+### 5. 执行页
+
+- 迁移 `TaskPage.tsx`。
+- 删除 `execution-*`、`compact-meta`、`detail-list` 等已无引用 CSS。
+
+### 6. 工具页
+
+- 迁移 `ToolPages.tsx`。
+- 重点检查 xterm 容器高度和 overflow 行为。
+- 删除 `tool-*`、`command-*`、`ssh-*`、`terminal-*`、`suggestion-*` 等已无引用 CSS。
+
+### 7. 最终 CSS 清理
+
+- 删除所有剩余业务 CSS 和全局表单 CSS。
+- 用 `rg` 确认无旧 class 引用。
+- 保留干净的 `index.css` 基础层。
+
+## 验收标准
+
+自动检查：
+
+- `pnpm check:web`
+- 现有 Vitest 前端测试，至少覆盖已修改测试文件和相关页面测试。
+
+浏览器抽样检查桌面视口：
+
+- `/scripts`
+- `/scripts/new`
+- `/execution/tasks`
+- `/tools/commands`
+- `/tools/ssh`
+
+重点检查：
+
+- 导航 active 状态清晰。
+- 表单控件有边框、聚焦态、禁用态和合理高度。
+- 空状态、错误状态、保存成功状态可读。
+- 列表卡片层级清晰，文本不溢出关键容器。
+- SSH 终端容器不塌陷，xterm 区域可见。
+
+## 风险与缓解
 
 | 风险 | 缓解措施 |
 |---|---|
-| 颜色映射后视觉效果不一致 | 每个组件改完后用 `pnpm dev` 启动开发服务器目视确认 |
-| 响应式断点变化导致布局错位 | 优先保持布局结构，只替换实现方式 |
-| 测试因 class 名变化失败 | 测试使用的 `aria-label` / `role` 选择器应不受影响 |
-| `.nav-link-active:hover` 等复杂交互样式难以用 Tailwind 表达 | 使用 `group` + `group-hover:` 或 `has-[:checked]:` 等 Tailwind 高级选择器 |
+| 旧品牌色消失导致视觉变化超预期 | 已明确接受 shadcn neutral；验收按新方向看层级和可读性 |
+| 删除全局表单 CSS 后控件裸奔 | 先补齐并迁移 shadcn 表单组件，再删除全局表单 CSS |
+| class 删除导致测试失败 | 将测试迁移到 role、label、aria-current 等语义断言 |
+| 一次性删除 CSS 难以定位问题 | 按阶段迁移，每阶段用 `rg` 确认旧 class 引用，再删除对应 CSS |
+| Tailwind class 过长降低可维护性 | 只为页面壳、标题区、空状态等低风险结构抽最小组件 |
+| xterm 终端布局被普通 Card 样式影响 | 终端区域单独用局部 Tailwind 保持固定高度、深色背景和 overflow |
 
-## 实施顺序
+## 完成定义
 
-1. `index.css` — 先删后增（删除硬编码样式，确保 shadcn token 完整）
-2. `lib/utils.ts` — 提取公共函数
-3. `App.tsx` — 框架壳（侧边栏、顶栏），这是所有页面的容器
-4. `ScriptPages.tsx` — 最大的文件，最复杂的样式
-5. `ToolPages.tsx` — 命令库 + SSH 终端
-6. `TaskPage.tsx` — 执行任务页面
-7. 全量测试 + 目视验证
+- `index.css` 不再包含业务样式 class 或全局表单控件业务样式。
+- `apps/web/src` 不再引用被删除的业务 class。
+- shadcn 表单组件存在并被页面使用。
+- 与样式 class 强耦合的测试已迁移。
+- 自动检查通过。
+- 核心桌面路由完成浏览器抽样检查。
