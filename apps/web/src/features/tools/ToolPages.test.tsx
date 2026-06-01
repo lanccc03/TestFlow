@@ -80,6 +80,7 @@ vi.mock('@xterm/addon-fit', () => ({
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}))
 
 import { CommandLibraryPage, SshTerminalPage } from './ToolPages'
+import { resetSshTerminalStore } from './sshTerminalStore'
 
 const command = {
   id: 'command-1',
@@ -201,6 +202,7 @@ describe('SshTerminalPage', () => {
 
   afterEach(() => {
     cleanup()
+    resetSshTerminalStore()
     httpGet.mockReset()
     vi.unstubAllGlobals()
   })
@@ -275,6 +277,77 @@ describe('SshTerminalPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '断开' }))
     expect(socket.sentJson()).toContainEqual({ type: 'disconnect' })
   })
+
+  it('keeps the active SSH websocket when the page unmounts and remounts', async () => {
+    const view = renderWithQuery(<SshTerminalPage />)
+
+    await waitFor(() =>
+      expect(terminalMock.terminalInstances).toHaveLength(1),
+    )
+
+    fireEvent.change(screen.getByLabelText('主机'), {
+      target: { value: '127.0.0.1' },
+    })
+    fireEvent.change(screen.getByLabelText('账号'), {
+      target: { value: 'tester' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '连接' }))
+
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message({ type: 'status', status: 'connected' })
+
+    await waitFor(() => expect(screen.getByText('已连接')).toBeInTheDocument())
+
+    view.unmount()
+
+    expect(socket.close).not.toHaveBeenCalled()
+
+    renderWithQuery(<SshTerminalPage />)
+
+    await waitFor(() =>
+      expect(terminalMock.terminalInstances).toHaveLength(2),
+    )
+    expect(screen.getByText('已连接')).toBeInTheDocument()
+
+    socket.message({ type: 'output', data: 'still alive\r\n' })
+    expect(terminalMock.terminalInstances[1].write).toHaveBeenCalledWith(
+      'still alive\r\n',
+    )
+  })
+
+  it('restores terminal output when returning to the SSH page', async () => {
+    const view = renderWithQuery(<SshTerminalPage />)
+
+    await waitFor(() =>
+      expect(terminalMock.terminalInstances).toHaveLength(1),
+    )
+
+    fireEvent.change(screen.getByLabelText('主机'), {
+      target: { value: '127.0.0.1' },
+    })
+    fireEvent.change(screen.getByLabelText('账号'), {
+      target: { value: 'tester' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: '连接' }))
+
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message({ type: 'status', status: 'connected' })
+    socket.message({ type: 'output', data: 'ready\r\n' })
+
+    view.unmount()
+    socket.message({ type: 'output', data: 'background\r\n' })
+
+    renderWithQuery(<SshTerminalPage />)
+
+    await waitFor(() =>
+      expect(terminalMock.terminalInstances).toHaveLength(2),
+    )
+    expect(terminalMock.terminalInstances[1].write).toHaveBeenCalledWith(
+      'ready\r\nbackground\r\n',
+    )
+  })
 })
 
 class FakeWebSocket {
@@ -291,9 +364,9 @@ class FakeWebSocket {
     FakeWebSocket.instances.push(this)
   }
 
-  close() {
+  close = vi.fn(() => {
     this.onclose?.({} as CloseEvent)
-  }
+  })
 
   open() {
     this.onopen?.({} as Event)

@@ -38,9 +38,9 @@ import {
   type CommandTemplate,
   type CommandTemplatePayload,
 } from '@/lib/api'
+import { sshWebSocketUrl, useSshTerminalStore } from './sshTerminalStore'
 
 const api = createApiClient({ baseUrl: 'http://127.0.0.1:8000' })
-const sshWebSocketUrl = 'ws://127.0.0.1:8000/ws/ssh'
 
 const emptyCommandForm: CommandTemplatePayload = {
   name: '',
@@ -267,18 +267,19 @@ export function SshTerminalPage() {
   const terminalContainerRef = useRef<HTMLDivElement | null>(null)
   const terminalRef = useRef<XtermTerminal | null>(null)
   const fitAddonRef = useRef<XtermFitAddon | null>(null)
-  const socketRef = useRef<WebSocket | null>(null)
-  const currentLineRef = useRef('')
-  const [currentLine, setCurrentLine] = useState('')
-  const [status, setStatus] = useState('disconnected')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [form, setForm] = useState({
-    host: '',
-    port: '22',
-    username: '',
-    password: '',
-    skipHostKeyCheck: false,
-  })
+  const currentLine = useSshTerminalStore((state) => state.currentLine)
+  const errorMessage = useSshTerminalStore((state) => state.errorMessage)
+  const form = useSshTerminalStore((state) => state.form)
+  const status = useSshTerminalStore((state) => state.status)
+  const applyStoredSuggestion = useSshTerminalStore(
+    (state) => state.applySuggestion,
+  )
+  const attachTerminal = useSshTerminalStore((state) => state.attachTerminal)
+  const connectSsh = useSshTerminalStore((state) => state.connect)
+  const disconnectSsh = useSshTerminalStore((state) => state.disconnect)
+  const sendInput = useSshTerminalStore((state) => state.sendInput)
+  const sendResize = useSshTerminalStore((state) => state.sendResize)
+  const updateForm = useSshTerminalStore((state) => state.updateForm)
 
   const commandsQuery = useQuery({
     queryKey: ['commands', ''],
@@ -300,6 +301,7 @@ export function SshTerminalPage() {
       sendTerminalSize()
     }
 
+    let detachTerminal: (() => void) | undefined
     void Promise.all([
       import('@xterm/xterm'),
       import('@xterm/addon-fit'),
@@ -322,9 +324,9 @@ export function SshTerminalPage() {
       terminal.open(terminalContainerRef.current)
       fitAddon.fit()
       terminal.onData((data) => {
-        updateCurrentLine(data)
-        sendSocketMessage({ type: 'input', data })
+        sendInput(data)
       })
+      detachTerminal = attachTerminal((data) => terminal.write(data))
       terminalRef.current = terminal
       fitAddonRef.current = fitAddon
     })
@@ -334,103 +336,37 @@ export function SshTerminalPage() {
     return () => {
       isDisposed = true
       window.removeEventListener('resize', handleResize)
-      socketRef.current?.close()
-      socketRef.current = null
+      detachTerminal?.()
       terminalRef.current?.dispose()
       terminalRef.current = null
       fitAddonRef.current = null
     }
-  }, [])
-
-  function updateForm(update: Partial<typeof form>) {
-    setForm((current) => ({ ...current, ...update }))
-  }
+  }, [attachTerminal, sendInput, sendResize])
 
   function connect() {
-    setErrorMessage('')
-    setStatus('connecting')
-    const socket = new WebSocket(sshWebSocketUrl)
-    socketRef.current = socket
-
-    socket.onopen = () => {
-      sendSocketMessage({
-        type: 'connect',
-        host: form.host,
-        port: Number(form.port),
-        username: form.username,
-        password: form.password,
-        cols: terminalRef.current?.cols ?? 80,
-        rows: terminalRef.current?.rows ?? 24,
-        skip_host_key_check: form.skipHostKeyCheck,
-      })
-    }
-
-    socket.onmessage = (event) => {
-      const message = JSON.parse(event.data) as SshServerMessage
-      if (message.type === 'output') {
-        terminalRef.current?.write(message.data)
-      } else if (message.type === 'status') {
-        setStatus(message.status)
-        if (message.message) {
-          setErrorMessage(message.message)
-        }
-      } else if (message.type === 'error') {
-        setErrorMessage(message.message)
-      }
-    }
-
-    socket.onerror = () => {
-      setStatus('error')
-      setErrorMessage('SSH WebSocket 连接异常')
-    }
-
-    socket.onclose = () => {
-      setStatus('disconnected')
-      socketRef.current = null
-    }
+    connectSsh({
+      cols: terminalRef.current?.cols ?? 80,
+      rows: terminalRef.current?.rows ?? 24,
+    })
   }
 
   function disconnect() {
-    sendSocketMessage({ type: 'disconnect' })
-    socketRef.current?.close()
-    socketRef.current = null
-    setStatus('disconnected')
+    disconnectSsh()
   }
 
   function sendTerminalSize() {
-    if (!socketRef.current || !terminalRef.current) {
+    if (!terminalRef.current) {
       return
     }
 
-    sendSocketMessage({
-      type: 'resize',
+    sendResize({
       cols: terminalRef.current.cols,
       rows: terminalRef.current.rows,
     })
   }
 
-  function sendSocketMessage(message: Record<string, unknown>) {
-    socketRef.current?.send(JSON.stringify(message))
-  }
-
-  function updateCurrentLine(data: string) {
-    const nextLine = applyTerminalInput(currentLineRef.current, data)
-    currentLineRef.current = nextLine
-    setCurrentLine(nextLine)
-  }
-
   function applySuggestion(command: CommandTemplate) {
-    const current = currentLineRef.current
-    const data = command.command.startsWith(current)
-      ? command.command.slice(current.length)
-      : command.command
-    if (!data) {
-      return
-    }
-
-    currentLineRef.current = command.command
-    setCurrentLine(command.command)
-    sendSocketMessage({ type: 'input', data })
+    applyStoredSuggestion(command.command)
   }
 
   return (
@@ -560,11 +496,6 @@ export function SshTerminalPage() {
   )
 }
 
-type SshServerMessage =
-  | { type: 'output'; data: string }
-  | { type: 'status'; status: string; message?: string }
-  | { type: 'error'; message: string }
-
 function filterCommandSuggestions(
   commands: CommandTemplate[],
   currentLine: string,
@@ -581,20 +512,6 @@ function filterCommandSuggestions(
         command.name.toLowerCase().includes(query),
     )
     .slice(0, 6)
-}
-
-function applyTerminalInput(currentLine: string, data: string) {
-  let nextLine = currentLine
-  for (const char of data) {
-    if (char === '\r' || char === '\n') {
-      nextLine = ''
-    } else if (char === '') {
-      nextLine = nextLine.slice(0, -1)
-    } else if (char >= ' ' && char !== '') {
-      nextLine += char
-    }
-  }
-  return nextLine
 }
 
 function sshStatusLabel(status: string) {
