@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.execution.events import ExecutionEventBus
@@ -15,6 +16,7 @@ from app.execution.service import (
     TaskNotFoundError,
     _framework_request,
 )
+from app.main import create_app
 from app.script_catalog import (
     ScriptStep,
     save_script,
@@ -184,6 +186,86 @@ async def test_execution_service_can_cancel_running_task(tmp_path) -> None:
         await service.stop()
 
     assert final_task.status == "canceled"
+
+
+def test_task_api_creates_and_reads_execution_task(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="smoke-cockpit",
+            name="Smoke Cockpit",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="log.message",
+                    description="Startup log",
+                    params={"message": "startup ok"},
+                )
+            ],
+        ),
+    )
+
+    with TestClient(create_app(settings)) as client:
+        create_response = client.post(
+            "/api/tasks",
+            json={
+                "script_id": "smoke-cockpit",
+                "environment": "local",
+                "target_device": "bench-1",
+            },
+        )
+        created = create_response.json()
+
+        read_response = client.get(f"/api/tasks/{created['id']}")
+        list_response = client.get("/api/tasks")
+
+    assert create_response.status_code == 201
+    assert created["script_id"] == "smoke-cockpit"
+    assert read_response.status_code == 200
+    assert read_response.json()["id"] == created["id"]
+    assert list_response.status_code == 200
+    assert created["id"] in [task["id"] for task in list_response.json()["items"]]
+
+
+def test_task_api_returns_404_for_missing_script(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.post("/api/tasks", json={"script_id": "missing"})
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "not_found"
+
+
+def test_task_api_cancels_running_task(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="long-wait",
+            name="Long Wait",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="Long wait",
+                    params={"seconds": 2},
+                )
+            ],
+        ),
+    )
+
+    with TestClient(create_app(settings)) as client:
+        create_response = client.post("/api/tasks", json={"script_id": "long-wait"})
+        created = create_response.json()
+        cancel_response = client.post(f"/api/tasks/{created['id']}/cancel")
+
+    assert create_response.status_code == 201
+    assert cancel_response.status_code == 200
+    assert cancel_response.json()["id"] == created["id"]
 
 
 @pytest.mark.anyio

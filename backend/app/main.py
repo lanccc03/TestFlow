@@ -8,6 +8,7 @@ from app.api import api_router, websocket_router
 from app.config import Settings, get_settings
 from app.db import ensure_database
 from app.errors import register_exception_handlers
+from app.execution.service import ExecutionService
 from app.logging import configure_logging
 
 
@@ -16,7 +17,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     configure_logging(settings)
     ensure_database(settings)
-    yield
+    execution_service = ExecutionService(settings)
+    app.state.execution_service = execution_service
+    await execution_service.start()
+    try:
+        yield
+    finally:
+        await execution_service.stop()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

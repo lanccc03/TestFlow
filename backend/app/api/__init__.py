@@ -9,6 +9,12 @@ from app.command_library import (
     update_command_template,
 )
 from app.errors import error_response
+from app.execution.models import ExecutionTaskCreate
+from app.execution.service import (
+    ExecutionService,
+    TaskAlreadyFinishedError,
+    TaskNotFoundError,
+)
 from app.script_catalog import (
     ScriptValidationError,
     TestScript,
@@ -28,8 +34,83 @@ def empty_items_response() -> dict[str, list[object]]:
     return {"items": []}
 
 
-api_router.add_api_route("/tasks", empty_items_response, methods=["GET"])
 api_router.add_api_route("/reports", empty_items_response, methods=["GET"])
+
+
+def execution_service(request: Request) -> ExecutionService:
+    return request.app.state.execution_service
+
+
+@api_router.get("/tasks")
+def list_execution_tasks(request: Request) -> dict[str, list[dict[str, object]]]:
+    service = execution_service(request)
+    return {
+        "items": [
+            summary.model_dump(mode="json") for summary in service.list_tasks()
+        ]
+    }
+
+
+@api_router.post("/tasks", response_model=None)
+async def create_execution_task(
+    payload: ExecutionTaskCreate,
+    request: Request,
+    response: Response,
+) -> dict[str, object] | Response:
+    service = execution_service(request)
+    try:
+        task = await service.create_task(payload)
+    except FileNotFoundError:
+        return error_response(
+            status_code=404,
+            code="not_found",
+            message="Script not found",
+        )
+
+    response.status_code = 201
+    return task.model_dump(mode="json")
+
+
+@api_router.get("/tasks/{task_id}", response_model=None)
+def get_execution_task(task_id: str, request: Request) -> dict[str, object] | Response:
+    service = execution_service(request)
+    try:
+        task = service.get_task(task_id)
+    except TaskNotFoundError:
+        task = None
+
+    if task is None:
+        return error_response(
+            status_code=404,
+            code="not_found",
+            message="Task not found",
+        )
+
+    return task.model_dump(mode="json")
+
+
+@api_router.post("/tasks/{task_id}/cancel", response_model=None)
+async def cancel_execution_task(
+    task_id: str,
+    request: Request,
+) -> dict[str, object] | Response:
+    service = execution_service(request)
+    try:
+        task = await service.cancel_task(task_id)
+    except TaskNotFoundError:
+        return error_response(
+            status_code=404,
+            code="not_found",
+            message="Task not found",
+        )
+    except TaskAlreadyFinishedError:
+        return error_response(
+            status_code=409,
+            code="task_finished",
+            message="Task already finished",
+        )
+
+    return task.model_dump(mode="json")
 
 
 @api_router.get("/keywords")
@@ -150,6 +231,20 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         await websocket.accept()
         await websocket.send_json({"type": "connection", "status": "connected"})
         await websocket.close()
+    except WebSocketDisconnect:
+        return
+
+
+@websocket_router.websocket("/ws/executions")
+async def execution_websocket_endpoint(websocket: WebSocket) -> None:
+    try:
+        await websocket.accept()
+        service = websocket.app.state.execution_service
+        async with service.events.subscribe() as subscriber:
+            await websocket.send_json({"type": "connection", "status": "connected"})
+            while True:
+                message = await subscriber.get()
+                await websocket.send_json(message.model_dump(mode="json"))
     except WebSocketDisconnect:
         return
 
