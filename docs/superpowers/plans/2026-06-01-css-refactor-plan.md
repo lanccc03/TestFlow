@@ -1,266 +1,107 @@
-# CSS 重构：全面 Tailwind 化 — 实施计划
+# CSS Refactor Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 删除 `index.css` 中 ~750 行硬编码颜色自定义样式，全面迁移至 Tailwind utilities + shadcn 组件，统一使用 shadcn 默认色板。
+**Goal:** Migrate `apps/web` from business CSS classes to shadcn/ui components plus Tailwind utilities, accepting the shadcn neutral visual direction.
 
-**Architecture:** shadcn CSS 变量作为唯一颜色源 → 分流至 shadcn 组件（Button, Badge, Card 等）和 Tailwind 原子类（布局、间距、排版）。删除所有自定义 class，用 Tailwind 内置响应式前缀替代自定义媒体查询。
+**Architecture:** Add missing shadcn form primitives first, then migrate shell, shared page structure, feature pages, and finally delete unused CSS. Keep behavior and routing intact while moving visual styling into shadcn components and local Tailwind class strings.
 
-**Tech Stack:** React 19 + Tailwind CSS 4 + shadcn/ui v4 + Vite 8
+**Tech Stack:** React 19, React Router 7, Vite 8, Tailwind CSS 4, shadcn/ui, Vitest, Testing Library.
 
 ---
 
-## 文件结构
+## Source Spec
 
-| 文件 | 操作 | 职责 |
+Implement the approved spec in `docs/superpowers/specs/2026-06-01-css-refactor-design.md`.
+
+Important decisions from the spec:
+
+- Use shadcn default neutral styling; do not preserve the old teal/dark-sidebar brand look.
+- Delete all business CSS classes. Do not keep `.content-panel`, `.nav-link-active`, `.catalog-placeholder`, `.validation-panel`, or similar classes as compatibility markers.
+- Add shadcn-style `Input`, `Textarea`, `Select`, and `Checkbox`.
+- Do not include dark mode visual QA in this implementation.
+- Verify with automated checks plus browser sampling of core desktop routes.
+
+## File Structure
+
+| Path | Action | Responsibility |
 |---|---|---|
-| `apps/web/src/index.css` | Modify | 精简为 ~100 行：@import + :root + .dark + @theme + @layer base + 全局重置 |
-| `apps/web/src/lib/utils.ts` | Modify | 新增 `parseTags()` 公共函数 |
-| `apps/web/src/App.tsx` | Modify | 侧边栏、顶栏、状态标签全部 Tailwind 化 |
-| `apps/web/src/features/scripts/ScriptPages.tsx` | Modify | 脚本列表 + 编辑器 Tailwind 化 |
-| `apps/web/src/features/tools/ToolPages.tsx` | Modify | 命令库 + SSH 终端 Tailwind 化 |
-| `apps/web/src/features/execution/TaskPage.tsx` | Modify | 执行任务页面 Tailwind 化 |
+| `apps/web/src/components/ui/input.tsx` | Create | shadcn-style text input primitive |
+| `apps/web/src/components/ui/textarea.tsx` | Create | shadcn-style textarea primitive |
+| `apps/web/src/components/ui/select.tsx` | Create | shadcn-style select primitive |
+| `apps/web/src/components/ui/checkbox.tsx` | Create | shadcn-style checkbox primitive |
+| `apps/web/src/components/layout/page.tsx` | Create | Small shared page layout primitives only: panel, header, empty state |
+| `apps/web/src/lib/utils.ts` | Modify | Keep `cn()`, add shared `parseTags()` |
+| `apps/web/src/lib/utils.test.ts` | Create | Unit tests for `parseTags()` |
+| `apps/web/src/App.tsx` | Modify | Tailwind/shadcn shell, navigation, topbar, status badges |
+| `apps/web/src/App.test.tsx` | Modify | Remove CSS text assertions; assert semantic nav state |
+| `apps/web/src/app/routes.tsx` | Modify | Replace placeholder page business classes with layout primitives |
+| `apps/web/src/features/scripts/ScriptPages.tsx` | Modify | Migrate script list/editor to shadcn form primitives and cards |
+| `apps/web/src/features/execution/TaskPage.tsx` | Modify | Migrate execution task UI, logs, alerts, forms |
+| `apps/web/src/features/tools/ToolPages.tsx` | Modify | Migrate command library and SSH terminal UI |
+| `apps/web/src/index.css` | Modify | Delete business CSS after each migration phase; leave tokens/base/reset only |
 
-**不变**: shadcn 组件 (`src/components/ui/*`)、测试文件、配置文件、API/WebSocket 库。
+Do not change backend code, desktop Electron code, API client behavior, WebSocket behavior, or route definitions except for styling and shared layout component usage.
 
----
+## Shared Rules For Every Task
 
-### Task 1: 精简 index.css
-
-**Files:**
-- Modify: `apps/web/src/index.css`
-
-这是最关键的一步 — 删除所有硬编码颜色的自定义 class，只保留 shadcn token 系统和全局重置。后续所有 task 都依赖此步完成。
-
-- [ ] **Step 1: 备份并替换 index.css**
-
-将 `apps/web/src/index.css` 替换为以下精简版本（从 1133 行缩减到 ~100 行）：
-
-```css
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@fontsource-variable/geist";
-
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  color: #172026;
-  background: #eef3f5;
-  font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-#root {
-  min-height: 100vh;
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-}
-
-@theme inline {
-  --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
-  --color-background: var(--background);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
-}
-```
-
-- [ ] **Step 2: 验证 CSS 构建不报错**
-
-```bash
-cd c:/code/TestFlow/apps/web && npx vite build 2>&1 | tail -5
-```
-
-预期：构建成功（TypeScript 可能因未更新的组件 class 引用报错，CSS 层应无错误）。
-
-- [ ] **Step 3: 检查是否有遗漏的 CSS 变量引用**
-
-```bash
-cd c:/code/TestFlow/apps/web && grep -r "var(--" src/index.css | head -30
-```
-
-预期：所有 `var(--*)` 引用均在保留的 `:root`/`.dark`/`@theme inline` 中有定义。
-
-- [ ] **Step 4: 提交**
-
-```bash
-git add apps/web/src/index.css
-git commit -m "refactor(web): strip index.css to shadcn tokens only
-
-Remove ~750 lines of hardcoded custom CSS classes. Keep only:
-- @import declarations
-- :root / .dark CSS variable definitions
-- @theme inline block
-- @layer base (shadcn)
-- Global resets (box-sizing, body margin, font inherit)
-
-All component-level styles now delegated to Tailwind utilities
-and shadcn components."
-
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
-```
+- Use `rg` before deleting CSS to confirm the corresponding class names are no longer referenced.
+- Use `cn()` for conditional class strings.
+- Use role/label/ARIA assertions in tests; do not assert old business classes.
+- Keep generated shadcn component style consistent with existing `apps/web/src/components/ui/button.tsx`, `badge.tsx`, `card.tsx`, and `alert.tsx`.
+- Commit after each task if executing interactively. Commit messages in this plan are suggestions; keep them short and imperative if local history prefers that.
 
 ---
 
-### Task 2: 提取 parseTags 到 lib/utils.ts
+### Task 1: Add Form Primitives And `parseTags`
 
 **Files:**
+- Create: `apps/web/src/components/ui/input.tsx`
+- Create: `apps/web/src/components/ui/textarea.tsx`
+- Create: `apps/web/src/components/ui/select.tsx`
+- Create: `apps/web/src/components/ui/checkbox.tsx`
+- Create: `apps/web/src/lib/utils.test.ts`
 - Modify: `apps/web/src/lib/utils.ts`
 
-从 ScriptPages.tsx 和 ToolPages.tsx 中消除重复的 `parseTags` 函数。
+- [ ] **Step 1: Add the failing `parseTags` test**
 
-- [ ] **Step 1: 将 parseTags 添加到 utils.ts**
+Create `apps/web/src/lib/utils.test.ts`:
 
-在 `apps/web/src/lib/utils.ts` 中，`cn` 函数之后添加：
+```ts
+import { describe, expect, it } from 'vitest'
 
-```typescript
-export function parseTags(value: string): string[] {
-  return Array.from(
-    new Set(
-      value
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter(Boolean),
-    ),
-  )
-}
+import { parseTags } from './utils'
+
+describe('parseTags', () => {
+  it('splits comma-separated tags, trims whitespace, removes blanks, and deduplicates', () => {
+    expect(parseTags(' smoke, regression, smoke, , nightly ')).toEqual([
+      'smoke',
+      'regression',
+      'nightly',
+    ])
+  })
+
+  it('returns an empty array for blank input', () => {
+    expect(parseTags(' ,  , ')).toEqual([])
+  })
+})
 ```
 
-完整文件内容：
+- [ ] **Step 2: Run the new test and verify it fails**
 
-```typescript
+Run:
+
+```bash
+pnpm --dir apps/web test src/lib/utils.test.ts
+```
+
+Expected: FAIL because `parseTags` is not exported from `src/lib/utils.ts`.
+
+- [ ] **Step 3: Implement `parseTags`**
+
+Modify `apps/web/src/lib/utils.ts` so it contains:
+
+```ts
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -280,193 +121,224 @@ export function parseTags(value: string): string[] {
 }
 ```
 
-- [ ] **Step 2: 验证 TypeScript 编译**
+- [ ] **Step 4: Run the `parseTags` test and verify it passes**
+
+Run:
 
 ```bash
-cd c:/code/TestFlow/apps/web && npx tsc -b --noEmit 2>&1 | grep utils
+pnpm --dir apps/web test src/lib/utils.test.ts
 ```
 
-预期：utils.ts 无类型错误。
+Expected: PASS, 2 tests passing.
 
-- [ ] **Step 3: 提交**
+- [ ] **Step 5: Add shadcn form primitives with the CLI**
+
+Run from the repo root:
 
 ```bash
-git add apps/web/src/lib/utils.ts
-git commit -m "refactor(web): extract parseTags to shared utils
+pnpm --dir apps/web exec shadcn add input textarea select checkbox
+```
 
-Eliminate duplicate parseTags in ScriptPages.tsx and ToolPages.tsx."
+Expected: `apps/web/src/components/ui/input.tsx`, `textarea.tsx`, `select.tsx`, and `checkbox.tsx` are created or confirmed.
 
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+If the workspace command cannot find the shadcn executable, run the documented monorepo form:
+
+```bash
+pnpm dlx shadcn@latest add input textarea select checkbox -c apps/web
+```
+
+- [ ] **Step 6: Verify imports and generated component style**
+
+Run:
+
+```bash
+rg -n 'from "radix-ui"|from "@/lib/utils"|data-slot=' apps/web/src/components/ui
+pnpm --dir apps/web exec tsc -p tsconfig.app.json --noEmit
+```
+
+Expected:
+
+- UI files import `cn` from `@/lib/utils`.
+- Radix-based components import primitives from the package style already used in this repo, for example `import { Slot } from "radix-ui"` in `button.tsx`.
+- TypeScript exits with code 0.
+
+- [ ] **Step 7: Commit Task 1**
+
+Run:
+
+```bash
+git add apps/web/src/components/ui/input.tsx apps/web/src/components/ui/textarea.tsx apps/web/src/components/ui/select.tsx apps/web/src/components/ui/checkbox.tsx apps/web/src/lib/utils.ts apps/web/src/lib/utils.test.ts
+git commit -m "add web form primitives"
 ```
 
 ---
 
-### Task 3: App.tsx — 框架壳 Tailwind 化
+### Task 2: Migrate App Shell And Navigation Tests
 
 **Files:**
+- Modify: `apps/web/src/App.test.tsx`
 - Modify: `apps/web/src/App.tsx`
+- Modify: `apps/web/src/index.css`
 
-这是整个应用的布局骨架。侧边栏、顶栏、状态标签全部从自定义 CSS class 迁移到 Tailwind utilities。
+- [ ] **Step 1: Replace class-coupled navigation tests with semantic tests**
 
-- [ ] **Step 1: 用 Tailwind 重写 App 组件**
+In `apps/web/src/App.test.tsx`:
 
-将 `apps/web/src/App.tsx` 完整替换为：
+- Remove these imports:
+
+```ts
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+```
+
+- Replace the `only marks the exact navigation route as active` test with:
+
+```ts
+  it('only marks the exact navigation route as current', async () => {
+    renderApp(['/scripts/new'])
+
+    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /脚本管理/ })).not.toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(screen.getByRole('link', { name: /脚本编辑器/ })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+  })
+```
+
+- Delete the entire `keeps the selected navigation item styling while hovered` test.
+
+- Add this test after the current-route test:
+
+```ts
+  it('does not render legacy navigation styling classes', async () => {
+    renderApp(['/scripts/new'])
+
+    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /脚本管理/ }).className).not.toContain(
+      'nav-link',
+    )
+    expect(screen.getByRole('link', { name: /脚本编辑器/ }).className).not.toContain(
+      'nav-link',
+    )
+  })
+```
+
+- [ ] **Step 2: Run App tests and verify the new legacy-class test fails**
+
+Run:
+
+```bash
+pnpm --dir apps/web test src/App.test.tsx
+```
+
+Expected: FAIL because `App.tsx` still renders `nav-link` and `nav-link-active`.
+
+- [ ] **Step 3: Migrate `App.tsx` imports**
+
+Update the imports at the top of `apps/web/src/App.tsx`:
+
+```ts
+import { useEffect, useState } from 'react'
+import { Navigate, NavLink, Route, Routes } from 'react-router'
+import { Cable, ChevronRight, Server } from 'lucide-react'
+
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+
+import { appRoutes, navGroups } from './app/routes'
+import { createWebSocketClient, type WebSocketStatus } from './lib/websocket'
+import type { BackendStatus } from './testflow'
+```
+
+- [ ] **Step 4: Migrate `App.tsx` shell classes**
+
+Replace the top-level JSX shape in `App.tsx` with Tailwind classes. Keep existing state/effects/routes unchanged.
+
+Use these class strings:
 
 ```tsx
-import { useEffect, useState } from "react"
-import { Navigate, NavLink, Route, Routes } from "react-router"
-import { Cable, ChevronRight, Server } from "lucide-react"
-
-import { appRoutes, navGroups } from "./app/routes"
-import { createWebSocketClient, type WebSocketStatus } from "./lib/websocket"
-import { Badge } from "./components/ui/badge"
-import type { BackendStatus } from "./testflow"
-
-const backendStateLabels: Record<BackendStatus["state"], string> = {
-  exited: "已退出",
-  failed: "异常",
-  running: "运行中",
-  starting: "启动中",
-  stopped: "已停止",
-}
-
-const websocketStateLabels: Record<WebSocketStatus["state"], string> = {
-  connected: "已连接",
-  connecting: "连接中",
-  disconnected: "已断开",
-  reconnecting: "重连中",
-}
-
-const backendBaseUrl = "http://127.0.0.1:8000"
-const websocketUrl = "ws://127.0.0.1:8000/ws"
-
-function App() {
-  const [backendStatus, setBackendStatus] = useState<BackendStatus>({
-    healthUrl: `${backendBaseUrl}/health`,
-    state: window.testflow ? "starting" : "stopped",
-  })
-  const [websocketStatus, setWebsocketStatus] = useState<WebSocketStatus>({
-    state: "connecting",
-  })
-
-  useEffect(() => {
-    if (!window.testflow) {
-      return
-    }
-
-    let isMounted = true
-    void window.testflow.backend.getStatus().then((status) => {
-      if (isMounted && status) {
-        setBackendStatus(status)
-      }
-    })
-    const unsubscribe = window.testflow.backend.onStatusChange((status) => {
-      setBackendStatus(status)
-    })
-
-    return () => {
-      isMounted = false
-      unsubscribe()
-    }
-  }, [])
-
-  useEffect(() => {
-    const client = createWebSocketClient({ url: websocketUrl })
-    const unsubscribe = client.subscribe((status) => setWebsocketStatus(status))
-    client.connect()
-
-    return () => {
-      unsubscribe()
-      client.disconnect()
-    }
-  }, [])
-
-  return (
-    <div className="grid grid-cols-[264px_1fr] min-h-screen max-sm:grid-cols-1">
-      <aside
-        className="flex flex-col gap-7 py-[22px] px-[14px] bg-sidebar text-sidebar-foreground border-r border-sidebar-border max-sm:gap-4"
-        aria-label="主导航"
-      >
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex items-center justify-center size-[38px] rounded-md bg-primary/60 text-primary-foreground text-[13px] font-extrabold">
-            TF
-          </div>
-          <div>
-            <strong className="block text-white text-[17px]">TestFlow</strong>
-            <span className="block text-sidebar-foreground/60 text-xs mt-0.5">
-              自动化测试工作台
-            </span>
-          </div>
-        </div>
-
-        <nav className="grid gap-2">
-          {navGroups.map((group) => (
-            <div className="grid gap-2 border-t border-sidebar-border pt-4" key={group.id}>
-              <div className="flex items-center gap-2 text-sidebar-foreground/60 text-xs font-bold px-[10px] pb-1">
-                <group.icon aria-hidden="true" size={14} />
-                {group.label}
-              </div>
-              {appRoutes
-                .filter((route) => route.navGroup === group.id && !route.navHidden)
-                .map((route) => (
-                  <NavLink
-                    className={({ isActive }) =>
-                      `grid grid-cols-[18px_1fr_14px] items-center gap-[10px] rounded-md text-sm min-h-[38px] px-[10px] no-underline text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground ${
-                        isActive
-                          ? "bg-primary/10 text-primary font-bold hover:bg-primary/10 hover:text-primary"
-                          : ""
-                      }`
-                    }
-                    end
-                    key={route.path}
-                    to={route.path}
-                  >
-                    <route.icon aria-hidden="true" size={17} />
-                    <span>{route.label}</span>
-                    <ChevronRight aria-hidden="true" size={14} />
-                  </NavLink>
-                ))}
-            </div>
-          ))}
-        </nav>
-      </aside>
-
-      <div className="grid grid-rows-[auto_1fr] min-w-0">
-        <header className="flex items-center justify-between min-h-[72px] px-7 py-[14px] bg-card/86 border-b border-border max-sm:flex-col max-sm:items-start max-sm:gap-3 max-sm:px-4">
-          <div>
-            <p className="text-muted-foreground text-xs m-0">前端应用壳与基础交互框架</p>
-            <strong className="block text-foreground text-lg mt-[3px]">阶段三</strong>
-          </div>
-          <div className="flex flex-wrap gap-[10px] justify-end" aria-label="系统状态">
-            <StatusPill
-              icon={Server}
-              label="后端服务"
-              tone={backendStatus.state === "running" ? "success" : "warning"}
-              value={backendStateLabels[backendStatus.state]}
-            />
-            <StatusPill
-              icon={Cable}
-              label="WebSocket"
-              tone={websocketStatus.state === "connected" ? "success" : "warning"}
-              value={websocketStateLabels[websocketStatus.state]}
-            />
-          </div>
-        </header>
-
-        <main className="grid gap-5 p-6 pb-[34px] max-sm:px-4">
-          <Routes>
-            <Route element={<Navigate replace to="/scripts" />} path="/" />
-            {appRoutes.map((route) => (
-              <Route element={route.element} key={route.path} path={route.path} />
-            ))}
-            <Route element={<Navigate replace to="/scripts" />} path="*" />
-          </Routes>
-        </main>
+<div className="grid min-h-screen grid-cols-[264px_minmax(0,1fr)] bg-background text-foreground max-lg:grid-cols-1">
+  <aside
+    className="flex flex-col gap-7 border-r border-sidebar-border bg-sidebar px-3.5 py-5 text-sidebar-foreground max-lg:gap-4"
+    aria-label="主导航"
+  >
+    <div className="flex items-center gap-3 px-2">
+      <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
+        TF
+      </div>
+      <div>
+        <strong className="block text-base font-semibold text-sidebar-foreground">
+          TestFlow
+        </strong>
+        <span className="mt-0.5 block text-xs text-sidebar-foreground/60">
+          自动化测试工作台
+        </span>
       </div>
     </div>
-  )
-}
 
+    <nav className="grid gap-2 max-sm:grid-cols-1 max-lg:grid-cols-3">
+      {/* keep navGroups mapping here */}
+    </nav>
+  </aside>
+
+  <div className="grid min-w-0 grid-rows-[auto_1fr]">
+    <header className="flex min-h-18 items-center justify-between gap-4 border-b bg-card/90 px-7 py-3.5 max-sm:px-4 max-md:flex-col max-md:items-start">
+      {/* keep title and status strip here */}
+    </header>
+
+    <main className="grid gap-5 p-7 pb-8 max-sm:px-4">
+      {/* keep Routes here */}
+    </main>
+  </div>
+</div>
+```
+
+Inside the `navGroups.map` block, use this structure:
+
+```tsx
+<div className="grid gap-2 border-t border-sidebar-border pt-4" key={group.id}>
+  <div className="flex items-center gap-2 px-2 text-xs font-semibold text-sidebar-foreground/60">
+    <group.icon aria-hidden="true" size={14} />
+    {group.label}
+  </div>
+  {appRoutes
+    .filter((route) => route.navGroup === group.id && !route.navHidden)
+    .map((route) => (
+      <NavLink
+        className={({ isActive }) =>
+          cn(
+            'grid min-h-9 grid-cols-[18px_minmax(0,1fr)_14px] items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/75 no-underline transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+            isActive &&
+              'bg-sidebar-accent text-sidebar-accent-foreground font-semibold',
+          )
+        }
+        end
+        key={route.path}
+        to={route.path}
+      >
+        <route.icon aria-hidden="true" size={17} />
+        <span>{route.label}</span>
+        <ChevronRight aria-hidden="true" size={14} />
+      </NavLink>
+    ))}
+</div>
+```
+
+For the status strip:
+
+```tsx
+<div className="flex flex-wrap justify-end gap-2.5" aria-label="系统状态">
+  {/* existing StatusPill calls */}
+</div>
+```
+
+Replace `StatusPill` with:
+
+```tsx
 function StatusPill({
   icon: Icon,
   label,
@@ -475,1543 +347,1030 @@ function StatusPill({
 }: {
   icon: typeof Server
   label: string
-  tone: "success" | "warning"
+  tone: 'success' | 'warning'
   value: string
 }) {
   return (
-    <div
-      className={`flex items-center gap-[7px] min-h-[34px] px-[10px] rounded-md border text-xs font-bold ${
-        tone === "success"
-          ? "bg-green-50 border-green-200 text-green-700"
-          : "bg-amber-50 border-amber-200 text-amber-700"
-      }`}
+    <Badge
+      className={cn(
+        'min-h-8 gap-1.5 rounded-lg px-2.5 font-medium',
+        tone === 'success'
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-secondary text-secondary-foreground',
+      )}
+      variant={tone === 'success' ? 'default' : 'secondary'}
     >
       <Icon aria-hidden="true" size={14} />
-      <span className="text-muted-foreground font-normal">{label}</span>
-      <strong className="text-xs">{value}</strong>
-    </div>
+      <span className="text-current/70">{label}</span>
+      <strong className="font-semibold">{value}</strong>
+    </Badge>
   )
 }
-
-export default App
 ```
 
-- [ ] **Step 2: 检查 TypeScript 编译**
+- [ ] **Step 5: Delete app-shell CSS after references are gone**
+
+Run:
 
 ```bash
-cd c:/code/TestFlow/apps/web && npx tsc -b --noEmit 2>&1 | head -20
+rg -n 'app-frame|sidebar|brand|brand-mark|nav-list|nav-group|nav-group-label|nav-link|workspace|topbar|status-strip|status-pill|main-content' apps/web/src
 ```
 
-预期：App.tsx 无类型错误（可能 ScriptPages/ToolPages/TaskPage 仍有错误，正常，后续 task 修复）。
+Expected: no matches outside `apps/web/src/index.css`.
 
-- [ ] **Step 3: 提交**
+Then delete these selector blocks from `apps/web/src/index.css`:
+
+- `.app-frame`
+- `.sidebar`
+- `.brand`
+- `.brand-mark`
+- `.nav-list`
+- `.nav-group`
+- `.nav-group-label`
+- `.nav-link`
+- `.nav-link:hover`
+- `.nav-link-active`
+- `.nav-link-active:hover`
+- `.workspace`
+- `.topbar`
+- `.topbar p`
+- `.topbar strong`
+- `.status-strip`
+- `.status-pill`
+- `.status-pill-success`
+- `.status-pill-warning`
+- `.main-content`
+
+- [ ] **Step 6: Run App tests**
+
+Run:
 
 ```bash
-git add apps/web/src/App.tsx
-git commit -m "refactor(web): migrate App shell to Tailwind utilities
+pnpm --dir apps/web test src/App.test.tsx
+```
 
-Replace all custom CSS classes (.app-frame, .sidebar, .brand,
-.topbar, .status-pill, .nav-link, .main-content) with Tailwind
-utilities. Use shadcn Badge for status indicators."
+Expected: PASS. The new semantic navigation tests pass, and no test reads `index.css`.
 
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+- [ ] **Step 7: Commit Task 2**
+
+Run:
+
+```bash
+git add apps/web/src/App.tsx apps/web/src/App.test.tsx apps/web/src/index.css
+git commit -m "migrate web app shell styling"
 ```
 
 ---
 
-### Task 4: ScriptPages.tsx — 脚本列表页面
+### Task 3: Add Shared Page Layout Primitives And Migrate Placeholder Routes
+
+**Files:**
+- Create: `apps/web/src/components/layout/page.tsx`
+- Modify: `apps/web/src/app/routes.tsx`
+- Modify: `apps/web/src/index.css`
+
+- [ ] **Step 1: Create shared layout primitives**
+
+Create `apps/web/src/components/layout/page.tsx`:
+
+```tsx
+import type React from 'react'
+
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '@/components/ui/empty'
+import { cn } from '@/lib/utils'
+
+export function PagePanel({
+  className,
+  ...props
+}: React.ComponentProps<'section'>) {
+  return (
+    <section
+      className={cn(
+        'grid min-h-[360px] content-start gap-6 rounded-lg border bg-card p-6 text-card-foreground shadow-sm',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export function PageHeader({
+  actions,
+  eyebrow,
+  subtitle,
+  title,
+}: {
+  actions?: React.ReactNode
+  eyebrow?: React.ReactNode
+  subtitle?: React.ReactNode
+  title: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4 max-sm:flex-col">
+      <div className="grid gap-1.5">
+        {eyebrow ? (
+          <p className="m-0 text-xs font-bold text-muted-foreground">{eyebrow}</p>
+        ) : null}
+        <h1 className="m-0 text-3xl font-semibold leading-tight text-foreground">
+          {title}
+        </h1>
+        {subtitle ? (
+          <p className="m-0 text-sm text-muted-foreground">{subtitle}</p>
+        ) : null}
+      </div>
+      {actions ? (
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {actions}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+export function EmptyState({
+  description,
+  icon,
+  title,
+}: {
+  description?: React.ReactNode
+  icon?: React.ReactNode
+  title: React.ReactNode
+}) {
+  return (
+    <Empty className="min-h-18 rounded-lg border border-dashed bg-muted/30">
+      <EmptyHeader>
+        {icon ? <EmptyMedia variant="icon">{icon}</EmptyMedia> : null}
+        <EmptyTitle>{title}</EmptyTitle>
+        {description ? (
+          <EmptyDescription>{description}</EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+    </Empty>
+  )
+}
+```
+
+- [ ] **Step 2: Migrate `PlaceholderPage` in `routes.tsx`**
+
+Update `apps/web/src/app/routes.tsx` imports:
+
+```tsx
+import { PageHeader, PagePanel, EmptyState } from '@/components/layout/page'
+```
+
+Remove direct imports of `Empty`, `EmptyDescription`, `EmptyHeader`, `EmptyMedia`, and `EmptyTitle`.
+
+Replace `PlaceholderPage` JSX with:
+
+```tsx
+  return (
+    <PagePanel>
+      <PageHeader
+        eyebrow={upcomingLabel}
+        title={title}
+        subtitle={description}
+      />
+      <EmptyState
+        icon={<FileCode2 aria-hidden="true" />}
+        title={action}
+        description="阶段三先提供稳定路由、布局和状态框架；业务表单、执行器和报告数据会在后续阶段逐步接入。"
+      />
+    </PagePanel>
+  )
+```
+
+- [ ] **Step 3: Delete shared placeholder CSS after references are gone**
+
+Run:
+
+```bash
+rg -n 'content-panel|section-heading|state-box' apps/web/src
+```
+
+Expected: remaining matches are in feature pages and `index.css`, not `app/routes.tsx`.
+
+Do not delete `.content-panel` and `.section-heading` yet if feature pages still reference them. Delete `.state-box` only after no references remain outside `index.css`.
+
+- [ ] **Step 4: Run route and App tests**
+
+Run:
+
+```bash
+pnpm --dir apps/web test src/app/routes.test.ts src/App.test.tsx
+```
+
+Expected: PASS.
+
+- [ ] **Step 5: Commit Task 3**
+
+Run:
+
+```bash
+git add apps/web/src/components/layout/page.tsx apps/web/src/app/routes.tsx apps/web/src/index.css
+git commit -m "add web page layout primitives"
+```
+
+---
+
+### Task 4: Migrate Script Pages
 
 **Files:**
 - Modify: `apps/web/src/features/scripts/ScriptPages.tsx`
+- Modify: `apps/web/src/index.css`
 
-脚本列表区域：搜索筛选、脚本卡片、关键字侧栏。这是一个大文件，分两个 task 处理。
+- [ ] **Step 1: Update imports in `ScriptPages.tsx`**
 
-- [ ] **Step 1: 重写 ScriptListPage 组件**
-
-在 `apps/web/src/features/scripts/ScriptPages.tsx` 中，替换 imports（添加 `parseTags` 从 utils，添加 shadcn Badge/Button/Card）：
+Add:
 
 ```tsx
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
-  ArrowDown,
-  ArrowUp,
-  Copy,
-  FilePlus2,
-  Plus,
-  Save,
-  Trash2,
-} from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
-import { Link, useNavigate, useParams } from "react-router"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  createApiClient,
-  type ApiError,
-  type KeywordMetadata,
-  type KeywordParameter,
-  type ScriptStep,
-  type ScriptSummary,
-  type TestScript,
-} from "@/lib/api"
-import { parseTags } from "@/lib/utils"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
+import { cn, parseTags } from '@/lib/utils'
 ```
 
-将 `ScriptListPage` 函数体中的 JSX 替换为：
+Remove the local `parseTags` function at the bottom of the file after usages import from `@/lib/utils`.
+
+- [ ] **Step 2: Migrate the script list page shell**
+
+Use this structure for `ScriptListPage`:
 
 ```tsx
-export function ScriptListPage() {
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [groupFilter, setGroupFilter] = useState("all")
-  const [tagFilter, setTagFilter] = useState("all")
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | undefined>()
-
-  const scriptsQuery = useQuery({
-    queryKey: ["scripts"],
-    queryFn: api.listScripts,
-  })
-  const keywordsQuery = useQuery({
-    queryKey: ["keywords"],
-    queryFn: api.listKeywords,
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: api.deleteScript,
-    onSuccess: async () => {
-      setConfirmDeleteId(undefined)
-      await queryClient.invalidateQueries({ queryKey: ["scripts"] })
-    },
-  })
-  const copyMutation = useMutation({
-    mutationFn: async (scriptId: string) => {
-      const source = await api.getScript(scriptId)
-      const nextId = `${source.id}-copy-${Date.now()}`
-      return api.saveScript({
-        ...source,
-        id: nextId,
-        name: `${source.name} 副本`,
-        status: "draft",
-        version: undefined,
-      })
-    },
-    onSuccess: async (script) => {
-      await queryClient.invalidateQueries({ queryKey: ["scripts"] })
-      navigate(`/scripts/${script.id}`)
-    },
-  })
-
-  const scripts = scriptsQuery.data?.items ?? []
-  const keywords = keywordsQuery.data?.items ?? []
-  const groups = uniqueValues(scripts.map((script) => script.group).filter(Boolean))
-  const tags = uniqueValues(scripts.flatMap((script) => script.tags))
-  const filteredScripts = filterScripts({
-    scripts,
-    search,
-    statusFilter,
-    groupFilter,
-    tagFilter,
-  })
-
-  return (
-    <section className="grid gap-6 content-start rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center justify-between gap-[10px]">
-        <div className="grid gap-[6px]">
-          <p className="text-primary/80 text-xs font-extrabold m-0">阶段五</p>
-          <h1 className="text-foreground text-[28px] leading-tight m-0">脚本管理</h1>
-          <span className="text-muted-foreground text-sm m-0">
-            管理 YAML 测试脚本、筛选分组标签，并进入可视化编辑。
-          </span>
-        </div>
+return (
+  <PagePanel>
+    <PageHeader
+      eyebrow="阶段五"
+      title="脚本管理"
+      subtitle="管理 YAML 测试脚本、筛选分组标签，并进入可视化编辑。"
+      actions={
         <Button asChild>
           <Link to="/scripts/new">
             <FilePlus2 aria-hidden="true" data-icon="inline-start" />
             新建脚本
           </Link>
         </Button>
-      </div>
-
-      <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
-        <label className="grid gap-[6px]">
-          <span className="text-muted-foreground/80 text-xs font-extrabold">搜索脚本</span>
-          <input
-            aria-label="搜索脚本"
-            className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="名称、ID、描述、标签"
-          />
-        </label>
-        <label className="grid gap-[6px]">
-          <span className="text-muted-foreground/80 text-xs font-extrabold">状态筛选</span>
-          <select
-            aria-label="状态筛选"
-            className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="all">全部状态</option>
-            <option value="draft">草稿</option>
-            <option value="published">已发布</option>
-          </select>
-        </label>
-        <label className="grid gap-[6px]">
-          <span className="text-muted-foreground/80 text-xs font-extrabold">分组筛选</span>
-          <select
-            aria-label="分组筛选"
-            className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-            value={groupFilter}
-            onChange={(event) => setGroupFilter(event.target.value)}
-          >
-            <option value="all">全部分组</option>
-            {groups.map((group) => (
-              <option key={group} value={group}>
-                {group}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="grid gap-[6px]">
-          <span className="text-muted-foreground/80 text-xs font-extrabold">标签筛选</span>
-          <select
-            aria-label="标签筛选"
-            className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-            value={tagFilter}
-            onChange={(event) => setTagFilter(event.target.value)}
-          >
-            <option value="all">全部标签</option>
-            {tags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="grid grid-cols-[1.2fr_0.8fr] gap-4 max-xl:grid-cols-1">
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <h2 className="text-foreground text-[17px] m-0">脚本列表</h2>
-          {scriptsQuery.isPending ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              正在加载
-            </div>
-          ) : scriptsQuery.isError ? (
-            <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm min-h-[72px] p-[14px]">
-              后端脚本数据不可用
-            </div>
-          ) : filteredScripts.length === 0 ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              没有匹配的脚本
-            </div>
-          ) : (
-            <div className="grid gap-[10px]">
-              {filteredScripts.map((script) => (
-                <ScriptListItem
-                  confirmDeleteId={confirmDeleteId}
-                  key={script.id}
-                  onCopy={() => copyMutation.mutate(script.id)}
-                  onDelete={() => deleteMutation.mutate(script.id)}
-                  onPrepareDelete={() => setConfirmDeleteId(script.id)}
-                  script={script}
-                />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <h2 className="text-foreground text-[17px] m-0">关键字库</h2>
-          {keywordsQuery.isPending ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              正在加载
-            </div>
-          ) : (
-            <div className="grid gap-[10px]">
-              {keywords.map((keyword) => (
-                <article
-                  className="grid gap-3 bg-card border border-border rounded-lg p-[14px]"
-                  key={keyword.name}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-foreground text-[15px] m-0">{keyword.name}</h3>
-                    <Badge variant={keyword.enabled ? "default" : "secondary"}>
-                      {keyword.module}
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground text-[13px] leading-snug m-0">
-                    {keyword.description}
-                  </p>
-                  <span className="text-muted-foreground text-[13px]">
-                    {keyword.parameters.length > 0
-                      ? `${keyword.parameters.length} 个参数`
-                      : "无参数"}
-                  </span>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </section>
-  )
-}
-```
-
-- [ ] **Step 2: 重写 ScriptListItem 组件**
-
-在同一个文件中，将 `ScriptListItem` 替换为：
-
-```tsx
-function ScriptListItem({
-  confirmDeleteId,
-  onCopy,
-  onDelete,
-  onPrepareDelete,
-  script,
-}: {
-  confirmDeleteId: string | undefined
-  onCopy: () => void
-  onDelete: () => void
-  onPrepareDelete: () => void
-  script: ScriptSummary
-}) {
-  return (
-    <article className="grid grid-cols-[1fr_auto_auto] items-center gap-3 bg-card border border-border rounded-lg p-[14px] max-sm:grid-cols-1">
-      <div>
-        <div className="flex items-center justify-start gap-2 mb-1">
-          <h3 className="text-foreground text-[15px] m-0">{script.name}</h3>
-          <Badge variant={script.status === "published" ? "default" : "secondary"}>
-            {script.status === "published" ? "已发布" : "草稿"}
-          </Badge>
-        </div>
-        <p className="text-muted-foreground text-[13px] leading-snug m-0">
-          {script.description || script.id}
-        </p>
-        <div className="flex flex-wrap gap-[6px] mt-2">
-          {script.group ? (
-            <Badge variant="secondary">{script.group}</Badge>
-          ) : null}
-          {script.tags.map((tag) => (
-            <Badge key={tag} variant="secondary">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      </div>
-      <dl className="flex gap-[10px] m-0">
-        <div className="bg-secondary rounded-md min-w-16 px-[9px] py-[7px]">
-          <dt className="text-muted-foreground text-[11px] m-0">步骤</dt>
-          <dd className="text-foreground text-[13px] font-extrabold m-0">
-            {script.enabled_step_count}/{script.step_count}
-          </dd>
-        </div>
-        <div className="bg-secondary rounded-md min-w-16 px-[9px] py-[7px]">
-          <dt className="text-muted-foreground text-[11px] m-0">版本</dt>
-          <dd className="text-foreground text-[13px] font-extrabold m-0">v{script.revision}</dd>
-        </div>
-      </dl>
-      <div className="flex flex-wrap gap-[6px] justify-end">
-        <Button asChild size="sm" variant="secondary">
-          <Link to={`/scripts/${script.id}`}>编辑</Link>
-        </Button>
-        <Button
-          aria-label={`复制 ${script.name}`}
-          onClick={onCopy}
-          size="icon-sm"
-          type="button"
-          variant="ghost"
-        >
-          <Copy aria-hidden="true" />
-        </Button>
-        {confirmDeleteId === script.id ? (
-          <Button
-            aria-label={`确认删除 ${script.name}`}
-            onClick={onDelete}
-            size="sm"
-            type="button"
-            variant="destructive"
-          >
-            确认
-          </Button>
-        ) : (
-          <Button
-            aria-label={`删除 ${script.name}`}
-            onClick={onPrepareDelete}
-            size="icon-sm"
-            type="button"
-            variant="destructive"
-          >
-            <Trash2 aria-hidden="true" />
-          </Button>
-        )}
-      </div>
-    </article>
-  )
-}
-```
-
-- [ ] **Step 3: 更新唯一未变的辅助函数（保留原样）**
-
-确认 `filterScripts`, `uniqueValues` 保持在文件中不变（它们是纯逻辑函数，不涉及 CSS）。
-
-- [ ] **Step 4: 提交**
-
-```bash
-git add apps/web/src/features/scripts/ScriptPages.tsx
-git commit -m "refactor(web): migrate ScriptListPage to Tailwind utilities
-
-Replace custom CSS classes with Tailwind utilities and shadcn
-Badge/Button components. Import parseTags from shared utils."
-
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
-```
-
----
-
-### Task 5: ScriptPages.tsx — 脚本编辑器页面
-
-**Files:**
-- Modify: `apps/web/src/features/scripts/ScriptPages.tsx`
-
-编辑器区域：基本信息表单、步骤列表、步骤详情、参数输入。
-
-- [ ] **Step 1: 重写 ScriptEditorPage 组件**
-
-在 `apps/web/src/features/scripts/ScriptPages.tsx` 中，将 `ScriptEditorPage` 函数体中的 JSX 替换。关键变更：
-
-布局容器、标题区、验证面板、编辑器网格、步骤列表、参数表单 — 全部从自定义 class 改为 Tailwind。
-
-```tsx
-export function ScriptEditorPage() {
-  const { scriptId } = useParams()
-  const navigate = useNavigate()
-  const queryClient = useQueryClient()
-  const [script, setScript] = useState<TestScript>(emptyScript)
-  const [tagText, setTagText] = useState("")
-  const [selectedStepId, setSelectedStepId] = useState<string | undefined>()
-  const [issues, setIssues] = useState<ValidationIssue[]>([])
-  const [saveMessage, setSaveMessage] = useState("")
-
-  const keywordsQuery = useQuery({
-    queryKey: ["keywords"],
-    queryFn: api.listKeywords,
-  })
-  const scriptQuery = useQuery({
-    queryKey: ["script", scriptId],
-    queryFn: () => api.getScript(scriptId ?? ""),
-    enabled: Boolean(scriptId),
-  })
-
-  useEffect(() => {
-    if (scriptQuery.data) {
-      setScript(scriptQuery.data)
-      setTagText(scriptQuery.data.tags.join(", "))
-      setSelectedStepId(scriptQuery.data.steps[0]?.id)
-    }
-  }, [scriptQuery.data])
-
-  const keywords = useMemo(
-    () => (keywordsQuery.data?.items ?? []).filter((keyword) => keyword.enabled),
-    [keywordsQuery.data?.items],
-  )
-  const keywordMap = useMemo(
-    () => new Map(keywords.map((keyword) => [keyword.name, keyword])),
-    [keywords],
-  )
-  const selectedStep =
-    script.steps.find((step) => step.id === selectedStepId) ?? script.steps[0]
-  const selectedKeyword = selectedStep
-    ? keywordMap.get(selectedStep.keyword)
-    : undefined
-
-  const saveMutation = useMutation({
-    mutationFn: api.saveScript,
-    onSuccess: async (savedScript) => {
-      setScript(savedScript)
-      setTagText(savedScript.tags.join(", "))
-      setSaveMessage(
-        savedScript.status === "published" ? "已发布" : "草稿已保存",
-      )
-      queryClient.setQueryData(["script", savedScript.id], savedScript)
-      await queryClient.invalidateQueries({ queryKey: ["scripts"] })
-      if (!scriptId) {
-        navigate(`/scripts/${savedScript.id}`)
       }
-    },
-    onError: (error) => {
-      setIssues(normalizeMutationIssues(error))
-    },
-  })
+    />
 
-  function updateScript(update: Partial<TestScript>) {
-    setScript((current) => ({ ...current, ...update }))
-  }
+    <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
+      {/* filter fields */}
+    </div>
 
-  function updateStep(stepId: string, update: Partial<ScriptStep>) {
-    setScript((current) => ({
-      ...current,
-      steps: current.steps.map((step) =>
-        step.id === stepId ? { ...step, ...update } : step,
-      ),
-    }))
-  }
-
-  function addStep() {
-    const nextStep: ScriptStep = {
-      id: `step-${Date.now()}`,
-      keyword: keywords[0]?.name ?? "",
-      description: "",
-      enabled: true,
-      params: {},
-    }
-    setScript((current) => ({
-      ...current,
-      steps: [...current.steps, nextStep],
-    }))
-    setSelectedStepId(nextStep.id)
-  }
-
-  function removeStep(stepId: string) {
-    setScript((current) => {
-      const steps = current.steps.filter((step) => step.id !== stepId)
-      setSelectedStepId(steps[0]?.id)
-      return { ...current, steps }
-    })
-  }
-
-  function copyStep(step: ScriptStep) {
-    const nextStep = { ...step, id: `step-${Date.now()}` }
-    setScript((current) => ({
-      ...current,
-      steps: [...current.steps, nextStep],
-    }))
-    setSelectedStepId(nextStep.id)
-  }
-
-  function moveStep(stepId: string, direction: -1 | 1) {
-    setScript((current) => {
-      const index = current.steps.findIndex((step) => step.id === stepId)
-      const nextIndex = index + direction
-      if (index < 0 || nextIndex < 0 || nextIndex >= current.steps.length) {
-        return current
-      }
-      const steps = [...current.steps]
-      const [step] = steps.splice(index, 1)
-      steps.splice(nextIndex, 0, step)
-      return { ...current, steps }
-    })
-  }
-
-  function updateParam(
-    step: ScriptStep,
-    parameter: KeywordParameter,
-    value: string | boolean,
-  ) {
-    const nextParams = { ...step.params }
-    if (value === "") {
-      delete nextParams[parameter.name]
-    } else if (parameter.type === "boolean") {
-      nextParams[parameter.name] = Boolean(value)
-    } else if (parameter.type === "integer" || parameter.type === "number") {
-      nextParams[parameter.name] = Number(value)
-    } else {
-      nextParams[parameter.name] = value
-    }
-    updateStep(step.id, { params: nextParams })
-  }
-
-  function submit(nextStatus: TestScript["status"]) {
-    const payload = {
-      ...script,
-      status: nextStatus,
-      tags: parseTags(tagText),
-    }
-    const nextIssues = validateScript(payload, keywordMap)
-    setIssues(nextIssues)
-    setSaveMessage("")
-    if (nextStatus === "published" && nextIssues.length > 0) {
-      return
-    }
-    saveMutation.mutate(payload)
-  }
-
-  if (scriptQuery.isPending && scriptId) {
-    return (
-      <section className="grid gap-6 content-start rounded-lg border border-border bg-card p-6">
-        <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-          正在加载脚本
-        </div>
-      </section>
-    )
-  }
-
-  return (
-    <section className="grid gap-6 content-start rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center justify-between gap-[10px]">
-        <div className="grid gap-[6px]">
-          <p className="text-primary/80 text-xs font-extrabold m-0">阶段五</p>
-          <h1 className="text-foreground text-[28px] leading-tight m-0">脚本编辑器</h1>
-          <span className="text-muted-foreground text-sm m-0">
-            通过关键字和参数表单编排 YAML 测试脚本。
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-[10px]">
-          <Button onClick={() => submit("draft")} type="button" variant="secondary">
-            <Save aria-hidden="true" data-icon="inline-start" />
-            保存草稿
-          </Button>
-          <Button onClick={() => submit("published")} type="button">
-            发布
-          </Button>
-        </div>
-      </div>
-
-      {issues.length > 0 ? (
-        <div className="grid gap-[6px] bg-destructive/10 border border-destructive/30 rounded-lg text-destructive p-3">
-          {issues.map((issue) => (
-            <p className="m-0" key={`${issue.field}-${issue.message}`}>
-              {formatIssue(issue)}
-            </p>
-          ))}
-        </div>
-      ) : null}
-      {saveMessage ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg text-green-700 font-extrabold p-3">
-          {saveMessage}
-        </div>
-      ) : null}
-
-      <div className="grid grid-cols-[0.8fr_1fr] gap-4 max-xl:grid-cols-2 max-sm:grid-cols-1">
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <h2 className="text-foreground text-[17px] m-0">基本信息</h2>
-          <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">脚本 ID</span>
-              <input
-                aria-label="脚本 ID"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full disabled:opacity-50"
-                disabled={Boolean(scriptId)}
-                value={script.id}
-                onChange={(event) => updateScript({ id: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">脚本名称</span>
-              <input
-                aria-label="脚本名称"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={script.name}
-                onChange={(event) => updateScript({ name: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">分组</span>
-              <input
-                aria-label="分组"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={script.group}
-                onChange={(event) => updateScript({ group: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">标签</span>
-              <input
-                aria-label="标签"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={tagText}
-                onChange={(event) => setTagText(event.target.value)}
-              />
-            </label>
-            <label className="grid gap-[6px] col-span-full">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">描述</span>
-              <textarea
-                aria-label="描述"
-                className="bg-background border border-border rounded-md text-foreground min-h-[74px] px-[9px] py-[7px] w-full resize-y"
-                value={script.description}
-                onChange={(event) => updateScript({ description: event.target.value })}
-              />
-            </label>
-          </div>
-        </section>
-
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between gap-[10px]">
-            <h2 className="text-foreground text-[17px] m-0">步骤列表</h2>
-            <Button onClick={addStep} type="button" variant="secondary">
-              <Plus aria-hidden="true" data-icon="inline-start" />
-              添加步骤
-            </Button>
-          </div>
-          {script.steps.length === 0 ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              暂无步骤
-            </div>
-          ) : (
-            <div className="grid gap-2">
-              {script.steps.map((step, index) => (
-                <button
-                  className={`grid gap-[3px] text-left bg-card border rounded-lg p-[10px] cursor-pointer ${
-                    step.id === selectedStep?.id
-                      ? "border-primary/60 shadow-[0_0_0_2px_rgba(121,199,189,0.18)]"
-                      : "border-border"
-                  }`}
-                  key={step.id}
-                  onClick={() => setSelectedStepId(step.id)}
-                  type="button"
-                >
-                  <span className="text-muted-foreground text-xs not-italic">
-                    步骤 {index + 1}
-                  </span>
-                  <strong className="text-sm">{step.keyword || "未选择关键字"}</strong>
-                  <em className="text-muted-foreground text-xs not-italic">
-                    {step.enabled ? "启用" : "禁用"}
-                  </em>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4 col-span-full">
-          <h2 className="text-foreground text-[17px] m-0">步骤详情</h2>
-          {selectedStep ? (
-            <>
-              <div className="flex flex-wrap items-center gap-[10px]">
-                <Button
-                  onClick={() => moveStep(selectedStep.id, -1)}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ArrowUp aria-hidden="true" />
-                </Button>
-                <Button
-                  onClick={() => moveStep(selectedStep.id, 1)}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ArrowDown aria-hidden="true" />
-                </Button>
-                <Button
-                  onClick={() => copyStep(selectedStep)}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <Copy aria-hidden="true" />
-                </Button>
-                <Button
-                  onClick={() => removeStep(selectedStep.id)}
-                  size="icon-sm"
-                  type="button"
-                  variant="destructive"
-                >
-                  <Trash2 aria-hidden="true" />
-                </Button>
-              </div>
-              <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
-                <label className="grid gap-[6px]">
-                  <span className="text-muted-foreground/80 text-xs font-extrabold">关键字</span>
-                  <select
-                    aria-label="关键字"
-                    className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                    value={selectedStep.keyword}
-                    onChange={(event) =>
-                      updateStep(selectedStep.id, {
-                        keyword: event.target.value,
-                        params: {},
-                      })
-                    }
-                  >
-                    <option value="">选择关键字</option>
-                    {groupKeywords(keywords).map(([module, items]) => (
-                      <optgroup key={module} label={module}>
-                        {items.map((keyword) => (
-                          <option key={keyword.name} value={keyword.name}>
-                            {keyword.name}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-[6px]">
-                  <span className="text-muted-foreground/80 text-xs font-extrabold">启用步骤</span>
-                  <input
-                    aria-label="启用步骤"
-                    className="size-[18px]"
-                    checked={selectedStep.enabled}
-                    onChange={(event) =>
-                      updateStep(selectedStep.id, { enabled: event.target.checked })
-                    }
-                    type="checkbox"
-                  />
-                </label>
-                <label className="grid gap-[6px] col-span-full">
-                  <span className="text-muted-foreground/80 text-xs font-extrabold">步骤描述</span>
-                  <textarea
-                    aria-label="步骤描述"
-                    className="bg-background border border-border rounded-md text-foreground min-h-[74px] px-[9px] py-[7px] w-full resize-y"
-                    value={selectedStep.description}
-                    onChange={(event) =>
-                      updateStep(selectedStep.id, { description: event.target.value })
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className="grid gap-[10px]">
-                {selectedKeyword?.parameters.map((parameter) => (
-                  <ParameterInput
-                    key={parameter.name}
-                    onChange={(value) => updateParam(selectedStep, parameter, value)}
-                    parameter={parameter}
-                    value={selectedStep.params[parameter.name]}
-                  />
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              请选择或添加步骤
-            </div>
-          )}
-        </section>
-      </div>
-    </section>
-  )
-}
+    <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-4 max-xl:grid-cols-1">
+      {/* script list card and keyword card */}
+    </div>
+  </PagePanel>
+)
 ```
 
-- [ ] **Step 2: 重写 ParameterInput 组件**
+For each filter `label`, use:
 
 ```tsx
-function ParameterInput({
-  onChange,
-  parameter,
-  value,
-}: {
-  onChange: (value: string | boolean) => void
-  parameter: KeywordParameter
-  value: unknown
-}) {
-  if (parameter.type === "boolean") {
-    return (
-      <label className="grid gap-[6px]">
-        <span className="text-muted-foreground/80 text-xs font-extrabold">
-          {parameter.description || parameter.name}
-        </span>
-        <input
-          aria-label={`参数 ${parameter.name}`}
-          className="size-[18px]"
-          checked={Boolean(value)}
-          onChange={(event) => onChange(event.target.checked)}
-          type="checkbox"
-        />
-      </label>
-    )
-  }
-
-  return (
-    <label className="grid gap-[6px]">
-      <span className="text-muted-foreground/80 text-xs font-extrabold">
-        {parameter.description || parameter.name}
-      </span>
-      <input
-        aria-label={`参数 ${parameter.name}`}
-        className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-        type={parameter.type === "integer" || parameter.type === "number" ? "number" : "text"}
-        value={value === undefined || value === null ? "" : String(value)}
-        onChange={(event) => onChange(event.target.value)}
-      />
-    </label>
-  )
-}
+<label className="grid gap-1.5">
+  <span className="text-xs font-semibold text-muted-foreground">搜索脚本</span>
+  <Input
+    aria-label="搜索脚本"
+    value={search}
+    onChange={(event) => setSearch(event.target.value)}
+    placeholder="名称、ID、描述、标签"
+  />
+</label>
 ```
 
-- [ ] **Step 3: 删除文件内 parseTags 和 uniqueValues 函数**
+For native `select` filter fields, use shadcn `Select`:
 
-因为 `parseTags` 已从 `@/lib/utils` 导入。`uniqueValues` 仍在使用，保留。确认 imports 中有 `import { parseTags } from "@/lib/utils"`。
+```tsx
+<label className="grid gap-1.5">
+  <span className="text-xs font-semibold text-muted-foreground">状态筛选</span>
+  <Select value={statusFilter} onValueChange={setStatusFilter}>
+    <SelectTrigger aria-label="状态筛选">
+      <SelectValue placeholder="全部状态" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="all">全部状态</SelectItem>
+      <SelectItem value="draft">草稿</SelectItem>
+      <SelectItem value="published">已发布</SelectItem>
+    </SelectContent>
+  </Select>
+</label>
+```
 
-- [ ] **Step 4: 提交**
+- [ ] **Step 3: Migrate script and keyword list surfaces**
+
+Use `Card` for the list section:
+
+```tsx
+<Card className="gap-3">
+  <CardHeader>
+    <CardTitle>脚本列表</CardTitle>
+  </CardHeader>
+  <CardContent className="grid gap-2.5">
+    {/* loading/error/empty/list */}
+  </CardContent>
+</Card>
+```
+
+Replace loading/empty states:
+
+```tsx
+<EmptyState title="正在加载" />
+<EmptyState title="没有匹配的脚本" />
+```
+
+Replace error state:
+
+```tsx
+<Alert variant="destructive">
+  <AlertDescription>后端脚本数据不可用</AlertDescription>
+</Alert>
+```
+
+For keyword cards:
+
+```tsx
+<Card size="sm" key={keyword.name}>
+  <CardHeader className="border-b">
+    <CardTitle>{keyword.name}</CardTitle>
+    <Badge variant={keyword.enabled ? 'default' : 'secondary'}>
+      {keyword.module}
+    </Badge>
+  </CardHeader>
+  <CardContent className="grid gap-2">
+    <CardDescription>{keyword.description}</CardDescription>
+    <span className="text-xs text-muted-foreground">
+      {keyword.parameters.length > 0
+        ? `${keyword.parameters.length} 个参数`
+        : '无参数'}
+    </span>
+  </CardContent>
+</Card>
+```
+
+- [ ] **Step 4: Migrate `ScriptListItem`**
+
+Replace the root article with:
+
+```tsx
+<Card size="sm" className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 p-3 max-sm:grid-cols-1">
+  {/* existing content */}
+</Card>
+```
+
+Use this metadata pattern:
+
+```tsx
+<dl className="flex gap-2">
+  <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+    <dt className="text-xs text-muted-foreground">步骤</dt>
+    <dd className="m-0 text-sm font-semibold text-foreground">
+      {script.enabled_step_count}/{script.step_count}
+    </dd>
+  </div>
+  <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+    <dt className="text-xs text-muted-foreground">版本</dt>
+    <dd className="m-0 text-sm font-semibold text-foreground">v{script.revision}</dd>
+  </div>
+</dl>
+```
+
+Replace tag spans with `Badge variant="secondary"`:
+
+```tsx
+<div className="mt-2 flex flex-wrap gap-1.5">
+  {script.group ? <Badge variant="secondary">{script.group}</Badge> : null}
+  {script.tags.map((tag) => (
+    <Badge key={tag} variant="secondary">
+      {tag}
+    </Badge>
+  ))}
+</div>
+```
+
+- [ ] **Step 5: Migrate script editor form surfaces**
+
+Use `PagePanel` and `PageHeader` for the editor shell. Use this form grid pattern:
+
+```tsx
+<div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
+  <label className="grid gap-1.5">
+    <span className="text-xs font-semibold text-muted-foreground">脚本 ID</span>
+    <Input
+      aria-label="脚本 ID"
+      disabled={Boolean(scriptId)}
+      value={script.id}
+      onChange={(event) => updateScript({ id: event.target.value })}
+    />
+  </label>
+  {/* repeat for fields */}
+  <label className="col-span-full grid gap-1.5">
+    <span className="text-xs font-semibold text-muted-foreground">描述</span>
+    <Textarea
+      aria-label="描述"
+      value={script.description}
+      onChange={(event) => updateScript({ description: event.target.value })}
+    />
+  </label>
+</div>
+```
+
+Use shadcn `Checkbox` for boolean fields:
+
+```tsx
+<label className="grid gap-1.5">
+  <span className="text-xs font-semibold text-muted-foreground">启用步骤</span>
+  <Checkbox
+    aria-label="启用步骤"
+    checked={selectedStep.enabled}
+    onCheckedChange={(checked) =>
+      updateStep(selectedStep.id, { enabled: checked === true })
+    }
+  />
+</label>
+```
+
+Use shadcn `Select` for keyword selection. Because the options are grouped by module, use the generated `SelectGroup` and `SelectLabel` exports if present; otherwise use a flat list with label text included in the item text.
+
+- [ ] **Step 6: Migrate step list and validation/save states**
+
+Use this step button pattern:
+
+```tsx
+<button
+  className={cn(
+    'grid gap-1 rounded-lg border bg-card p-2.5 text-left text-card-foreground transition-colors hover:bg-muted/60',
+    step.id === selectedStep?.id && 'border-ring ring-2 ring-ring/20',
+  )}
+  key={step.id}
+  onClick={() => setSelectedStepId(step.id)}
+  type="button"
+>
+  <span className="text-xs text-muted-foreground">步骤 {index + 1}</span>
+  <strong className="text-sm font-semibold">{step.keyword || '未选择关键字'}</strong>
+  <em className="text-xs not-italic text-muted-foreground">
+    {step.enabled ? '启用' : '禁用'}
+  </em>
+</button>
+```
+
+Use `Alert` for validation:
+
+```tsx
+<Alert variant="destructive">
+  <AlertDescription className="grid gap-1">
+    {issues.map((issue) => (
+      <p className="m-0" key={`${issue.field}-${issue.message}`}>
+        {formatIssue(issue)}
+      </p>
+    ))}
+  </AlertDescription>
+</Alert>
+```
+
+Use default `Alert` for save messages:
+
+```tsx
+<Alert>
+  <AlertDescription>{saveMessage}</AlertDescription>
+</Alert>
+```
+
+- [ ] **Step 7: Verify script page tests and class references**
+
+Run:
 
 ```bash
-git add apps/web/src/features/scripts/ScriptPages.tsx
-git commit -m "refactor(web): migrate ScriptEditorPage to Tailwind utilities
+pnpm --dir apps/web test src/App.test.tsx
+rg -n 'content-panel|script-workspace|script-page-heading|script-filters|script-layout|script-list-section|keyword-sidebar|catalog-placeholder|catalog-error|script-list-item|script-tags|compact-meta|script-actions|editor-section|editor-grid|form-grid|form-wide|step-list|step-list-item|step-list-item-active|step-toolbar|param-list|validation-panel|save-message' apps/web/src/features/scripts apps/web/src/app apps/web/src/App.tsx
+```
 
-Replace custom CSS classes with Tailwind utilities. Use parseTags
-from shared utils. Style form inputs, step list, validation panel
-with Tailwind + shadcn Badge/Button components."
+Expected: tests pass. The `rg` command prints no matches in `features/scripts`, `app/routes.tsx`, or `App.tsx`.
 
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+- [ ] **Step 8: Delete script-page CSS blocks**
+
+After Step 7 has no references, delete corresponding blocks from `apps/web/src/index.css`. Keep blocks still referenced by `TaskPage.tsx` or `ToolPages.tsx`.
+
+- [ ] **Step 9: Commit Task 4**
+
+Run:
+
+```bash
+git add apps/web/src/features/scripts/ScriptPages.tsx apps/web/src/index.css apps/web/src/lib/utils.ts
+git commit -m "migrate script pages styling"
 ```
 
 ---
 
-### Task 6: ToolPages.tsx — 命令库 + SSH 终端
-
-**Files:**
-- Modify: `apps/web/src/features/tools/ToolPages.tsx`
-
-两大部分：CommandLibraryPage（命令模板 CRUD）和 SshTerminalPage（SSH 终端 + 命令联想）。
-
-- [ ] **Step 1: 更新 imports，添加 parseTags**
-
-在 `apps/web/src/features/tools/ToolPages.tsx` 顶部修改 imports：
-
-```tsx
-import "@xterm/xterm/css/xterm.css"
-
-import type { FitAddon as XtermFitAddon } from "@xterm/addon-fit"
-import type { Terminal as XtermTerminal } from "@xterm/xterm"
-import {
-  Edit3,
-  Plug,
-  Plus,
-  Save,
-  Search,
-  SquareTerminal,
-  Trash2,
-} from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import {
-  createApiClient,
-  type CommandTemplate,
-  type CommandTemplatePayload,
-} from "@/lib/api"
-import { parseTags } from "@/lib/utils"
-```
-
-- [ ] **Step 2: 重写 CommandLibraryPage 组件的 JSX**
-
-将 `CommandLibraryPage` 的 return 语句替换为（逻辑部分保持不变，只改 JSX）：
-
-```tsx
-  return (
-    <section className="grid gap-6 content-start rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center justify-between gap-[10px]">
-        <div className="grid gap-[6px]">
-          <p className="text-primary/80 text-xs font-extrabold m-0">阶段八</p>
-          <h1 className="text-foreground text-[28px] leading-tight m-0">命令库</h1>
-          <span className="text-muted-foreground text-sm m-0">
-            维护完整 SSH 命令，并在终端输入时用于联想。
-          </span>
-        </div>
-        <Badge variant="secondary">完整命令</Badge>
-      </div>
-
-      <div className="grid grid-cols-[0.85fr_1.15fr] gap-4 max-xl:grid-cols-1">
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <div className="flex items-center justify-between gap-[10px]">
-            <h2 className="text-foreground text-[17px] m-0">
-              {editingId ? "编辑命令" : "新增命令"}
-            </h2>
-            {editingId ? (
-              <Button onClick={resetForm} type="button" variant="ghost">
-                <Plus aria-hidden="true" data-icon="inline-start" />
-                新建
-              </Button>
-            ) : null}
-          </div>
-          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">命令名称</span>
-              <input
-                aria-label="命令名称"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={form.name}
-                onChange={(event) => updateForm({ name: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">分组</span>
-              <input
-                aria-label="分组"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={form.group}
-                onChange={(event) => updateForm({ group: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px] col-span-full">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">完整命令</span>
-              <textarea
-                aria-label="完整命令"
-                className="bg-background border border-border rounded-md text-foreground min-h-[74px] px-[9px] py-[7px] w-full resize-y"
-                value={form.command}
-                onChange={(event) => updateForm({ command: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">标签</span>
-              <input
-                aria-label="标签"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={tagText}
-                onChange={(event) => setTagText(event.target.value)}
-              />
-            </label>
-            <label className="grid gap-[6px] col-span-full">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">说明</span>
-              <textarea
-                aria-label="说明"
-                className="bg-background border border-border rounded-md text-foreground min-h-[74px] px-[9px] py-[7px] w-full resize-y"
-                value={form.description}
-                onChange={(event) => updateForm({ description: event.target.value })}
-              />
-            </label>
-          </div>
-          <Button
-            disabled={!form.name.trim() || !form.command.trim()}
-            onClick={submit}
-            type="button"
-          >
-            <Save aria-hidden="true" data-icon="inline-start" />
-            保存命令
-          </Button>
-        </section>
-
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <label className="grid gap-[6px]">
-            <span className="flex items-center gap-[7px] text-muted-foreground/80 text-xs font-extrabold">
-              <Search aria-hidden="true" size={14} />
-              搜索命令
-            </span>
-            <input
-              aria-label="搜索命令"
-              className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="名称、命令、分组、标签"
-            />
-          </label>
-
-          {commandsQuery.isPending ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              正在加载命令
-            </div>
-          ) : commands.length === 0 ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              暂无命令
-            </div>
-          ) : (
-            <div className="grid gap-[10px]">
-              {commands.map((command) => (
-                <article
-                  className="grid grid-cols-[1fr_auto] items-start gap-3 bg-card border border-border rounded-lg p-[14px] max-sm:grid-cols-1"
-                  key={command.id}
-                >
-                  <div>
-                    <div className="flex items-center justify-start gap-2 mb-1">
-                      <h3 className="text-foreground text-[15px] m-0">{command.name}</h3>
-                      {command.group ? (
-                        <Badge variant="secondary">{command.group}</Badge>
-                      ) : null}
-                    </div>
-                    <code className="block bg-muted rounded-md text-foreground/80 text-xs font-mono leading-snug break-words p-2 my-2">
-                      {command.command}
-                    </code>
-                    {command.description ? (
-                      <p className="text-muted-foreground text-[13px] leading-snug m-0 mt-2">
-                        {command.description}
-                      </p>
-                    ) : null}
-                    <div className="flex flex-wrap gap-[6px] mt-2">
-                      {command.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-[6px] justify-end">
-                    <Button
-                      aria-label={`编辑 ${command.name}`}
-                      onClick={() => editCommand(command)}
-                      size="icon-sm"
-                      type="button"
-                      variant="ghost"
-                    >
-                      <Edit3 aria-hidden="true" />
-                    </Button>
-                    <Button
-                      aria-label={`删除 ${command.name}`}
-                      onClick={() => deleteMutation.mutate(command.id)}
-                      size="icon-sm"
-                      type="button"
-                      variant="destructive"
-                    >
-                      <Trash2 aria-hidden="true" />
-                    </Button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </section>
-  )
-```
-
-- [ ] **Step 3: 重写 SshTerminalPage 组件的 JSX**
-
-逻辑代码（useEffect, connect, disconnect 等）完全不变，只替换 JSX 部分：
-
-```tsx
-  return (
-    <section className="grid gap-6 content-start rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center justify-between gap-[10px]">
-        <div className="grid gap-[6px]">
-          <p className="text-primary/80 text-xs font-extrabold m-0">阶段八</p>
-          <h1 className="text-foreground text-[28px] leading-tight m-0">SSH 终端</h1>
-          <span className="text-muted-foreground text-sm m-0">
-            连接测试设备并通过命令库获得输入联想。
-          </span>
-        </div>
-        <Badge variant={status === "connected" ? "default" : "secondary"}>
-          {sshStatusLabel(status)}
-        </Badge>
-      </div>
-
-      <div className="grid grid-cols-[320px_1fr] gap-4 max-xl:grid-cols-1">
-        <section className="grid gap-3 content-start bg-muted/30 border border-border rounded-lg p-4">
-          <h2 className="text-foreground text-[17px] m-0">连接</h2>
-          <div className="grid grid-cols-2 gap-3 max-sm:grid-cols-1">
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">主机</span>
-              <input
-                aria-label="主机"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={form.host}
-                onChange={(event) => updateForm({ host: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">端口</span>
-              <input
-                aria-label="端口"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                type="number"
-                value={form.port}
-                onChange={(event) => updateForm({ port: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">账号</span>
-              <input
-                aria-label="账号"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                value={form.username}
-                onChange={(event) => updateForm({ username: event.target.value })}
-              />
-            </label>
-            <label className="grid gap-[6px]">
-              <span className="text-muted-foreground/80 text-xs font-extrabold">密码</span>
-              <input
-                aria-label="密码"
-                className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-                type="password"
-                value={form.password}
-                onChange={(event) => updateForm({ password: event.target.value })}
-              />
-            </label>
-            <label className="flex items-center gap-[7px] text-muted-foreground/80 text-xs font-extrabold col-span-full">
-              <input
-                aria-label="跳过本次主机密钥校验"
-                className="size-[18px] flex-none"
-                checked={form.skipHostKeyCheck}
-                onChange={(event) => updateForm({ skipHostKeyCheck: event.target.checked })}
-                type="checkbox"
-              />
-              <span>跳过本次主机密钥校验</span>
-            </label>
-          </div>
-          <div className="flex flex-wrap items-center gap-[10px]">
-            <Button
-              disabled={!form.host.trim() || !form.username.trim()}
-              onClick={connect}
-              type="button"
-            >
-              <Plug aria-hidden="true" data-icon="inline-start" />
-              连接
-            </Button>
-            <Button onClick={disconnect} type="button" variant="secondary">
-              断开
-            </Button>
-          </div>
-          {errorMessage ? (
-            <div className="grid gap-[6px] bg-destructive/10 border border-destructive/30 rounded-lg text-destructive p-3">
-              <p className="m-0">{errorMessage}</p>
-            </div>
-          ) : null}
-        </section>
-
-        <section className="grid grid-rows-[auto_minmax(360px,58vh)] bg-gray-950 border border-gray-800 rounded-lg overflow-hidden min-w-0">
-          <div className="flex items-center gap-2 bg-gray-900 border-b border-gray-800 text-gray-400 text-xs min-h-9 px-3">
-            <SquareTerminal aria-hidden="true" size={16} />
-            <span>{sshWebSocketUrl}</span>
-          </div>
-          <div className="min-h-0 p-[10px]" ref={terminalContainerRef} />
-        </section>
-
-        <section className="grid gap-3 content-start bg-muted/30 border border-border rounded-lg p-4 col-span-full">
-          <h2 className="text-foreground text-[17px] m-0">命令联想</h2>
-          {suggestions.length === 0 ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              输入命令前缀后显示联想
-            </div>
-          ) : (
-            <div className="grid gap-[10px]">
-              {suggestions.map((command) => (
-                <button
-                  className="grid gap-2 text-left bg-card border border-border rounded-lg p-3 cursor-pointer hover:border-primary/60 hover:shadow-[0_0_0_2px_rgba(121,199,189,0.16)]"
-                  key={command.id}
-                  onClick={() => applySuggestion(command)}
-                  type="button"
-                >
-                  <strong className="text-foreground text-[13px]">{command.name}</strong>
-                  <code className="bg-muted rounded-md text-foreground/80 text-xs font-mono p-2 m-0 break-words">
-                    {command.command}
-                  </code>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </section>
-  )
-```
-
-- [ ] **Step 4: 删除文件末尾的 parseTags 函数**
-
-文件内已有的 `parseTags` 函数（约 L539-548）需要删除，因为已从 `@/lib/utils` 导入。其余辅助函数（`filterCommandSuggestions`, `applyTerminalInput`, `sshStatusLabel`）保持不变。
-
-- [ ] **Step 5: 提交**
-
-```bash
-git add apps/web/src/features/tools/ToolPages.tsx
-git commit -m "refactor(web): migrate ToolPages to Tailwind utilities
-
-Replace custom CSS classes with Tailwind utilities and shadcn
-Badge/Button components. Use parseTags from shared utils. Apply
-Tailwind styling to command library and SSH terminal panels."
-
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
-```
-
----
-
-### Task 7: TaskPage.tsx — 执行任务页面
+### Task 5: Migrate Execution Page
 
 **Files:**
 - Modify: `apps/web/src/features/execution/TaskPage.tsx`
+- Modify: `apps/web/src/index.css`
 
-执行任务控制区、当前任务详情、实时日志、最近任务列表。
+- [ ] **Step 1: Update execution page imports**
 
-- [ ] **Step 1: 重写 TaskPage 组件的 JSX**
-
-逻辑代码（useEffect, createMutation, cancelMutation 等）完全不变，只替换 JSX：
-
-```tsx
-  return (
-    <section className="grid gap-6 content-start rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center justify-between gap-[10px]">
-        <div className="grid gap-[6px]">
-          <p className="text-primary/80 text-xs font-extrabold m-0">阶段六</p>
-          <h1 className="text-foreground text-[28px] leading-tight m-0">执行任务</h1>
-          <span className="text-muted-foreground text-sm m-0">
-            选择已发布脚本，启动本地执行并查看实时任务输出。
-          </span>
-        </div>
-        <Badge variant={activeTask ? statusVariant(activeTask.status) : "secondary"}>
-          {activeTask ? taskStatusLabel(activeTask.status) : "未启动"}
-        </Badge>
-      </div>
-
-      <section className="grid gap-3 content-start bg-muted/30 border border-border rounded-lg p-4">
-        <h2 className="text-foreground text-[17px] m-0">任务控制</h2>
-        <div className="grid grid-cols-[1.2fr_0.6fr_0.8fr] gap-3 max-sm:grid-cols-1">
-          <label className="grid gap-[6px]">
-            <span className="text-muted-foreground/80 text-xs font-extrabold">选择脚本</span>
-            <select
-              aria-label="选择脚本"
-              className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-              value={selectedScriptId}
-              onChange={(event) => setSelectedScriptId(event.target.value)}
-            >
-              <option value="">选择已发布脚本</option>
-              {publishedScripts.map((script) => (
-                <option key={script.id} value={script.id}>
-                  {script.name || script.id}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-[6px]">
-            <span className="text-muted-foreground/80 text-xs font-extrabold">执行环境</span>
-            <select
-              aria-label="执行环境"
-              className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-              value={environment}
-              onChange={(event) => setEnvironment(event.target.value)}
-            >
-              <option value="local">local</option>
-              <option value="lab">lab</option>
-              <option value="ci">ci</option>
-            </select>
-          </label>
-          <label className="grid gap-[6px]">
-            <span className="text-muted-foreground/80 text-xs font-extrabold">目标设备</span>
-            <input
-              aria-label="目标设备"
-              className="bg-background border border-border rounded-md text-foreground min-h-9 px-[9px] py-[7px] w-full"
-              value={targetDevice}
-              onChange={(event) => setTargetDevice(event.target.value)}
-              placeholder="bench-1"
-            />
-          </label>
-        </div>
-        <div className="flex flex-wrap items-center gap-[10px]">
-          <Button
-            disabled={!selectedScriptId || createMutation.isPending}
-            onClick={startExecution}
-            type="button"
-          >
-            <Play aria-hidden="true" data-icon="inline-start" />
-            开始执行
-          </Button>
-          <Button
-            disabled={!canCancelTask(activeTask) || cancelMutation.isPending}
-            onClick={cancelExecution}
-            type="button"
-            variant="secondary"
-          >
-            <Square aria-hidden="true" data-icon="inline-start" />
-            取消
-          </Button>
-        </div>
-        {scriptsQuery.isError ? (
-          <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-lg text-destructive text-sm min-h-[72px] p-[14px]">
-            脚本列表不可用
-          </div>
-        ) : null}
-        {publishedScripts.length === 0 && !scriptsQuery.isPending ? (
-          <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-            暂无已发布脚本
-          </div>
-        ) : null}
-        {selectedScript ? <SelectedScriptSummary script={selectedScript} /> : null}
-      </section>
-
-      <div className="grid grid-cols-[0.8fr_1.2fr] gap-4 max-xl:grid-cols-1">
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <h2 className="text-foreground text-[17px] m-0">当前任务</h2>
-          {activeTask ? (
-            <TaskDetail task={activeTask} />
-          ) : (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              启动执行后显示当前任务
-            </div>
-          )}
-        </section>
-
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4">
-          <h2 className="text-foreground text-[17px] m-0">实时日志</h2>
-          {liveLogs.length === 0 ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              等待执行日志
-            </div>
-          ) : (
-            <div className="grid gap-[10px] max-h-[420px] overflow-auto content-start" aria-label="实时日志">
-              {liveLogs.map((log, index) => (
-                <code
-                  className="bg-muted rounded-md text-foreground/80 text-xs font-mono leading-snug p-2 break-words"
-                  key={`${log}-${index}`}
-                >
-                  {log}
-                </code>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="grid gap-3 bg-muted/30 border border-border rounded-lg p-4 col-span-full">
-          <h2 className="text-foreground text-[17px] m-0">最近任务</h2>
-          {tasksQuery.isPending ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              正在加载任务
-            </div>
-          ) : recentTasks.length === 0 ? (
-            <div className="flex items-center gap-2 bg-muted/50 border border-dashed border-border rounded-lg text-muted-foreground text-sm min-h-[72px] p-[14px]">
-              暂无执行任务
-            </div>
-          ) : (
-            <div className="grid gap-[10px]">
-              {recentTasks.map((task) => (
-                <TaskSummaryItem key={task.id} task={task} />
-              ))}
-            </div>
-          )}
-        </section>
-      </div>
-    </section>
-  )
-```
-
-- [ ] **Step 2: 重写 SelectedScriptSummary 组件**
+Add:
 
 ```tsx
-function SelectedScriptSummary({ script }: { script: ScriptSummary }) {
-  return (
-    <div className="grid grid-cols-[1fr_auto] items-center gap-[10px] bg-card border border-border rounded-lg p-[14px]">
-      <strong className="text-foreground">{script.name}</strong>
-      <span className="text-muted-foreground text-[13px] col-span-full overflow-hidden text-ellipsis">
-        {script.description || script.id}
-      </span>
-      <Badge variant="secondary">v{script.revision}</Badge>
-    </div>
-  )
-}
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 ```
 
-- [ ] **Step 3: 重写 TaskDetail 组件**
+- [ ] **Step 2: Migrate page shell and task control form**
+
+Use:
 
 ```tsx
-function TaskDetail({ task }: { task: ExecutionTask }) {
-  return (
-    <div className="grid gap-[10px] bg-card border border-border rounded-lg p-[14px]">
-      <div className="flex items-center justify-start gap-2 mb-1">
-        <h3 className="text-foreground text-[15px] m-0 overflow-hidden text-ellipsis">
-          {task.script_name}
-        </h3>
-        <Badge variant={statusVariant(task.status)}>
-          {taskStatusLabel(task.status)}
-        </Badge>
-      </div>
-      <dl className="grid gap-[10px] m-0">
-        <div>
-          <dt className="text-muted-foreground text-[11px]">任务 ID</dt>
-          <dd className="text-foreground overflow-hidden text-ellipsis m-0">{task.id}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground text-[11px]">环境</dt>
-          <dd className="text-foreground m-0">{task.environment}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground text-[11px]">设备</dt>
-          <dd className="text-foreground m-0">{task.target_device || "-"}</dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground text-[11px]">执行器</dt>
-          <dd className="text-foreground m-0">{task.executor}</dd>
-        </div>
-      </dl>
-      {task.error_message ? (
-        <div className="grid gap-[6px] bg-destructive/10 border border-destructive/30 rounded-lg text-destructive p-3">
-          <p className="m-0">{task.error_message}</p>
-        </div>
-      ) : null}
-    </div>
-  )
-}
+<PagePanel>
+  <PageHeader
+    eyebrow="阶段六"
+    title="执行任务"
+    subtitle="选择已发布脚本，启动本地执行并查看实时任务输出。"
+    actions={
+      <Badge variant={activeTask ? statusVariant(activeTask.status) : 'secondary'}>
+        {activeTask ? taskStatusLabel(activeTask.status) : '未启动'}
+      </Badge>
+    }
+  />
+
+  <Card>
+    <CardHeader>
+      <CardTitle>任务控制</CardTitle>
+    </CardHeader>
+    <CardContent className="grid gap-4">
+      {/* form grid, actions, states, selected script summary */}
+    </CardContent>
+  </Card>
+</PagePanel>
 ```
 
-- [ ] **Step 4: 重写 TaskSummaryItem 组件**
+Use `Select` for `选择脚本` and `执行环境`, and `Input` for `目标设备`.
+
+- [ ] **Step 3: Migrate task cards and logs**
+
+Use this layout for current/log/recent panels:
 
 ```tsx
-function TaskSummaryItem({ task }: { task: ExecutionTaskSummary }) {
-  return (
-    <article className="grid grid-cols-[1fr_auto] items-center gap-3 bg-card border border-border rounded-lg p-[14px] max-sm:grid-cols-1">
-      <div>
-        <div className="flex items-center justify-start gap-2 mb-1">
-          <h3 className="text-foreground text-[15px] m-0 overflow-hidden text-ellipsis">
-            {task.script_name}
-          </h3>
-          <Badge variant={statusVariant(task.status)}>
-            {taskStatusLabel(task.status)}
-          </Badge>
-        </div>
-        <p className="text-muted-foreground text-[13px] m-0">{task.id}</p>
-      </div>
-      <dl className="flex gap-[10px] m-0">
-        <div className="bg-secondary rounded-md min-w-16 px-[9px] py-[7px]">
-          <dt className="text-muted-foreground text-[11px] m-0">步骤</dt>
-          <dd className="text-foreground text-[13px] font-extrabold m-0 overflow-hidden text-ellipsis">
-            {task.passed_step_count}/{task.step_count}
-          </dd>
-        </div>
-        <div className="bg-secondary rounded-md min-w-16 px-[9px] py-[7px]">
-          <dt className="text-muted-foreground text-[11px] m-0">环境</dt>
-          <dd className="text-foreground text-[13px] font-extrabold m-0">{task.environment}</dd>
-        </div>
-      </dl>
-    </article>
-  )
-}
+<div className="grid grid-cols-[minmax(300px,0.8fr)_minmax(0,1.2fr)] gap-4 max-xl:grid-cols-1">
+  <Card>
+    <CardHeader>
+      <CardTitle>当前任务</CardTitle>
+    </CardHeader>
+    <CardContent>{activeTask ? <TaskDetail task={activeTask} /> : <EmptyState title="启动执行后显示当前任务" />}</CardContent>
+  </Card>
+
+  <Card>
+    <CardHeader>
+      <CardTitle>实时日志</CardTitle>
+    </CardHeader>
+    <CardContent>
+      {/* logs */}
+    </CardContent>
+  </Card>
+
+  <Card className="col-span-full">
+    <CardHeader>
+      <CardTitle>最近任务</CardTitle>
+    </CardHeader>
+    <CardContent>{/* recent tasks */}</CardContent>
+  </Card>
+</div>
 ```
 
-- [ ] **Step 5: 提交**
+Use this log code style:
+
+```tsx
+<div className="grid max-h-[420px] content-start gap-2 overflow-auto" aria-label="实时日志">
+  {liveLogs.map((log, index) => (
+    <code
+      className="block overflow-wrap-anywhere rounded-md bg-muted px-2 py-1.5 font-mono text-xs leading-relaxed text-muted-foreground"
+      key={`${log}-${index}`}
+    >
+      {log}
+    </code>
+  ))}
+</div>
+```
+
+If `overflow-wrap-anywhere` is not emitted by Tailwind in this project, use `[overflow-wrap:anywhere]`.
+
+- [ ] **Step 4: Migrate detail metadata and errors**
+
+Use local `dl` classes instead of `compact-meta` or `detail-list`:
+
+```tsx
+<dl className="grid gap-2">
+  <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
+    <dt className="text-xs text-muted-foreground">任务 ID</dt>
+    <dd className="m-0 min-w-0 [overflow-wrap:anywhere] text-sm">{task.id}</dd>
+  </div>
+</dl>
+```
+
+Use `Alert variant="destructive"` for `task.error_message` and script list errors.
+
+- [ ] **Step 5: Verify execution tests and class references**
+
+Run:
 
 ```bash
-git add apps/web/src/features/execution/TaskPage.tsx
-git commit -m "refactor(web): migrate TaskPage to Tailwind utilities
+pnpm --dir apps/web test src/features/execution/TaskPage.test.tsx
+rg -n 'execution-|editor-section|form-grid|catalog-placeholder|catalog-error|compact-meta|detail-list|validation-panel|script-title-row' apps/web/src/features/execution
+```
 
-Replace custom CSS classes with Tailwind utilities and shadcn
-Badge/Button components. Apply consistent styling to execution
-controls, task cards, log display, and task summary items."
+Expected: tests pass. The `rg` command prints no matches.
 
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+- [ ] **Step 6: Delete execution CSS blocks**
+
+Delete `execution-*`, `compact-meta`, `detail-list`, and execution-only shared blocks from `apps/web/src/index.css` after Step 5 confirms no references.
+
+- [ ] **Step 7: Commit Task 5**
+
+Run:
+
+```bash
+git add apps/web/src/features/execution/TaskPage.tsx apps/web/src/index.css
+git commit -m "migrate execution page styling"
 ```
 
 ---
 
-### Task 8: 验证 — TypeScript + 测试 + 构建
+### Task 6: Migrate Tool Pages
 
 **Files:**
-- No changes — 验证所有已修改文件
+- Modify: `apps/web/src/features/tools/ToolPages.tsx`
+- Modify: `apps/web/src/index.css`
 
-- [ ] **Step 1: TypeScript 类型检查**
+- [ ] **Step 1: Update tool page imports**
 
-```bash
-cd c:/code/TestFlow/apps/web && npx tsc -b --noEmit 2>&1
+Add:
+
+```tsx
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
+import { parseTags } from '@/lib/utils'
 ```
 
-预期：无类型错误。若有，根据错误信息修复对应文件的 import 或类型问题。
+Remove the local `parseTags` function from `ToolPages.tsx`.
 
-- [ ] **Step 2: 运行测试**
+- [ ] **Step 2: Migrate command library page**
 
-```bash
-cd c:/code/TestFlow/apps/web && npx vitest run 2>&1
+Use `PagePanel` and `PageHeader`. Use this grid:
+
+```tsx
+<div className="grid grid-cols-[minmax(320px,0.85fr)_minmax(0,1.15fr)] gap-4 max-xl:grid-cols-1">
+  <Card>
+    <CardHeader>
+      <CardTitle>{editingId ? '编辑命令' : '新增命令'}</CardTitle>
+      {/* reset action */}
+    </CardHeader>
+    <CardContent className="grid gap-4">
+      {/* command form */}
+    </CardContent>
+  </Card>
+
+  <Card>
+    <CardHeader>
+      <CardTitle>命令列表</CardTitle>
+    </CardHeader>
+    <CardContent className="grid gap-3">
+      {/* search and list */}
+    </CardContent>
+  </Card>
+</div>
 ```
 
-预期：所有测试通过。测试使用 `aria-label` / `role` 选择器，CSS class 变化不应影响。
+Use `Input` for name/group/tags/search and `Textarea` for command/description.
 
-- [ ] **Step 3: Vite 构建**
+For each command item:
 
-```bash
-cd c:/code/TestFlow/apps/web && npx vite build 2>&1
+```tsx
+<Card size="sm" key={command.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-3 max-sm:grid-cols-1">
+  <div className="min-w-0">
+    <div className="mb-2 flex flex-wrap items-center gap-2">
+      <h3 className="m-0 text-base font-semibold">{command.name}</h3>
+      {command.group ? <Badge variant="secondary">{command.group}</Badge> : null}
+    </div>
+    <code className="block rounded-md bg-muted px-2 py-1.5 font-mono text-xs leading-relaxed text-muted-foreground [overflow-wrap:anywhere]">
+      {command.command}
+    </code>
+    {command.description ? (
+      <CardDescription className="mt-2">{command.description}</CardDescription>
+    ) : null}
+    <div className="mt-2 flex flex-wrap gap-1.5">
+      {command.tags.map((tag) => (
+        <Badge key={tag} variant="secondary">
+          {tag}
+        </Badge>
+      ))}
+    </div>
+  </div>
+  {/* actions */}
+</Card>
 ```
 
-预期：构建成功，CSS 输出应显著减小（从 ~1133 行原生 CSS 缩减到 ~100 行 + Tailwind 生成的 utilities）。
+- [ ] **Step 3: Migrate SSH terminal page**
 
-- [ ] **Step 4: 提交**
+Use `PagePanel`, `PageHeader`, `Card`, `Input`, and `Checkbox`.
+
+Use this layout:
+
+```tsx
+<div className="grid grid-cols-[320px_minmax(0,1fr)] gap-4 max-xl:grid-cols-1">
+  <Card>
+    <CardHeader>
+      <CardTitle>连接</CardTitle>
+    </CardHeader>
+    <CardContent className="grid gap-4">
+      {/* connection form */}
+    </CardContent>
+  </Card>
+
+  <section className="grid min-w-0 grid-rows-[auto_minmax(360px,58vh)] overflow-hidden rounded-lg border bg-gray-950">
+    <div className="flex min-h-9 items-center gap-2 border-b border-gray-800 bg-gray-900 px-3 text-xs text-gray-300">
+      <SquareTerminal aria-hidden="true" size={16} />
+      <span>{sshWebSocketUrl}</span>
+    </div>
+    <div className="min-h-0 p-2.5" ref={terminalContainerRef} />
+  </section>
+
+  <Card className="col-span-full">
+    <CardHeader>
+      <CardTitle>命令联想</CardTitle>
+    </CardHeader>
+    <CardContent>{/* suggestions */}</CardContent>
+  </Card>
+</div>
+```
+
+Use shadcn `Checkbox` for `skipHostKeyCheck`:
+
+```tsx
+<label className="col-span-full flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+  <Checkbox
+    aria-label="跳过本次主机密钥校验"
+    checked={form.skipHostKeyCheck}
+    onCheckedChange={(checked) =>
+      updateForm({ skipHostKeyCheck: checked === true })
+    }
+  />
+  <span>跳过本次主机密钥校验</span>
+</label>
+```
+
+- [ ] **Step 4: Migrate suggestion buttons and errors**
+
+Use:
+
+```tsx
+<button
+  className="grid gap-2 rounded-lg border bg-card p-3 text-left transition-colors hover:bg-muted/60"
+  key={command.id}
+  onClick={() => applySuggestion(command)}
+  type="button"
+>
+  <strong className="text-sm font-semibold">{command.name}</strong>
+  <code className="block rounded-md bg-muted px-2 py-1.5 font-mono text-xs text-muted-foreground [overflow-wrap:anywhere]">
+    {command.command}
+  </code>
+</button>
+```
+
+Use `Alert variant="destructive"` for `errorMessage`.
+
+- [ ] **Step 5: Verify tool tests and class references**
+
+Run:
 
 ```bash
-git commit -m "chore(web): verify CSS refactor — types, tests, build pass
-
-TypeScript type check passes.
-All vitest tests pass.
-Vite build succeeds with significantly reduced CSS footprint."
-
-Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+pnpm --dir apps/web test src/features/tools/ToolPages.test.tsx
+rg -n 'tool-|command-|ssh-|terminal-|suggestion-|editor-section|form-grid|catalog-placeholder|validation-panel|script-title-row|script-tags|script-actions|checkbox-row|form-wide' apps/web/src/features/tools
 ```
+
+Expected: tests pass. The `rg` command prints no matches except `@xterm/xterm/css/xterm.css`, which is allowed.
+
+- [ ] **Step 6: Delete tool CSS blocks**
+
+Delete `tool-*`, `command-*`, `ssh-*`, `terminal-*`, `suggestion-*`, and remaining tool-only shared blocks from `apps/web/src/index.css` after Step 5 confirms no references.
+
+- [ ] **Step 7: Commit Task 6**
+
+Run:
+
+```bash
+git add apps/web/src/features/tools/ToolPages.tsx apps/web/src/index.css
+git commit -m "migrate tool pages styling"
+```
+
+---
+
+### Task 7: Final CSS Cleanup And Dead-Class Audit
+
+**Files:**
+- Modify: `apps/web/src/index.css`
+
+- [ ] **Step 1: Scan for remaining business class references**
+
+Run:
+
+```bash
+rg -n 'className="[^"]*(app-frame|sidebar|brand|nav-|workspace|topbar|status-|main-content|content-panel|section-heading|state-box|catalog-|script-|editor-|step-|param-|validation-panel|tool-|execution-|ssh-|terminal-|suggestion-|command-|compact-meta|keyword-|form-|save-message|detail-list)' apps/web/src
+rg -n "className=\\{`[^`]*(app-frame|sidebar|brand|nav-|workspace|topbar|status-|main-content|content-panel|section-heading|state-box|catalog-|script-|editor-|step-|param-|validation-panel|tool-|execution-|ssh-|terminal-|suggestion-|command-|compact-meta|keyword-|form-|save-message|detail-list)" apps/web/src
+```
+
+Expected: no matches. If a match remains, migrate that JSX before editing CSS.
+
+- [ ] **Step 2: Reduce `index.css` to imports, tokens, theme, base, and reset**
+
+Keep the existing import lines:
+
+```css
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+```
+
+Keep the existing `@custom-variant dark`, `:root`, `@theme inline`, `.dark`, and `@layer base` blocks.
+
+Keep only these global reset blocks outside token/theme/base:
+
+```css
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+}
+```
+
+Delete:
+
+- global `button, input, select, textarea { font: inherit; }` if shadcn primitives and browser defaults cover all visible controls.
+- every business class selector.
+- every custom `@media` block.
+- global `code` styling.
+
+- [ ] **Step 3: Confirm `index.css` no longer has business selectors**
+
+Run:
+
+```bash
+rg -n '^\\.(app-frame|sidebar|brand|nav-|workspace|topbar|status-|main-content|content-panel|section-heading|button|badge|state-box|catalog-|script-|editor-|step-|param-|validation-panel|tool-|execution-|ssh-|terminal-|suggestion-|command-|compact-meta|keyword-|form-|save-message|detail-list)' apps/web/src/index.css
+rg -n '^input,|^select,|^textarea|^button,|^code\\s*\\{' apps/web/src/index.css
+```
+
+Expected: no matches.
+
+- [ ] **Step 4: Run web check**
+
+Run:
+
+```bash
+pnpm check:web
+```
+
+Expected: TypeScript check and Vite build pass with exit code 0.
+
+- [ ] **Step 5: Commit Task 7**
+
+Run:
+
+```bash
+git add apps/web/src/index.css
+git commit -m "remove legacy web css"
+```
+
+---
+
+### Task 8: Final Automated And Browser Verification
+
+**Files:**
+- No planned source changes unless verification finds a defect.
+
+- [ ] **Step 1: Run full relevant automated checks**
+
+Run:
+
+```bash
+pnpm --dir apps/web test
+pnpm check:web
+```
+
+Expected: both commands pass with exit code 0.
+
+- [ ] **Step 2: Start the web dev server**
+
+Run:
+
+```bash
+pnpm dev:web
+```
+
+Expected: Vite serves at `http://127.0.0.1:5174`.
+
+Keep the server running for browser verification.
+
+- [ ] **Step 3: Browser sample desktop routes**
+
+Use the in-app Browser plugin when available. Visit:
+
+- `http://127.0.0.1:5174/scripts`
+- `http://127.0.0.1:5174/scripts/new`
+- `http://127.0.0.1:5174/execution/tasks`
+- `http://127.0.0.1:5174/tools/commands`
+- `http://127.0.0.1:5174/tools/ssh`
+
+Check each route at a desktop viewport for:
+
+- navigation active state is visible and `aria-current="page"` is present on the active link;
+- form controls have visible borders, usable height, and focus styles;
+- empty, error, and save states are readable;
+- cards and list items do not overflow their containers;
+- SSH terminal area is visible and does not collapse.
+
+- [ ] **Step 4: Fix browser defects if found**
+
+If a browser defect is found, make the smallest local Tailwind/component adjustment, then rerun:
+
+```bash
+pnpm --dir apps/web test
+pnpm check:web
+```
+
+Expected: both commands still pass.
+
+- [ ] **Step 5: Final class audit**
+
+Run:
+
+```bash
+rg -n 'nav-link-active|content-panel|section-heading|catalog-placeholder|catalog-error|validation-panel|save-message|script-list-item|command-item|execution-task-item|terminal-shell|suggestion-item' apps/web/src
+```
+
+Expected: no matches.
+
+- [ ] **Step 6: Final commit**
+
+Run:
+
+```bash
+git status --short
+git add apps/web/src apps/web/components.json apps/web/package.json pnpm-lock.yaml
+git commit -m "complete web css refactor"
+```
+
+Only include `apps/web/package.json` and `pnpm-lock.yaml` if the shadcn CLI changed dependencies or lockfile content.
+
+## Self-Review Checklist
+
+- Spec coverage:
+  - shadcn neutral styling: Tasks 2-7.
+  - strict deletion of business CSS classes: Tasks 2-7 and final audit in Task 8.
+  - shadcn form primitives: Task 1.
+  - moderate layout cleanup only: Task 3 layout primitives and page-level migrations.
+  - dark mode not in scope: verification route list excludes dark mode checks.
+  - automated checks plus browser sampling: Task 8.
+- No placeholder steps: every task has exact files, commands, and concrete replacement patterns.
+- Type consistency:
+  - `parseTags(value: string): string[]` is defined once in `lib/utils.ts`.
+  - `PagePanel`, `PageHeader`, and `EmptyState` are imported from `@/components/layout/page`.
+  - shadcn form primitives are imported from `@/components/ui/*`.
