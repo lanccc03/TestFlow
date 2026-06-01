@@ -107,9 +107,9 @@ export type StepStatus =
 
 export type ExecutionTaskCreate = {
   script_id: string
-  environment: string
-  target_device: string
-  variables: Record<string, unknown>
+  environment?: string
+  target_device?: string
+  variables?: Record<string, unknown>
   executor?: string
 }
 
@@ -175,8 +175,8 @@ export type ExecutionTaskSummary = {
   failed_step_count: number
 }
 
-export type ExecutionEventMessage = {
-  type: 'task_status' | 'step_status' | 'log' | 'task_finished' | 'connection'
+export type ExecutionUpdateEvent = {
+  type: 'task_status' | 'step_status' | 'log' | 'task_finished'
   task_id?: string
   status?: TaskStatus | StepStatus | null
   step_id?: string | null
@@ -186,6 +186,15 @@ export type ExecutionEventMessage = {
   task?: ExecutionTask | null
   step?: ExecutionStepResult | null
 }
+
+export type ConnectionExecutionEvent = {
+  type: 'connection'
+  status: 'connected'
+}
+
+export type ExecutionEventMessage =
+  | ExecutionUpdateEvent
+  | ConnectionExecutionEvent
 
 type ApiClientOptions = {
   baseUrl: string

@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from 'vitest'
 import type { AxiosInstance } from 'axios'
 
 import { ApiError, createApiClient } from './api'
+import type {
+  ExecutionEventMessage,
+  ExecutionTask,
+  ExecutionTaskCreate,
+} from './api'
 
 describe('createApiClient', () => {
   it('returns health data from the backend', async () => {
@@ -219,7 +224,12 @@ describe('createApiClient', () => {
           started_at: '2026-06-01T00:00:01+00:00',
           finished_at: '2026-06-01T00:00:02+00:00',
           duration_ms: 1000,
-          error_message: null,
+          index: 0,
+          input: {},
+          output: {},
+          error_message: '',
+          error_detail: '',
+          attachments: [],
         },
       ],
       logs: [
@@ -230,14 +240,26 @@ describe('createApiClient', () => {
           step_id: 'step-1',
         },
       ],
-      error_message: null,
-    }
+      error_message: '',
+    } satisfies ExecutionTask
     const createPayload = {
       script_id: 'smoke-cockpit',
       environment: 'staging',
       target_device: 'bench-1',
       variables: { region: 'cn-north' },
-    }
+    } satisfies ExecutionTaskCreate
+    const defaultedCreatePayload = {
+      script_id: 'smoke-cockpit',
+    } satisfies ExecutionTaskCreate
+    const connectionEvent = {
+      type: 'connection',
+      status: 'connected',
+    } satisfies ExecutionEventMessage
+    const taskStatusEvent = {
+      type: 'task_status',
+      task_id: 'task-1',
+      status: 'running',
+    } satisfies ExecutionEventMessage
     const httpClient = {
       get: vi.fn().mockResolvedValue({ data: { items: [task] } }),
       post: vi.fn().mockResolvedValue({ data: task }),
@@ -246,10 +268,17 @@ describe('createApiClient', () => {
 
     await expect(api.listTasks()).resolves.toEqual({ items: [task] })
     await expect(api.createTask(createPayload)).resolves.toEqual(task)
+    await expect(api.createTask(defaultedCreatePayload)).resolves.toEqual(task)
     await expect(api.cancelTask('task-1')).resolves.toEqual(task)
+    expect(connectionEvent.status).toBe('connected')
+    expect(taskStatusEvent.status).toBe('running')
 
     expect(httpClient.get).toHaveBeenCalledWith('/api/tasks')
     expect(httpClient.post).toHaveBeenCalledWith('/api/tasks', createPayload)
+    expect(httpClient.post).toHaveBeenCalledWith(
+      '/api/tasks',
+      defaultedCreatePayload,
+    )
     expect(httpClient.post).toHaveBeenCalledWith('/api/tasks/task-1/cancel', {})
   })
 
