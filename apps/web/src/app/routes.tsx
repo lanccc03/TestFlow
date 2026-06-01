@@ -19,6 +19,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { TaskPage } from '@/features/execution/TaskPage'
 import { ScriptEditorPage, ScriptListPage } from '@/features/scripts/ScriptPages'
 import { CommandLibraryPage, SshTerminalPage } from '@/features/tools/ToolPages'
 
@@ -97,13 +98,7 @@ export const appRoutes: AppRoute[] = [
     description: '发起单脚本执行并查看实时进度。',
     navGroup: 'execution',
     icon: Activity,
-    element: (
-      <PlaceholderPage
-        title="执行任务"
-        description="选择脚本、启动执行并跟踪当前任务状态。"
-        action="任务控制将在执行器阶段接入"
-      />
-    ),
+    element: <TaskPage />,
   },
   {
     path: '/history',

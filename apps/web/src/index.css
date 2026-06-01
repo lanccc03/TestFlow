@@ -770,6 +770,78 @@ input[type="checkbox"] {
   align-content: start;
 }
 
+.execution-workspace {
+  align-content: start;
+}
+
+.execution-controls {
+  align-content: start;
+}
+
+.execution-form-grid {
+  grid-template-columns: minmax(240px, 1.2fr) minmax(160px, 0.6fr) minmax(180px, 0.8fr);
+}
+
+.execution-layout {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
+}
+
+.execution-recent-panel {
+  grid-column: 1 / -1;
+}
+
+.execution-selected-script,
+.execution-task-card,
+.execution-task-item {
+  background: #ffffff;
+  border: 1px solid #dbe6e9;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.execution-selected-script {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.execution-selected-script span {
+  color: #65767c;
+  font-size: 13px;
+  grid-column: 1 / -1;
+}
+
+.execution-task-card h3,
+.execution-task-item h3,
+.execution-task-item p {
+  margin: 0;
+}
+
+.execution-task-item {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.execution-task-item p {
+  color: #65767c;
+  font-size: 13px;
+}
+
+.execution-log-list,
+.execution-task-list {
+  display: grid;
+  gap: 10px;
+}
+
+.execution-log-list {
+  align-content: start;
+  max-height: 420px;
+  overflow: auto;
+}
+
 .tool-grid,
 .ssh-layout {
   display: grid;
@@ -970,6 +1042,7 @@ code {
   }
 
   .script-layout,
+  .execution-layout,
   .tool-grid,
   .ssh-layout {
     grid-template-columns: 1fr;
@@ -1016,7 +1089,10 @@ code {
 
   .script-filters,
   .form-grid,
+  .execution-form-grid,
   .command-form-grid,
+  .execution-selected-script,
+  .execution-task-item,
   .script-list-item {
     grid-template-columns: 1fr;
   }
