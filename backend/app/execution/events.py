@@ -22,4 +22,4 @@ class ExecutionEventBus:
 
     async def publish(self, message: ExecutionEventMessage) -> None:
         for subscriber in list(self._subscribers):
-            await subscriber.put(message)
+            await subscriber.put(message.model_copy(deep=True))
