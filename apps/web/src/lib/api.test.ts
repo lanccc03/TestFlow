@@ -193,6 +193,66 @@ describe('createApiClient', () => {
     expect(httpClient.delete).toHaveBeenCalledWith('/api/commands/command-1')
   })
 
+  it('exposes execution task endpoints', async () => {
+    const task = {
+      id: 'task-1',
+      script_id: 'smoke-cockpit',
+      script_name: '座舱冒烟测试',
+      script_revision: 2,
+      status: 'running',
+      environment: 'staging',
+      target_device: 'bench-1',
+      variables: { region: 'cn-north' },
+      executor: 'local',
+      created_at: '2026-06-01T00:00:00+00:00',
+      started_at: '2026-06-01T00:00:01+00:00',
+      finished_at: null,
+      duration_ms: 1000,
+      log_path: 'data/reports/task-1/task.log',
+      report_dir: 'data/reports/task-1',
+      steps: [
+        {
+          id: 'step-1',
+          keyword: 'wait',
+          description: '等待启动',
+          status: 'passed',
+          started_at: '2026-06-01T00:00:01+00:00',
+          finished_at: '2026-06-01T00:00:02+00:00',
+          duration_ms: 1000,
+          error_message: null,
+        },
+      ],
+      logs: [
+        {
+          timestamp: '2026-06-01T00:00:01+00:00',
+          level: 'info',
+          message: 'Task started',
+          step_id: 'step-1',
+        },
+      ],
+      error_message: null,
+    }
+    const createPayload = {
+      script_id: 'smoke-cockpit',
+      environment: 'staging',
+      target_device: 'bench-1',
+      variables: { region: 'cn-north' },
+    }
+    const httpClient = {
+      get: vi.fn().mockResolvedValue({ data: { items: [task] } }),
+      post: vi.fn().mockResolvedValue({ data: task }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
+
+    await expect(api.listTasks()).resolves.toEqual({ items: [task] })
+    await expect(api.createTask(createPayload)).resolves.toEqual(task)
+    await expect(api.cancelTask('task-1')).resolves.toEqual(task)
+
+    expect(httpClient.get).toHaveBeenCalledWith('/api/tasks')
+    expect(httpClient.post).toHaveBeenCalledWith('/api/tasks', createPayload)
+    expect(httpClient.post).toHaveBeenCalledWith('/api/tasks/task-1/cancel', {})
+  })
+
   it('normalizes axios failed responses into ApiError', async () => {
     const httpClient = {
       get: vi.fn().mockRejectedValue({

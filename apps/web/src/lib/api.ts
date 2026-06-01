@@ -88,6 +88,105 @@ export type CommandTemplate = CommandTemplatePayload & {
   updated_at: string
 }
 
+export type TaskStatus =
+  | 'pending'
+  | 'running'
+  | 'passed'
+  | 'failed'
+  | 'canceled'
+  | 'error'
+
+export type StepStatus =
+  | 'pending'
+  | 'running'
+  | 'passed'
+  | 'failed'
+  | 'canceled'
+  | 'error'
+  | 'skipped'
+
+export type ExecutionTaskCreate = {
+  script_id: string
+  environment: string
+  target_device: string
+  variables: Record<string, unknown>
+  executor?: string
+}
+
+export type ExecutionLogEntry = {
+  timestamp: string
+  level: string
+  message: string
+  step_id: string | null
+}
+
+export type ExecutionStepResult = {
+  id: string
+  index: number
+  keyword: string
+  description: string
+  status: StepStatus
+  started_at: string | null
+  finished_at: string | null
+  duration_ms: number | null
+  input: Record<string, unknown>
+  output: Record<string, unknown>
+  error_message: string
+  error_detail: string
+  attachments: string[]
+}
+
+export type ExecutionTask = {
+  id: string
+  script_id: string
+  script_name: string
+  script_revision: number
+  status: TaskStatus
+  environment: string
+  target_device: string
+  variables: Record<string, unknown>
+  executor: string
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  duration_ms: number | null
+  log_path: string
+  report_dir: string
+  steps: ExecutionStepResult[]
+  logs: ExecutionLogEntry[]
+  error_message: string
+}
+
+export type ExecutionTaskSummary = {
+  id: string
+  script_id: string
+  script_name: string
+  script_revision: number
+  status: TaskStatus
+  environment: string
+  target_device: string
+  executor: string
+  created_at: string
+  started_at: string | null
+  finished_at: string | null
+  duration_ms: number | null
+  step_count: number
+  passed_step_count: number
+  failed_step_count: number
+}
+
+export type ExecutionEventMessage = {
+  type: 'task_status' | 'step_status' | 'log' | 'task_finished' | 'connection'
+  task_id?: string
+  status?: TaskStatus | StepStatus | null
+  step_id?: string | null
+  message?: string
+  level?: string
+  timestamp?: string
+  task?: ExecutionTask | null
+  step?: ExecutionStepResult | null
+}
+
 type ApiClientOptions = {
   baseUrl: string
   httpClient?: AxiosInstance
@@ -140,6 +239,15 @@ export function createApiClient({
     }
   }
 
+  async function postEmpty<TResponse>(path: string): Promise<TResponse> {
+    try {
+      const response = await httpClient.post<TResponse>(path, {})
+      return response.data
+    } catch (error) {
+      throw normalizeApiError(error)
+    }
+  }
+
   async function put<TResponse, TPayload>(
     path: string,
     payload: TPayload,
@@ -182,6 +290,13 @@ export function createApiClient({
       ),
     deleteCommand: (commandId: string) =>
       remove(`/api/commands/${commandId}`),
+    listTasks: () => request<ItemList<ExecutionTaskSummary>>('/api/tasks'),
+    getTask: (taskId: string) =>
+      request<ExecutionTask>(`/api/tasks/${taskId}`),
+    createTask: (task: ExecutionTaskCreate) =>
+      post<ExecutionTask, ExecutionTaskCreate>('/api/tasks', task),
+    cancelTask: (taskId: string) =>
+      postEmpty<ExecutionTask>(`/api/tasks/${taskId}/cancel`),
     listItems: <T = unknown>(path: string) => request<ItemList<T>>(path),
   }
 }
