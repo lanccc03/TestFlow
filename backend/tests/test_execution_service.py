@@ -2,7 +2,9 @@ import asyncio
 
 import pytest
 from fastapi.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
+from app.api import execution_websocket_endpoint
 from app.config import Settings
 from app.execution.events import ExecutionEventBus
 from app.execution.models import (
@@ -266,6 +268,52 @@ def test_task_api_cancels_running_task(tmp_path) -> None:
     assert create_response.status_code == 201
     assert cancel_response.status_code == 200
     assert cancel_response.json()["id"] == created["id"]
+
+
+@pytest.mark.anyio
+async def test_execution_websocket_disconnect_cleans_up_idle_subscriber(
+    tmp_path,
+) -> None:
+    class IdleDisconnectingWebSocket:
+        def __init__(self, app) -> None:
+            self.app = app
+            self.disconnect_requested = asyncio.Event()
+            self.sent_messages: asyncio.Queue[dict[str, str]] = asyncio.Queue()
+
+        async def accept(self) -> None:
+            return None
+
+        async def send_json(self, message: dict[str, str]) -> None:
+            await self.sent_messages.put(message)
+
+        async def receive(self) -> dict[str, str]:
+            await self.disconnect_requested.wait()
+            raise WebSocketDisconnect(code=1000)
+
+    settings = Settings(data_dir=tmp_path)
+    app = create_app(settings)
+
+    with TestClient(app) as client:
+        websocket = IdleDisconnectingWebSocket(client.app)
+        endpoint_task = asyncio.create_task(
+            execution_websocket_endpoint(websocket)  # type: ignore[arg-type]
+        )
+        try:
+            assert await websocket.sent_messages.get() == {
+                "type": "connection",
+                "status": "connected",
+            }
+            assert len(app.state.execution_service.events._subscribers) == 1
+
+            websocket.disconnect_requested.set()
+            await asyncio.wait_for(endpoint_task, timeout=0.1)
+        finally:
+            if not endpoint_task.done():
+                endpoint_task.cancel()
+                with pytest.raises(asyncio.CancelledError):
+                    await endpoint_task
+
+        assert len(app.state.execution_service.events._subscribers) == 0
 
 
 @pytest.mark.anyio

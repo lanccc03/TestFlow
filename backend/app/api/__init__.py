@@ -1,3 +1,6 @@
+import asyncio
+from contextlib import suppress
+
 from fastapi import APIRouter, Request, Response, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
@@ -243,7 +246,25 @@ async def execution_websocket_endpoint(websocket: WebSocket) -> None:
         async with service.events.subscribe() as subscriber:
             await websocket.send_json({"type": "connection", "status": "connected"})
             while True:
-                message = await subscriber.get()
+                event_task = asyncio.create_task(subscriber.get())
+                receive_task = asyncio.create_task(websocket.receive())
+                done, pending = await asyncio.wait(
+                    {event_task, receive_task},
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+
+                for task in pending:
+                    task.cancel()
+                    with suppress(asyncio.CancelledError):
+                        await task
+
+                if receive_task in done:
+                    received = receive_task.result()
+                    if received.get("type") == "websocket.disconnect":
+                        return
+                    continue
+
+                message = event_task.result()
                 await websocket.send_json(message.model_dump(mode="json"))
     except WebSocketDisconnect:
         return
