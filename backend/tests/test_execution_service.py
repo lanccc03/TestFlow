@@ -291,6 +291,110 @@ async def test_execution_service_cancel_task_logs_request(tmp_path) -> None:
 
 
 @pytest.mark.anyio
+async def test_execution_service_cancel_task_marks_queued_task_canceled(
+    tmp_path,
+) -> None:
+    settings = Settings(data_dir=tmp_path)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="long-wait",
+            name="Long Wait",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="Long wait",
+                    params={"seconds": 2},
+                )
+            ],
+        ),
+    )
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="queued-wait",
+            name="Queued Wait",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="Queued wait",
+                    params={"seconds": 0},
+                )
+            ],
+        ),
+    )
+    service = ExecutionService(settings)
+
+    await service.start()
+    try:
+        running_task = await service.create_task(
+            ExecutionTaskCreate(script_id="long-wait")
+        )
+        queued_task = await service.create_task(
+            ExecutionTaskCreate(script_id="queued-wait")
+        )
+        await asyncio.sleep(0.01)
+
+        canceled_task = await service.cancel_task(queued_task.id)
+        final_queued_task = await service.wait_for_task(queued_task.id, timeout=0.1)
+    finally:
+        await service.cancel_task(running_task.id)
+        await service.stop()
+
+    assert canceled_task.status == "canceled"
+    assert final_queued_task.status == "canceled"
+    assert [step.status for step in final_queued_task.steps] == ["canceled"]
+    assert final_queued_task.steps[0].error_message == "Execution canceled"
+
+
+@pytest.mark.anyio
+async def test_execution_service_cooperative_cancel_marks_unstarted_steps_canceled(
+    tmp_path,
+) -> None:
+    settings = Settings(data_dir=tmp_path)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="multi-step",
+            name="Multi Step",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="Long wait",
+                    params={"seconds": 2},
+                ),
+                ScriptStep(
+                    id="step-2",
+                    keyword="wait",
+                    description="Unstarted wait",
+                    params={"seconds": 0},
+                ),
+            ],
+        ),
+    )
+    service = ExecutionService(settings)
+
+    await service.start()
+    try:
+        task = await service.create_task(ExecutionTaskCreate(script_id="multi-step"))
+        await asyncio.sleep(0.01)
+        await service.cancel_task(task.id)
+        final_task = await service.wait_for_task(task.id, timeout=2)
+    finally:
+        await service.stop()
+
+    assert final_task.status == "canceled"
+    assert [step.status for step in final_task.steps] == ["canceled", "canceled"]
+    assert final_task.steps[1].error_message == "Execution canceled"
+
+
+@pytest.mark.anyio
 async def test_execution_service_copies_mutable_inputs(tmp_path) -> None:
     settings = Settings(data_dir=tmp_path)
     script = CatalogTestScript(

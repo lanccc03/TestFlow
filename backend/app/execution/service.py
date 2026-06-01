@@ -112,6 +112,9 @@ class ExecutionService:
         if token is not None:
             token.cancel()
         await self._append_log(task, "Cancellation requested")
+        if task.status == "pending":
+            _mark_task_canceled(task)
+            await self._finish_task(task)
         return task.model_copy(deep=True)
 
     async def wait_for_task(
@@ -142,6 +145,10 @@ class ExecutionService:
 
     async def _run_task(self, task_id: str) -> None:
         task = self._tasks[task_id]
+        if task.status in TERMINAL_STATUSES:
+            self._tokens.pop(task.id, None)
+            return
+
         token = self._tokens[task_id]
 
         try:
@@ -248,6 +255,9 @@ class ExecutionService:
 
         if event.type == "run_finished":
             if task.status in TERMINAL_STATUSES:
+                return
+            if event.status == "canceled":
+                _mark_task_canceled(task)
                 return
             task.status = event.status or _final_status_from_steps(task)
 
@@ -399,6 +409,7 @@ def _mark_task_canceled(task: ExecutionTask) -> None:
     for step in task.steps:
         if step.status in {"pending", "running"}:
             step.status = "canceled"
+            step.error_message = step.error_message or "Execution canceled"
             step.finished_at = step.finished_at or utc_now()
             step.duration_ms = _duration_ms(step.started_at, step.finished_at)
 
