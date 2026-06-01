@@ -103,9 +103,9 @@ describe('TaskPage', () => {
   it('starts execution for a selected published script', async () => {
     renderWithQuery(<TaskPage />)
 
-    fireEvent.change(await screen.findByLabelText('选择脚本'), {
-      target: { value: 'smoke-cockpit' },
-    })
+    fireEvent.click(await screen.findByLabelText('选择脚本'))
+    await waitFor(() => screen.getByRole('option', { name: '座舱冒烟测试' }))
+    fireEvent.click(screen.getByRole('option', { name: '座舱冒烟测试' }))
     fireEvent.change(screen.getByLabelText('目标设备'), {
       target: { value: 'bench-1' },
     })
@@ -188,9 +188,9 @@ describe('TaskPage', () => {
 })
 
 async function startTask() {
-  fireEvent.change(await screen.findByLabelText('选择脚本'), {
-    target: { value: 'smoke-cockpit' },
-  })
+  fireEvent.click(await screen.findByLabelText('选择脚本'))
+  await waitFor(() => screen.getByRole('option', { name: '座舱冒烟测试' }))
+  fireEvent.click(screen.getByRole('option', { name: '座舱冒烟测试' }))
   fireEvent.change(screen.getByLabelText('目标设备'), {
     target: { value: 'bench-1' },
   })

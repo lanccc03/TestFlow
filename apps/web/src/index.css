@@ -109,35 +109,6 @@ textarea {
   font-size: 14px;
 }
 
-.compact-meta {
-  display: flex;
-  gap: 10px;
-  margin: 0;
-}
-
-.compact-meta div {
-  background: #eef5f6;
-  border-radius: 7px;
-  min-width: 64px;
-  padding: 7px 9px;
-}
-
-.compact-meta dt,
-.compact-meta dd {
-  margin: 0;
-}
-
-.compact-meta dt {
-  color: #66777d;
-  font-size: 11px;
-}
-
-.compact-meta dd {
-  color: #17383f;
-  font-size: 13px;
-  font-weight: 800;
-}
-
 .catalog-placeholder,
 .catalog-error {
   align-items: center;
@@ -286,94 +257,6 @@ input[type="checkbox"] {
 
 .tool-workspace {
   align-content: start;
-}
-
-.execution-workspace {
-  align-content: start;
-}
-
-.execution-controls {
-  align-content: start;
-}
-
-.execution-form-grid {
-  grid-template-columns: minmax(240px, 1.2fr) minmax(160px, 0.6fr) minmax(180px, 0.8fr);
-}
-
-.execution-layout {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
-}
-
-.execution-recent-panel {
-  grid-column: 1 / -1;
-}
-
-.execution-selected-script,
-.execution-task-card,
-.execution-task-item {
-  background: #ffffff;
-  border: 1px solid #dbe6e9;
-  border-radius: 8px;
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-}
-
-.execution-selected-script {
-  align-items: center;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.execution-selected-script > *,
-.execution-task-card .script-title-row,
-.execution-task-card h3,
-.execution-task-item > div,
-.execution-task-item h3,
-.execution-task-item p {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.execution-selected-script span {
-  color: #65767c;
-  font-size: 13px;
-  grid-column: 1 / -1;
-}
-
-.execution-task-card h3,
-.execution-task-item h3,
-.execution-task-item p {
-  margin: 0;
-}
-
-.execution-task-item {
-  align-items: center;
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.execution-task-card .detail-list dd,
-.execution-task-item .compact-meta dd {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.execution-task-item p {
-  color: #65767c;
-  font-size: 13px;
-}
-
-.execution-log-list,
-.execution-task-list {
-  display: grid;
-  gap: 10px;
-}
-
-.execution-log-list {
-  align-content: start;
-  max-height: 420px;
-  overflow: auto;
 }
 
 .tool-grid,

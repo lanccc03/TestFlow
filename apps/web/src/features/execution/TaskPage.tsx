@@ -6,8 +6,18 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import {
   createApiClient,
   type ExecutionEventMessage,
@@ -129,169 +139,191 @@ export function TaskPage() {
   }
 
   return (
-    <section className="content-panel execution-workspace">
-      <div className="script-page-heading">
-        <div className="section-heading">
-          <p>阶段六</p>
-          <h1>执行任务</h1>
-          <span>选择已发布脚本，启动本地执行并查看实时任务输出。</span>
-        </div>
-        <Badge variant={activeTask ? statusVariant(activeTask.status) : 'secondary'}>
-          {activeTask ? taskStatusLabel(activeTask.status) : '未启动'}
-        </Badge>
-      </div>
+    <PagePanel>
+      <PageHeader
+        eyebrow="阶段六"
+        title="执行任务"
+        subtitle="选择已发布脚本，启动本地执行并查看实时任务输出。"
+        actions={
+          <Badge variant={activeTask ? statusVariant(activeTask.status) : 'secondary'}>
+            {activeTask ? taskStatusLabel(activeTask.status) : '未启动'}
+          </Badge>
+        }
+      />
 
-      <section className="editor-section execution-controls">
-        <h2>任务控制</h2>
-        <div className="form-grid execution-form-grid">
-          <label>
-            <span>选择脚本</span>
-            <select
-              aria-label="选择脚本"
-              value={selectedScriptId}
-              onChange={(event) => setSelectedScriptId(event.target.value)}
+      <Card>
+        <CardHeader>
+          <CardTitle>任务控制</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="grid grid-cols-[minmax(240px,1.2fr)_minmax(160px,0.6fr)_minmax(180px,0.8fr)] gap-3 max-sm:grid-cols-1">
+            <label className="grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">选择脚本</span>
+              <Select value={selectedScriptId} onValueChange={setSelectedScriptId}>
+                <SelectTrigger aria-label="选择脚本">
+                  <SelectValue placeholder="选择已发布脚本" />
+                </SelectTrigger>
+                <SelectContent>
+                  {publishedScripts.map((script) => (
+                    <SelectItem key={script.id} value={script.id}>
+                      {script.name || script.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">执行环境</span>
+              <Select value={environment} onValueChange={setEnvironment}>
+                <SelectTrigger aria-label="执行环境">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="local">local</SelectItem>
+                  <SelectItem value="lab">lab</SelectItem>
+                  <SelectItem value="ci">ci</SelectItem>
+                </SelectContent>
+              </Select>
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">目标设备</span>
+              <Input
+                aria-label="目标设备"
+                value={targetDevice}
+                onChange={(event) => setTargetDevice(event.target.value)}
+                placeholder="bench-1"
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              disabled={!selectedScriptId || createMutation.isPending}
+              onClick={startExecution}
+              type="button"
             >
-              <option value="">选择已发布脚本</option>
-              {publishedScripts.map((script) => (
-                <option key={script.id} value={script.id}>
-                  {script.name || script.id}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>执行环境</span>
-            <select
-              aria-label="执行环境"
-              value={environment}
-              onChange={(event) => setEnvironment(event.target.value)}
+              <Play aria-hidden="true" data-icon="inline-start" />
+              开始执行
+            </Button>
+            <Button
+              disabled={!canCancelTask(activeTask) || cancelMutation.isPending}
+              onClick={cancelExecution}
+              type="button"
+              variant="secondary"
             >
-              <option value="local">local</option>
-              <option value="lab">lab</option>
-              <option value="ci">ci</option>
-            </select>
-          </label>
-          <label>
-            <span>目标设备</span>
-            <input
-              aria-label="目标设备"
-              value={targetDevice}
-              onChange={(event) => setTargetDevice(event.target.value)}
-              placeholder="bench-1"
-            />
-          </label>
-        </div>
-        <div className="editor-actions">
-          <Button
-            disabled={!selectedScriptId || createMutation.isPending}
-            onClick={startExecution}
-            type="button"
-          >
-            <Play aria-hidden="true" data-icon="inline-start" />
-            开始执行
-          </Button>
-          <Button
-            disabled={!canCancelTask(activeTask) || cancelMutation.isPending}
-            onClick={cancelExecution}
-            type="button"
-            variant="secondary"
-          >
-            <Square aria-hidden="true" data-icon="inline-start" />
-            取消
-          </Button>
-        </div>
-        {scriptsQuery.isError ? (
-          <div className="catalog-error">脚本列表不可用</div>
-        ) : null}
-        {publishedScripts.length === 0 && !scriptsQuery.isPending ? (
-          <div className="catalog-placeholder">暂无已发布脚本</div>
-        ) : null}
-        {selectedScript ? <SelectedScriptSummary script={selectedScript} /> : null}
-      </section>
+              <Square aria-hidden="true" data-icon="inline-start" />
+              取消
+            </Button>
+          </div>
+          {scriptsQuery.isError ? (
+            <Alert variant="destructive">
+              <AlertDescription>脚本列表不可用</AlertDescription>
+            </Alert>
+          ) : null}
+          {publishedScripts.length === 0 && !scriptsQuery.isPending ? (
+            <EmptyState title="暂无已发布脚本" />
+          ) : null}
+          {selectedScript ? <SelectedScriptSummary script={selectedScript} /> : null}
+        </CardContent>
+      </Card>
 
-      <div className="execution-layout">
-        <section className="editor-section execution-current-panel">
-          <h2>当前任务</h2>
-          {activeTask ? (
-            <TaskDetail task={activeTask} />
-          ) : (
-            <div className="catalog-placeholder">启动执行后显示当前任务</div>
-          )}
-        </section>
+      <div className="grid grid-cols-[minmax(300px,0.8fr)_minmax(0,1.2fr)] gap-4 max-xl:grid-cols-1">
+        <Card>
+          <CardHeader>
+            <CardTitle>当前任务</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activeTask ? (
+              <TaskDetail task={activeTask} />
+            ) : (
+              <EmptyState title="启动执行后显示当前任务" />
+            )}
+          </CardContent>
+        </Card>
 
-        <section className="editor-section execution-log-panel">
-          <h2>实时日志</h2>
-          {liveLogs.length === 0 ? (
-            <div className="catalog-placeholder">等待执行日志</div>
-          ) : (
-            <div className="execution-log-list" aria-label="实时日志">
-              {liveLogs.map((log, index) => (
-                <code key={`${log}-${index}`}>{log}</code>
-              ))}
-            </div>
-          )}
-        </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>实时日志</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {liveLogs.length === 0 ? (
+              <EmptyState title="等待执行日志" />
+            ) : (
+              <div className="grid max-h-[420px] content-start gap-2 overflow-auto" aria-label="实时日志">
+                {liveLogs.map((log, index) => (
+                  <code
+                    className="block overflow-wrap-anywhere rounded-md bg-muted px-2 py-1.5 font-mono text-xs leading-relaxed text-muted-foreground"
+                    key={`${log}-${index}`}
+                  >
+                    {log}
+                  </code>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-        <section className="editor-section execution-recent-panel">
-          <h2>最近任务</h2>
-          {tasksQuery.isPending ? (
-            <div className="catalog-placeholder">正在加载任务</div>
-          ) : recentTasks.length === 0 ? (
-            <div className="catalog-placeholder">暂无执行任务</div>
-          ) : (
-            <div className="execution-task-list">
-              {recentTasks.map((task) => (
+        <Card className="col-span-full">
+          <CardHeader>
+            <CardTitle>最近任务</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2.5">
+            {tasksQuery.isPending ? (
+              <EmptyState title="正在加载任务" />
+            ) : recentTasks.length === 0 ? (
+              <EmptyState title="暂无执行任务" />
+            ) : (
+              recentTasks.map((task) => (
                 <TaskSummaryItem key={task.id} task={task} />
-              ))}
-            </div>
-          )}
-        </section>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </section>
+    </PagePanel>
   )
 }
 
 function SelectedScriptSummary({ script }: { script: ScriptSummary }) {
   return (
-    <div className="execution-selected-script">
-      <strong>{script.name}</strong>
-      <span>{script.description || script.id}</span>
-      <Badge variant="secondary">v{script.revision}</Badge>
+    <div className="flex items-center gap-3 rounded-lg border bg-card p-3.5 max-sm:flex-col">
+      <strong className="text-sm font-semibold">{script.name}</strong>
+      <span className="text-sm text-muted-foreground">{script.description || script.id}</span>
+      <Badge variant="secondary" className="max-sm:self-start">v{script.revision}</Badge>
     </div>
   )
 }
 
 function TaskDetail({ task }: { task: ExecutionTask }) {
   return (
-    <div className="execution-task-card">
-      <div className="script-title-row">
-        <h3>{task.script_name}</h3>
+    <div className="grid gap-3 rounded-lg border bg-card p-3.5">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="m-0 text-base font-semibold">{task.script_name}</h3>
         <Badge variant={statusVariant(task.status)}>
           {taskStatusLabel(task.status)}
         </Badge>
       </div>
-      <dl className="detail-list">
-        <div>
-          <dt>任务 ID</dt>
-          <dd>{task.id}</dd>
+      <dl className="grid gap-2">
+        <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
+          <dt className="text-xs text-muted-foreground">任务 ID</dt>
+          <dd className="m-0 min-w-0 text-sm [overflow-wrap:anywhere]">{task.id}</dd>
         </div>
-        <div>
-          <dt>环境</dt>
-          <dd>{task.environment}</dd>
+        <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
+          <dt className="text-xs text-muted-foreground">环境</dt>
+          <dd className="m-0 min-w-0 text-sm [overflow-wrap:anywhere]">{task.environment}</dd>
         </div>
-        <div>
-          <dt>设备</dt>
-          <dd>{task.target_device || '-'}</dd>
+        <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
+          <dt className="text-xs text-muted-foreground">设备</dt>
+          <dd className="m-0 min-w-0 text-sm [overflow-wrap:anywhere]">{task.target_device || '-'}</dd>
         </div>
-        <div>
-          <dt>执行器</dt>
-          <dd>{task.executor}</dd>
+        <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
+          <dt className="text-xs text-muted-foreground">执行器</dt>
+          <dd className="m-0 min-w-0 text-sm [overflow-wrap:anywhere]">{task.executor}</dd>
         </div>
       </dl>
       {task.error_message ? (
-        <div className="validation-panel">
-          <p>{task.error_message}</p>
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription>{task.error_message}</AlertDescription>
+        </Alert>
       ) : null}
     </div>
   )
@@ -299,29 +331,29 @@ function TaskDetail({ task }: { task: ExecutionTask }) {
 
 function TaskSummaryItem({ task }: { task: ExecutionTaskSummary }) {
   return (
-    <article className="execution-task-item">
+    <Card size="sm" className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3 max-sm:grid-cols-1">
       <div>
-        <div className="script-title-row">
-          <h3>{task.script_name}</h3>
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <h3 className="m-0 text-base font-semibold">{task.script_name}</h3>
           <Badge variant={statusVariant(task.status)}>
             {taskStatusLabel(task.status)}
           </Badge>
         </div>
-        <p>{task.id}</p>
+        <p className="m-0 text-sm text-muted-foreground">{task.id}</p>
       </div>
-      <dl className="compact-meta">
-        <div>
-          <dt>步骤</dt>
-          <dd>
+      <dl className="flex gap-2">
+        <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+          <dt className="text-xs text-muted-foreground">步骤</dt>
+          <dd className="m-0 text-sm font-semibold text-foreground">
             {task.passed_step_count}/{task.step_count}
           </dd>
         </div>
-        <div>
-          <dt>环境</dt>
-          <dd>{task.environment}</dd>
+        <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+          <dt className="text-xs text-muted-foreground">环境</dt>
+          <dd className="m-0 text-sm font-semibold text-foreground">{task.environment}</dd>
         </div>
       </dl>
-    </article>
+    </Card>
   )
 }
 
