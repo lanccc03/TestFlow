@@ -15,8 +15,22 @@ import {
   useQueryClient,
 } from '@tanstack/react-query'
 
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
+import { cn, parseTags } from '@/lib/utils'
 import {
   createApiClient,
   type ApiError,
@@ -101,87 +115,94 @@ export function ScriptListPage() {
   })
 
   return (
-    <section className="content-panel script-workspace">
-      <div className="script-page-heading">
-        <div className="section-heading">
-          <p>阶段五</p>
-          <h1>脚本管理</h1>
-          <span>管理 YAML 测试脚本、筛选分组标签，并进入可视化编辑。</span>
-        </div>
-        <Button asChild>
-          <Link to="/scripts/new">
-            <FilePlus2 aria-hidden="true" data-icon="inline-start" />
-            新建脚本
-          </Link>
-        </Button>
-      </div>
+    <PagePanel>
+      <PageHeader
+        eyebrow="阶段五"
+        title="脚本管理"
+        subtitle="管理 YAML 测试脚本、筛选分组标签，并进入可视化编辑。"
+        actions={
+          <Button asChild>
+            <Link to="/scripts/new">
+              <FilePlus2 aria-hidden="true" data-icon="inline-start" />
+              新建脚本
+            </Link>
+          </Button>
+        }
+      />
 
-      <div className="script-filters">
-        <label>
-          <span>搜索脚本</span>
-          <input
+      <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
+        <label className="grid gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground">搜索脚本</span>
+          <Input
             aria-label="搜索脚本"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="名称、ID、描述、标签"
           />
         </label>
-        <label>
-          <span>状态筛选</span>
-          <select
-            aria-label="状态筛选"
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-          >
-            <option value="all">全部状态</option>
-            <option value="draft">草稿</option>
-            <option value="published">已发布</option>
-          </select>
+        <label className="grid gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground">状态筛选</span>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger aria-label="状态筛选">
+              <SelectValue placeholder="全部状态" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部状态</SelectItem>
+              <SelectItem value="draft">草稿</SelectItem>
+              <SelectItem value="published">已发布</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
-        <label>
-          <span>分组筛选</span>
-          <select
-            aria-label="分组筛选"
-            value={groupFilter}
-            onChange={(event) => setGroupFilter(event.target.value)}
-          >
-            <option value="all">全部分组</option>
-            {groups.map((group) => (
-              <option key={group} value={group}>
-                {group}
-              </option>
-            ))}
-          </select>
+        <label className="grid gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground">分组筛选</span>
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger aria-label="分组筛选">
+              <SelectValue placeholder="全部分组" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部分组</SelectItem>
+              {groups.map((group) => (
+                <SelectItem key={group} value={group}>
+                  {group}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
-        <label>
-          <span>标签筛选</span>
-          <select
-            aria-label="标签筛选"
-            value={tagFilter}
-            onChange={(event) => setTagFilter(event.target.value)}
-          >
-            <option value="all">全部标签</option>
-            {tags.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
+        <label className="grid gap-1.5">
+          <span className="text-xs font-semibold text-muted-foreground">标签筛选</span>
+          <Select value={tagFilter} onValueChange={setTagFilter}>
+            <SelectTrigger aria-label="标签筛选">
+              <SelectValue placeholder="全部标签" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部标签</SelectItem>
+              {tags.map((tag) => (
+                <SelectItem key={tag} value={tag}>
+                  {tag}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </label>
       </div>
 
-      <div className="script-layout">
-        <section className="script-list-section">
-          <h2>脚本列表</h2>
-          {scriptsQuery.isPending ? (
-            <div className="catalog-placeholder">正在加载</div>
-          ) : scriptsQuery.isError ? (
-            <div className="catalog-error">后端脚本数据不可用</div>
-          ) : filteredScripts.length === 0 ? (
-            <div className="catalog-placeholder">没有匹配的脚本</div>
-          ) : (
-            <div className="script-list">
-              {filteredScripts.map((script) => (
+      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-4 max-xl:grid-cols-1">
+        <Card className="gap-3">
+          <CardHeader>
+            <CardTitle>脚本列表</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2.5">
+            {scriptsQuery.isPending ? (
+              <EmptyState title="正在加载" />
+            ) : scriptsQuery.isError ? (
+              <Alert variant="destructive">
+                <AlertDescription>后端脚本数据不可用</AlertDescription>
+              </Alert>
+            ) : filteredScripts.length === 0 ? (
+              <EmptyState title="没有匹配的脚本" />
+            ) : (
+              filteredScripts.map((script) => (
                 <ScriptListItem
                   confirmDeleteId={confirmDeleteId}
                   key={script.id}
@@ -190,38 +211,42 @@ export function ScriptListPage() {
                   onPrepareDelete={() => setConfirmDeleteId(script.id)}
                   script={script}
                 />
-              ))}
-            </div>
-          )}
-        </section>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
-        <section className="keyword-sidebar">
-          <h2>关键字库</h2>
-          {keywordsQuery.isPending ? (
-            <div className="catalog-placeholder">正在加载</div>
-          ) : (
-            <div className="keyword-grid">
-              {keywords.map((keyword) => (
-                <article className="keyword-item" key={keyword.name}>
-                  <div className="keyword-title-row">
-                    <h3>{keyword.name}</h3>
+        <Card className="gap-3">
+          <CardHeader>
+            <CardTitle>关键字库</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-2.5">
+            {keywordsQuery.isPending ? (
+              <EmptyState title="正在加载" />
+            ) : (
+              keywords.map((keyword) => (
+                <Card size="sm" key={keyword.name}>
+                  <CardHeader className="border-b">
+                    <CardTitle>{keyword.name}</CardTitle>
                     <Badge variant={keyword.enabled ? 'default' : 'secondary'}>
                       {keyword.module}
                     </Badge>
-                  </div>
-                  <p>{keyword.description}</p>
-                  <span>
-                    {keyword.parameters.length > 0
-                      ? `${keyword.parameters.length} 个参数`
-                      : '无参数'}
-                  </span>
-                </article>
-              ))}
-            </div>
-          )}
-        </section>
+                  </CardHeader>
+                  <CardContent className="grid gap-2">
+                    <CardDescription>{keyword.description}</CardDescription>
+                    <span className="text-xs text-muted-foreground">
+                      {keyword.parameters.length > 0
+                        ? `${keyword.parameters.length} 个参数`
+                        : '无参数'}
+                    </span>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </section>
+    </PagePanel>
   )
 }
 
@@ -239,35 +264,37 @@ function ScriptListItem({
   script: ScriptSummary
 }) {
   return (
-    <article className="script-list-item">
+    <Card size="sm" className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 p-3 max-sm:grid-cols-1">
       <div>
-        <div className="script-title-row">
-          <h3>{script.name}</h3>
+        <div className="mb-1 flex flex-wrap items-center gap-2">
+          <h3 className="m-0 text-base font-semibold">{script.name}</h3>
           <Badge variant={script.status === 'published' ? 'default' : 'secondary'}>
             {script.status === 'published' ? '已发布' : '草稿'}
           </Badge>
         </div>
-        <p>{script.description || script.id}</p>
-        <div className="script-tags">
-          {script.group ? <span>{script.group}</span> : null}
+        <p className="m-0 text-sm text-muted-foreground">{script.description || script.id}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {script.group ? <Badge variant="secondary">{script.group}</Badge> : null}
           {script.tags.map((tag) => (
-            <span key={tag}>{tag}</span>
+            <Badge key={tag} variant="secondary">
+              {tag}
+            </Badge>
           ))}
         </div>
       </div>
-      <dl className="compact-meta">
-        <div>
-          <dt>步骤</dt>
-          <dd>
+      <dl className="flex gap-2">
+        <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+          <dt className="text-xs text-muted-foreground">步骤</dt>
+          <dd className="m-0 text-sm font-semibold text-foreground">
             {script.enabled_step_count}/{script.step_count}
           </dd>
         </div>
-        <div>
-          <dt>版本</dt>
-          <dd>v{script.revision}</dd>
+        <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+          <dt className="text-xs text-muted-foreground">版本</dt>
+          <dd className="m-0 text-sm font-semibold text-foreground">v{script.revision}</dd>
         </div>
       </dl>
-      <div className="script-actions">
+      <div className="flex flex-wrap justify-end gap-1.5">
         <Button asChild size="sm" variant="secondary">
           <Link to={`/scripts/${script.id}`}>编辑</Link>
         </Button>
@@ -302,7 +329,7 @@ function ScriptListItem({
           </Button>
         )}
       </div>
-    </article>
+    </Card>
   )
 }
 
@@ -461,237 +488,257 @@ export function ScriptEditorPage() {
 
   if (scriptQuery.isPending && scriptId) {
     return (
-      <section className="content-panel">
-        <div className="catalog-placeholder">正在加载脚本</div>
-      </section>
+      <PagePanel>
+        <EmptyState title="正在加载脚本" />
+      </PagePanel>
     )
   }
 
   return (
-    <section className="content-panel script-workspace">
-      <div className="script-page-heading">
-        <div className="section-heading">
-          <p>阶段五</p>
-          <h1>脚本编辑器</h1>
-          <span>通过关键字和参数表单编排 YAML 测试脚本。</span>
-        </div>
-        <div className="editor-actions">
-          <Button
-            onClick={() => submit('draft')}
-            type="button"
-            variant="secondary"
-          >
-            <Save aria-hidden="true" data-icon="inline-start" />
-            保存草稿
-          </Button>
-          <Button onClick={() => submit('published')} type="button">
-            发布
-          </Button>
-        </div>
-      </div>
+    <PagePanel>
+      <PageHeader
+        eyebrow="阶段五"
+        title="脚本编辑器"
+        subtitle="通过关键字和参数表单编排 YAML 测试脚本。"
+        actions={
+          <>
+            <Button
+              onClick={() => submit('draft')}
+              type="button"
+              variant="secondary"
+            >
+              <Save aria-hidden="true" data-icon="inline-start" />
+              保存草稿
+            </Button>
+            <Button onClick={() => submit('published')} type="button">
+              发布
+            </Button>
+          </>
+        }
+      />
 
       {issues.length > 0 ? (
-        <div className="validation-panel">
-          {issues.map((issue) => (
-            <p key={`${issue.field}-${issue.message}`}>
-              {formatIssue(issue)}
-            </p>
-          ))}
-        </div>
+        <Alert variant="destructive">
+          <AlertDescription className="grid gap-1">
+            {issues.map((issue) => (
+              <p className="m-0" key={`${issue.field}-${issue.message}`}>
+                {formatIssue(issue)}
+              </p>
+            ))}
+          </AlertDescription>
+        </Alert>
       ) : null}
-      {saveMessage ? <div className="save-message">{saveMessage}</div> : null}
+      {saveMessage ? (
+        <Alert>
+          <AlertDescription>{saveMessage}</AlertDescription>
+        </Alert>
+      ) : null}
 
-      <div className="editor-grid">
-        <section className="editor-section">
-          <h2>基本信息</h2>
-          <div className="form-grid">
-            <label>
-              <span>脚本 ID</span>
-              <input
-                aria-label="脚本 ID"
-                disabled={Boolean(scriptId)}
-                value={script.id}
-                onChange={(event) => updateScript({ id: event.target.value })}
-              />
-            </label>
-            <label>
-              <span>脚本名称</span>
-              <input
-                aria-label="脚本名称"
-                value={script.name}
-                onChange={(event) => updateScript({ name: event.target.value })}
-              />
-            </label>
-            <label>
-              <span>分组</span>
-              <input
-                aria-label="分组"
-                value={script.group}
-                onChange={(event) => updateScript({ group: event.target.value })}
-              />
-            </label>
-            <label>
-              <span>标签</span>
-              <input
-                aria-label="标签"
-                value={tagText}
-                onChange={(event) => setTagText(event.target.value)}
-              />
-            </label>
-            <label className="form-wide">
-              <span>描述</span>
-              <textarea
-                aria-label="描述"
-                value={script.description}
-                onChange={(event) =>
-                  updateScript({ description: event.target.value })
-                }
-              />
-            </label>
-          </div>
-        </section>
-
-        <section className="editor-section">
-          <div className="editor-section-heading">
-            <h2>步骤列表</h2>
-            <Button onClick={addStep} type="button" variant="secondary">
-              <Plus aria-hidden="true" data-icon="inline-start" />
-              添加步骤
-            </Button>
-          </div>
-          {script.steps.length === 0 ? (
-            <div className="catalog-placeholder">暂无步骤</div>
-          ) : (
-            <div className="step-list">
-              {script.steps.map((step, index) => (
-                <button
-                  className={
-                    step.id === selectedStep?.id
-                      ? 'step-list-item step-list-item-active'
-                      : 'step-list-item'
+      <div className="grid grid-cols-[minmax(280px,0.8fr)_minmax(320px,1fr)] gap-4 max-xl:grid-cols-1">
+        <Card className="gap-3">
+          <CardHeader>
+            <CardTitle>基本信息</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">脚本 ID</span>
+                <Input
+                  aria-label="脚本 ID"
+                  disabled={Boolean(scriptId)}
+                  value={script.id}
+                  onChange={(event) => updateScript({ id: event.target.value })}
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">脚本名称</span>
+                <Input
+                  aria-label="脚本名称"
+                  value={script.name}
+                  onChange={(event) => updateScript({ name: event.target.value })}
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">分组</span>
+                <Input
+                  aria-label="分组"
+                  value={script.group}
+                  onChange={(event) => updateScript({ group: event.target.value })}
+                />
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">标签</span>
+                <Input
+                  aria-label="标签"
+                  value={tagText}
+                  onChange={(event) => setTagText(event.target.value)}
+                />
+              </label>
+              <label className="col-span-full grid gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">描述</span>
+                <Textarea
+                  aria-label="描述"
+                  value={script.description}
+                  onChange={(event) =>
+                    updateScript({ description: event.target.value })
                   }
+                />
+              </label>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="gap-3">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle>步骤列表</CardTitle>
+              <Button onClick={addStep} type="button" variant="secondary">
+                <Plus aria-hidden="true" data-icon="inline-start" />
+                添加步骤
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="grid gap-2">
+            {script.steps.length === 0 ? (
+              <EmptyState title="暂无步骤" />
+            ) : (
+              script.steps.map((step, index) => (
+                <button
+                  className={cn(
+                    'grid gap-1 rounded-lg border bg-card p-2.5 text-left text-card-foreground transition-colors hover:bg-muted/60',
+                    step.id === selectedStep?.id && 'border-ring ring-2 ring-ring/20',
+                  )}
                   key={step.id}
                   onClick={() => setSelectedStepId(step.id)}
                   type="button"
                 >
-                  <span>步骤 {index + 1}</span>
-                  <strong>{step.keyword || '未选择关键字'}</strong>
-                  <em>{step.enabled ? '启用' : '禁用'}</em>
+                  <span className="text-xs text-muted-foreground">步骤 {index + 1}</span>
+                  <strong className="text-sm font-semibold">{step.keyword || '未选择关键字'}</strong>
+                  <em className="text-xs not-italic text-muted-foreground">
+                    {step.enabled ? '启用' : '禁用'}
+                  </em>
                 </button>
-              ))}
-            </div>
-          )}
-        </section>
+              ))
+            )}
+          </CardContent>
+        </Card>
 
-        <section className="editor-section step-editor">
-          <h2>步骤详情</h2>
-          {selectedStep ? (
-            <>
-              <div className="step-toolbar">
-                <Button
-                  onClick={() => moveStep(selectedStep.id, -1)}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ArrowUp aria-hidden="true" />
-                </Button>
-                <Button
-                  onClick={() => moveStep(selectedStep.id, 1)}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <ArrowDown aria-hidden="true" />
-                </Button>
-                <Button
-                  onClick={() => copyStep(selectedStep)}
-                  size="icon-sm"
-                  type="button"
-                  variant="ghost"
-                >
-                  <Copy aria-hidden="true" />
-                </Button>
-                <Button
-                  onClick={() => removeStep(selectedStep.id)}
-                  size="icon-sm"
-                  type="button"
-                  variant="destructive"
-                >
-                  <Trash2 aria-hidden="true" />
-                </Button>
-              </div>
-              <div className="form-grid">
-                <label>
-                  <span>关键字</span>
-                  <select
-                    aria-label="关键字"
-                    value={selectedStep.keyword}
-                    onChange={(event) =>
-                      updateStep(selectedStep.id, {
-                        keyword: event.target.value,
-                        params: {},
-                      })
-                    }
+        <Card className="col-span-full gap-3">
+          <CardHeader>
+            <CardTitle>步骤详情</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {selectedStep ? (
+              <>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => moveStep(selectedStep.id, -1)}
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
                   >
-                    <option value="">选择关键字</option>
-                    {groupKeywords(keywords).map(([module, items]) => (
-                      <optgroup key={module} label={module}>
-                        {items.map((keyword) => (
-                          <option key={keyword.name} value={keyword.name}>
-                            {keyword.name}
-                          </option>
+                    <ArrowUp aria-hidden="true" />
+                  </Button>
+                  <Button
+                    onClick={() => moveStep(selectedStep.id, 1)}
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <ArrowDown aria-hidden="true" />
+                  </Button>
+                  <Button
+                    onClick={() => copyStep(selectedStep)}
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <Copy aria-hidden="true" />
+                  </Button>
+                  <Button
+                    onClick={() => removeStep(selectedStep.id)}
+                    size="icon-sm"
+                    type="button"
+                    variant="destructive"
+                  >
+                    <Trash2 aria-hidden="true" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
+                  <label className="grid gap-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground">关键字</span>
+                    <Select
+                      value={selectedStep.keyword}
+                      onValueChange={(value) =>
+                        updateStep(selectedStep.id, {
+                          keyword: value,
+                          params: {},
+                        })
+                      }
+                    >
+                      <SelectTrigger aria-label="关键字">
+                        <SelectValue placeholder="选择关键字" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {groupKeywords(keywords).map(([module, items]) => (
+                          <div key={module}>
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              {module}
+                            </div>
+                            {items.map((keyword) => (
+                              <SelectItem key={keyword.name} value={keyword.name}>
+                                {keyword.name}
+                              </SelectItem>
+                            ))}
+                          </div>
                         ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>启用步骤</span>
-                  <input
-                    aria-label="启用步骤"
-                    checked={selectedStep.enabled}
-                    onChange={(event) =>
-                      updateStep(selectedStep.id, {
-                        enabled: event.target.checked,
-                      })
-                    }
-                    type="checkbox"
-                  />
-                </label>
-                <label className="form-wide">
-                  <span>步骤描述</span>
-                  <textarea
-                    aria-label="步骤描述"
-                    value={selectedStep.description}
-                    onChange={(event) =>
-                      updateStep(selectedStep.id, {
-                        description: event.target.value,
-                      })
-                    }
-                  />
-                </label>
-              </div>
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label className="grid gap-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground">启用步骤</span>
+                    <Checkbox
+                      aria-label="启用步骤"
+                      checked={selectedStep.enabled}
+                      onCheckedChange={(checked) =>
+                        updateStep(selectedStep.id, { enabled: checked === true })
+                      }
+                    />
+                  </label>
+                  <label className="col-span-full grid gap-1.5">
+                    <span className="text-xs font-semibold text-muted-foreground">步骤描述</span>
+                    <Textarea
+                      aria-label="步骤描述"
+                      value={selectedStep.description}
+                      onChange={(event) =>
+                        updateStep(selectedStep.id, {
+                          description: event.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
 
-              <div className="param-list">
-                {selectedKeyword?.parameters.map((parameter) => (
-                  <ParameterInput
-                    key={parameter.name}
-                    onChange={(value) =>
-                      updateParam(selectedStep, parameter, value)
-                    }
-                    parameter={parameter}
-                    value={selectedStep.params[parameter.name]}
-                  />
-                ))}
-              </div>
-            </>
-          ) : (
-            <div className="catalog-placeholder">请选择或添加步骤</div>
-          )}
-        </section>
+                <div className="grid gap-2.5">
+                  {selectedKeyword?.parameters.map((parameter) => (
+                    <ParameterInput
+                      key={parameter.name}
+                      onChange={(value) =>
+                        updateParam(selectedStep, parameter, value)
+                      }
+                      parameter={parameter}
+                      value={selectedStep.params[parameter.name]}
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <EmptyState title="请选择或添加步骤" />
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </section>
+    </PagePanel>
   )
 }
 
@@ -706,22 +753,21 @@ function ParameterInput({
 }) {
   if (parameter.type === 'boolean') {
     return (
-      <label>
-        <span>{parameter.description || parameter.name}</span>
-        <input
+      <label className="grid gap-1.5">
+        <span className="text-xs font-semibold text-muted-foreground">{parameter.description || parameter.name}</span>
+        <Checkbox
           aria-label={`参数 ${parameter.name}`}
           checked={Boolean(value)}
-          onChange={(event) => onChange(event.target.checked)}
-          type="checkbox"
+          onCheckedChange={(checked) => onChange(checked === true)}
         />
       </label>
     )
   }
 
   return (
-    <label>
-      <span>{parameter.description || parameter.name}</span>
-      <input
+    <label className="grid gap-1.5">
+      <span className="text-xs font-semibold text-muted-foreground">{parameter.description || parameter.name}</span>
+      <Input
         aria-label={`参数 ${parameter.name}`}
         type={parameter.type === 'integer' || parameter.type === 'number' ? 'number' : 'text'}
         value={value === undefined || value === null ? '' : String(value)}
@@ -835,15 +881,6 @@ function isValidationIssue(value: unknown): value is ValidationIssue {
     typeof value.field === 'string' &&
     'message' in value &&
     typeof value.message === 'string'
-  )
-}
-
-function parseTags(value: string) {
-  return uniqueValues(
-    value
-      .split(',')
-      .map((tag) => tag.trim())
-      .filter(Boolean),
   )
 }
 
