@@ -20,6 +20,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { ScriptEditorPage, ScriptListPage } from '@/features/scripts/ScriptPages'
+import { CommandLibraryPage, SshTerminalPage } from '@/features/tools/ToolPages'
 
 export type AppRoute = {
   path: string
@@ -138,13 +139,7 @@ export const appRoutes: AppRoute[] = [
     description: '连接测试设备并运行辅助命令。',
     navGroup: 'tools',
     icon: SquareTerminal,
-    element: (
-      <PlaceholderPage
-        title="SSH 终端"
-        description="面向测试设备的终端会话和命令输出。"
-        action="终端能力将在阶段八接入"
-      />
-    ),
+    element: <SshTerminalPage />,
   },
   {
     path: '/scp',
@@ -166,13 +161,7 @@ export const appRoutes: AppRoute[] = [
     description: '维护可复用 SSH 命令和测试辅助命令。',
     navGroup: 'tools',
     icon: Library,
-    element: (
-      <PlaceholderPage
-        title="命令库"
-        description="沉淀常用设备命令、参数模板和说明。"
-        action="命令库将在阶段九接入"
-      />
-    ),
+    element: <CommandLibraryPage />,
   },
 ]
 

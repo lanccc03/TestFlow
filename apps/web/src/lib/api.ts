@@ -74,6 +74,20 @@ export type TestScript = {
   }
 }
 
+export type CommandTemplatePayload = {
+  name: string
+  command: string
+  description: string
+  group: string
+  tags: string[]
+}
+
+export type CommandTemplate = CommandTemplatePayload & {
+  id: string
+  created_at: string
+  updated_at: string
+}
+
 type ApiClientOptions = {
   baseUrl: string
   httpClient?: AxiosInstance
@@ -100,9 +114,14 @@ export function createApiClient({
     },
   }),
 }: ApiClientOptions) {
-  async function request<T>(path: string): Promise<T> {
+  async function request<T>(
+    path: string,
+    config?: Parameters<AxiosInstance['get']>[1],
+  ): Promise<T> {
     try {
-      const response = await httpClient.get<T>(path)
+      const response = config
+        ? await httpClient.get<T>(path, config)
+        : await httpClient.get<T>(path)
       return response.data
     } catch (error) {
       throw normalizeApiError(error)
@@ -115,6 +134,18 @@ export function createApiClient({
   ): Promise<TResponse> {
     try {
       const response = await httpClient.post<TResponse>(path, payload)
+      return response.data
+    } catch (error) {
+      throw normalizeApiError(error)
+    }
+  }
+
+  async function put<TResponse, TPayload>(
+    path: string,
+    payload: TPayload,
+  ): Promise<TResponse> {
+    try {
+      const response = await httpClient.put<TResponse>(path, payload)
       return response.data
     } catch (error) {
       throw normalizeApiError(error)
@@ -138,6 +169,19 @@ export function createApiClient({
     saveScript: (script: TestScript) =>
       post<TestScript, TestScript>('/api/scripts', script),
     deleteScript: (scriptId: string) => remove(`/api/scripts/${scriptId}`),
+    listCommands: (search = '') =>
+      request<ItemList<CommandTemplate>>('/api/commands', {
+        params: { search },
+      }),
+    createCommand: (command: CommandTemplatePayload) =>
+      post<CommandTemplate, CommandTemplatePayload>('/api/commands', command),
+    updateCommand: (commandId: string, command: CommandTemplatePayload) =>
+      put<CommandTemplate, CommandTemplatePayload>(
+        `/api/commands/${commandId}`,
+        command,
+      ),
+    deleteCommand: (commandId: string) =>
+      remove(`/api/commands/${commandId}`),
     listItems: <T = unknown>(path: string) => request<ItemList<T>>(path),
   }
 }

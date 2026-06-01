@@ -127,6 +127,72 @@ describe('createApiClient', () => {
     expect(httpClient.delete).toHaveBeenCalledWith('/api/scripts/smoke-cockpit')
   })
 
+  it('exposes command template CRUD endpoints', async () => {
+    const command = {
+      id: 'command-1',
+      name: '查看日志',
+      command: 'tail -f /var/log/syslog',
+      description: '跟随系统日志',
+      group: 'diagnostics',
+      tags: ['logs'],
+      created_at: '2026-06-01T00:00:00+00:00',
+      updated_at: '2026-06-01T00:00:00+00:00',
+    }
+    const httpClient = {
+      delete: vi.fn().mockResolvedValue({ data: undefined }),
+      get: vi.fn().mockResolvedValue({ data: { items: [command] } }),
+      post: vi.fn().mockResolvedValue({ data: command }),
+      put: vi.fn().mockResolvedValue({
+        data: {
+          ...command,
+          command: 'dmesg -w',
+          updated_at: '2026-06-01T00:01:00+00:00',
+        },
+      }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
+
+    await expect(api.listCommands('tail')).resolves.toEqual({ items: [command] })
+    await expect(
+      api.createCommand({
+        name: '查看日志',
+        command: 'tail -f /var/log/syslog',
+        description: '跟随系统日志',
+        group: 'diagnostics',
+        tags: ['logs'],
+      }),
+    ).resolves.toEqual(command)
+    await expect(
+      api.updateCommand('command-1', {
+        name: '查看日志',
+        command: 'dmesg -w',
+        description: '跟随系统日志',
+        group: 'diagnostics',
+        tags: ['logs'],
+      }),
+    ).resolves.toMatchObject({ command: 'dmesg -w' })
+    await expect(api.deleteCommand('command-1')).resolves.toBeUndefined()
+
+    expect(httpClient.get).toHaveBeenCalledWith('/api/commands', {
+      params: { search: 'tail' },
+    })
+    expect(httpClient.post).toHaveBeenCalledWith('/api/commands', {
+      name: '查看日志',
+      command: 'tail -f /var/log/syslog',
+      description: '跟随系统日志',
+      group: 'diagnostics',
+      tags: ['logs'],
+    })
+    expect(httpClient.put).toHaveBeenCalledWith('/api/commands/command-1', {
+      name: '查看日志',
+      command: 'dmesg -w',
+      description: '跟随系统日志',
+      group: 'diagnostics',
+      tags: ['logs'],
+    })
+    expect(httpClient.delete).toHaveBeenCalledWith('/api/commands/command-1')
+  })
+
   it('normalizes axios failed responses into ApiError', async () => {
     const httpClient = {
       get: vi.fn().mockRejectedValue({

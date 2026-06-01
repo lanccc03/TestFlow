@@ -1,6 +1,13 @@
 from fastapi import APIRouter, Request, Response, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
+from app.command_library import (
+    CommandTemplatePayload,
+    create_command_template,
+    delete_command_template,
+    list_command_templates,
+    update_command_template,
+)
 from app.errors import error_response
 from app.script_catalog import (
     ScriptValidationError,
@@ -11,6 +18,7 @@ from app.script_catalog import (
     read_script,
     save_script,
 )
+from app.ssh_terminal import handle_ssh_terminal_websocket
 
 api_router = APIRouter(prefix="/api")
 websocket_router = APIRouter()
@@ -22,7 +30,6 @@ def empty_items_response() -> dict[str, list[object]]:
 
 api_router.add_api_route("/tasks", empty_items_response, methods=["GET"])
 api_router.add_api_route("/reports", empty_items_response, methods=["GET"])
-api_router.add_api_route("/commands", empty_items_response, methods=["GET"])
 
 
 @api_router.get("/keywords")
@@ -83,6 +90,60 @@ def delete_script_endpoint(script_id: str, request: Request) -> Response:
     return Response(status_code=204)
 
 
+@api_router.get("/commands")
+def list_commands_endpoint(
+    request: Request,
+    search: str = "",
+) -> dict[str, list[dict[str, object]]]:
+    commands = list_command_templates(request.app.state.settings, search)
+    return {"items": [command.model_dump(mode="json") for command in commands]}
+
+
+@api_router.post("/commands", response_model=None)
+def create_command_endpoint(
+    command: CommandTemplatePayload,
+    request: Request,
+    response: Response,
+) -> dict[str, object]:
+    response.status_code = 201
+    created = create_command_template(request.app.state.settings, command)
+    return created.model_dump(mode="json")
+
+
+@api_router.put("/commands/{command_id}", response_model=None)
+def update_command_endpoint(
+    command_id: str,
+    command: CommandTemplatePayload,
+    request: Request,
+) -> dict[str, object] | Response:
+    updated = update_command_template(
+        request.app.state.settings,
+        command_id,
+        command,
+    )
+    if updated is None:
+        return error_response(
+            status_code=404,
+            code="not_found",
+            message="Command template not found",
+        )
+
+    return updated.model_dump(mode="json")
+
+
+@api_router.delete("/commands/{command_id}", status_code=204)
+def delete_command_endpoint(command_id: str, request: Request) -> Response:
+    was_deleted = delete_command_template(request.app.state.settings, command_id)
+    if not was_deleted:
+        return error_response(
+            status_code=404,
+            code="not_found",
+            message="Command template not found",
+        )
+
+    return Response(status_code=204)
+
+
 @websocket_router.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     try:
@@ -91,3 +152,8 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
         await websocket.close()
     except WebSocketDisconnect:
         return
+
+
+@websocket_router.websocket("/ws/ssh")
+async def ssh_websocket_endpoint(websocket: WebSocket) -> None:
+    await handle_ssh_terminal_websocket(websocket)

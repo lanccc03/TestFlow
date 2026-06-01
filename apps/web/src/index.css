@@ -766,6 +766,141 @@ input[type="checkbox"] {
   margin: 0;
 }
 
+.tool-workspace {
+  align-content: start;
+}
+
+.tool-grid,
+.ssh-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.tool-grid {
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1.15fr);
+}
+
+.command-form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.command-list,
+.suggestion-list {
+  display: grid;
+  gap: 10px;
+}
+
+.command-item {
+  align-items: start;
+  background: #ffffff;
+  border: 1px solid #dbe6e9;
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.command-item h3,
+.command-item p {
+  margin: 0;
+}
+
+.command-item p {
+  color: #65767c;
+  font-size: 13px;
+  line-height: 1.45;
+  margin-top: 8px;
+}
+
+.tool-search {
+  display: grid;
+  gap: 6px;
+}
+
+.tool-search span,
+.checkbox-row {
+  align-items: center;
+  color: #53666d;
+  display: flex;
+  font-size: 12px;
+  font-weight: 800;
+  gap: 7px;
+}
+
+.checkbox-row {
+  justify-content: flex-start;
+}
+
+.checkbox-row input {
+  flex: 0 0 auto;
+}
+
+.ssh-layout {
+  grid-template-columns: 320px minmax(0, 1fr);
+}
+
+.ssh-connect-panel,
+.suggestion-panel {
+  align-content: start;
+}
+
+.terminal-shell {
+  background: #0b171b;
+  border: 1px solid #17313a;
+  border-radius: 8px;
+  display: grid;
+  grid-template-rows: auto minmax(360px, 58vh);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.terminal-heading {
+  align-items: center;
+  background: #10232a;
+  border-bottom: 1px solid #17313a;
+  color: #aac1c7;
+  display: flex;
+  font-size: 12px;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+}
+
+.terminal-pane {
+  min-height: 0;
+  padding: 10px;
+}
+
+.suggestion-panel {
+  grid-column: 1 / -1;
+}
+
+.suggestion-item {
+  background: #ffffff;
+  border: 1px solid #dbe6e9;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  text-align: left;
+}
+
+.suggestion-item:hover {
+  border-color: #79c7bd;
+  box-shadow: 0 0 0 2px rgba(121, 199, 189, 0.16);
+}
+
+.suggestion-item strong {
+  color: #172026;
+  font-size: 13px;
+}
+
+.suggestion-item code {
+  margin: 0;
+}
+
 .save-message {
   background: #e6f7ed;
   border: 1px solid #bbe7c9;
@@ -834,7 +969,9 @@ code {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .script-layout {
+  .script-layout,
+  .tool-grid,
+  .ssh-layout {
     grid-template-columns: 1fr;
   }
 }
@@ -873,9 +1010,18 @@ code {
     grid-template-columns: 1fr;
   }
 
+  .tool-grid {
+    grid-template-columns: 1fr;
+  }
+
   .script-filters,
   .form-grid,
+  .command-form-grid,
   .script-list-item {
+    grid-template-columns: 1fr;
+  }
+
+  .command-item {
     grid-template-columns: 1fr;
   }
 }
