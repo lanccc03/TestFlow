@@ -9,7 +9,12 @@ from app.execution.models import (
     ExecutionTask,
     ExecutionTaskCreate,
 )
-from app.execution.service import ExecutionService
+from app.execution.service import (
+    ExecutionService,
+    TaskAlreadyFinishedError,
+    TaskNotFoundError,
+    _framework_request,
+)
 from app.script_catalog import (
     ScriptStep,
     save_script,
@@ -17,6 +22,7 @@ from app.script_catalog import (
 from app.script_catalog import (
     TestScript as CatalogTestScript,
 )
+from autotest.contracts import CancellationToken, FrameworkEvent
 
 
 @pytest.mark.anyio
@@ -90,15 +96,17 @@ async def test_execution_service_runs_script_to_passed(tmp_path) -> None:
     service = ExecutionService(settings)
 
     await service.start()
-    task = await service.create_task(
-        ExecutionTaskCreate(
-            script_id="smoke-cockpit",
-            environment="local",
-            target_device="bench-1",
+    try:
+        task = await service.create_task(
+            ExecutionTaskCreate(
+                script_id="smoke-cockpit",
+                environment="local",
+                target_device="bench-1",
+            )
         )
-    )
-    final_task = await service.wait_for_task(task.id, timeout=2)
-    await service.stop()
+        final_task = await service.wait_for_task(task.id, timeout=2)
+    finally:
+        await service.stop()
 
     assert final_task.status == "passed"
     assert [step.status for step in final_task.steps] == ["passed", "passed"]
@@ -131,9 +139,11 @@ async def test_execution_service_marks_failed_step_as_failed(tmp_path) -> None:
     service = ExecutionService(settings)
 
     await service.start()
-    task = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
-    final_task = await service.wait_for_task(task.id, timeout=2)
-    await service.stop()
+    try:
+        task = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
+        final_task = await service.wait_for_task(task.id, timeout=2)
+    finally:
+        await service.stop()
 
     assert final_task.status == "failed"
     assert final_task.steps[0].status == "failed"
@@ -165,10 +175,216 @@ async def test_execution_service_can_cancel_running_task(tmp_path) -> None:
     service = ExecutionService(settings)
 
     await service.start()
-    task = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
-    await asyncio.sleep(0.01)
-    await service.cancel_task(task.id)
-    final_task = await service.wait_for_task(task.id, timeout=2)
-    await service.stop()
+    try:
+        task = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
+        await asyncio.sleep(0.01)
+        await service.cancel_task(task.id)
+        final_task = await service.wait_for_task(task.id, timeout=2)
+    finally:
+        await service.stop()
 
     assert final_task.status == "canceled"
+
+
+@pytest.mark.anyio
+async def test_execution_service_marks_running_task_canceled_on_stop(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="smoke-cockpit",
+            name="Smoke Cockpit",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="Long wait",
+                    params={"seconds": 2},
+                )
+            ],
+        ),
+    )
+    service = ExecutionService(settings)
+
+    await service.start()
+    task = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
+    await asyncio.sleep(0.01)
+    await service.stop()
+
+    stopped_task = service.get_task(task.id)
+    assert stopped_task is not None
+    assert stopped_task.status == "canceled"
+    assert stopped_task.steps[0].status == "canceled"
+
+
+@pytest.mark.anyio
+async def test_execution_service_cancel_task_errors_for_missing_task(tmp_path) -> None:
+    service = ExecutionService(Settings(data_dir=tmp_path))
+
+    with pytest.raises(TaskNotFoundError):
+        await service.cancel_task("missing-task")
+
+
+@pytest.mark.anyio
+async def test_execution_service_cancel_task_errors_for_finished_task(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="smoke-cockpit",
+            name="Smoke Cockpit",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="No-op wait",
+                    params={"seconds": 0},
+                )
+            ],
+        ),
+    )
+    service = ExecutionService(settings)
+
+    await service.start()
+    try:
+        task = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
+        final_task = await service.wait_for_task(task.id, timeout=2)
+        with pytest.raises(TaskAlreadyFinishedError):
+            await service.cancel_task(final_task.id)
+    finally:
+        await service.stop()
+
+
+@pytest.mark.anyio
+async def test_execution_service_cancel_task_logs_request(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="smoke-cockpit",
+            name="Smoke Cockpit",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="Long wait",
+                    params={"seconds": 2},
+                )
+            ],
+        ),
+    )
+    service = ExecutionService(settings)
+
+    await service.start()
+    try:
+        task = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
+        await service.cancel_task(task.id)
+        final_task = await service.wait_for_task(task.id, timeout=2)
+    finally:
+        await service.stop()
+
+    assert final_task.status == "canceled"
+    assert any(log.message == "Cancellation requested" for log in final_task.logs)
+
+
+@pytest.mark.anyio
+async def test_execution_service_copies_mutable_inputs(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    script = CatalogTestScript(
+        id="smoke-cockpit",
+        name="Smoke Cockpit",
+        status="published",
+        steps=[
+            ScriptStep(
+                id="step-1",
+                keyword="log.message",
+                params={"message": "startup ok", "meta": {"phase": 1}},
+            )
+        ],
+    )
+    save_script(settings, script)
+    payload = ExecutionTaskCreate(
+        script_id="smoke-cockpit",
+        variables={"device": {"name": "bench-1"}},
+    )
+    service = ExecutionService(settings)
+
+    task = await service.create_task(payload)
+    payload.variables["device"]["name"] = "mutated"
+    task.steps[0].input["meta"]["phase"] = 2
+    request = _framework_request(task, CancellationToken())
+    request.variables["device"]["name"] = "request-mutated"
+    request.steps[0].params["meta"]["phase"] = 3
+
+    stored_task = service.get_task(task.id)
+    assert stored_task is not None
+    assert stored_task.variables == {"device": {"name": "bench-1"}}
+    assert stored_task.steps[0].input["meta"] == {"phase": 1}
+
+
+@pytest.mark.anyio
+async def test_execution_service_copies_framework_step_output(tmp_path) -> None:
+    task = ExecutionTask(
+        id="task-1",
+        script_id="script-1",
+        script_name="Smoke Test",
+        script_revision=1,
+        steps=[
+            {
+                "id": "step-1",
+                "index": 0,
+                "keyword": "log.message",
+                "input": {},
+            }
+        ],
+    )
+    service = ExecutionService(Settings(data_dir=tmp_path))
+    output = {"nested": {"value": "original"}}
+
+    await service._handle_framework_event(
+        task,
+        FrameworkEvent(
+            type="step_finished",
+            task_id=task.id,
+            step_id="step-1",
+            status="passed",
+            output=output,
+        ),
+    )
+    output["nested"]["value"] = "mutated"
+
+    assert task.steps[0].output == {"nested": {"value": "original"}}
+
+
+@pytest.mark.anyio
+async def test_execution_service_run_error_not_overwritten_by_run_finished(
+    tmp_path,
+) -> None:
+    task = ExecutionTask(
+        id="task-1",
+        script_id="script-1",
+        script_name="Smoke Test",
+        script_revision=1,
+        log_path=str(tmp_path / "task-1.log"),
+    )
+    service = ExecutionService(Settings(data_dir=tmp_path))
+
+    await service._handle_framework_event(
+        task,
+        FrameworkEvent(
+            type="run_error",
+            task_id=task.id,
+            status="error",
+            error_message="adapter exploded",
+        ),
+    )
+    await service._handle_framework_event(
+        task,
+        FrameworkEvent(type="run_finished", task_id=task.id, status="passed"),
+    )
+
+    assert task.status == "error"
+    assert task.error_message == "adapter exploded"

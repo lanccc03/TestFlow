@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,19 @@ from autotest.entry import run_script
 TERMINAL_STATUSES = {"passed", "failed", "canceled", "error"}
 
 
+class TaskNotFoundError(Exception):
+    def __init__(self, task_id: str) -> None:
+        super().__init__(f"Execution task not found: {task_id}")
+        self.task_id = task_id
+
+
+class TaskAlreadyFinishedError(Exception):
+    def __init__(self, task_id: str, status: TaskStatus) -> None:
+        super().__init__(f"Execution task already finished: {task_id} ({status})")
+        self.task_id = task_id
+        self.status = status
+
+
 class ExecutionService:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -39,6 +53,7 @@ class ExecutionService:
         self._tokens: dict[str, CancellationToken] = {}
         self._queue: asyncio.Queue[str] = asyncio.Queue()
         self._worker: asyncio.Task[None] | None = None
+        self._active_task_id: str | None = None
 
     async def start(self) -> None:
         if self._worker is None or self._worker.done():
@@ -47,6 +62,11 @@ class ExecutionService:
     async def stop(self) -> None:
         if self._worker is None:
             return
+
+        if self._active_task_id is not None:
+            token = self._tokens.get(self._active_task_id)
+            if token is not None:
+                token.cancel()
 
         self._worker.cancel()
         with suppress(asyncio.CancelledError):
@@ -82,9 +102,16 @@ class ExecutionService:
         return task.model_copy(deep=True) if task is not None else None
 
     async def cancel_task(self, task_id: str) -> ExecutionTask:
-        task = self._tasks[task_id]
-        token = self._tokens[task_id]
-        token.cancel()
+        task = self._tasks.get(task_id)
+        if task is None:
+            raise TaskNotFoundError(task_id)
+        if task.status in TERMINAL_STATUSES:
+            raise TaskAlreadyFinishedError(task_id, task.status)
+
+        token = self._tokens.get(task_id)
+        if token is not None:
+            token.cancel()
+        await self._append_log(task, "Cancellation requested")
         return task.model_copy(deep=True)
 
     async def wait_for_task(
@@ -106,9 +133,11 @@ class ExecutionService:
     async def _worker_loop(self) -> None:
         while True:
             task_id = await self._queue.get()
+            self._active_task_id = task_id
             try:
                 await self._run_task(task_id)
             finally:
+                self._active_task_id = None
                 self._queue.task_done()
 
     async def _run_task(self, task_id: str) -> None:
@@ -129,6 +158,11 @@ class ExecutionService:
             request = _framework_request(task, token)
             async for event in run_script(request):
                 await self._handle_framework_event(task, event)
+        except asyncio.CancelledError:
+            token.cancel()
+            _mark_task_canceled(task)
+            await self._append_log(task, "Execution canceled during shutdown")
+            raise
         except Exception as error:  # noqa: BLE001
             task.status = "error"
             task.error_message = str(error)
@@ -181,7 +215,7 @@ class ExecutionService:
             step.status = event.status or _final_status_from_steps(task)
             step.finished_at = event.timestamp.isoformat()
             step.duration_ms = _duration_ms(step.started_at, step.finished_at)
-            step.output = event.output or {}
+            step.output = deepcopy(event.output) if event.output is not None else {}
             step.error_message = event.error_message or ""
             step.error_detail = _stringify_error_detail(event.error_detail)
             await self.events.publish(
@@ -213,6 +247,8 @@ class ExecutionService:
             return
 
         if event.type == "run_finished":
+            if task.status in TERMINAL_STATUSES:
+                return
             task.status = event.status or _final_status_from_steps(task)
 
     async def _append_log(
@@ -283,7 +319,7 @@ def _task_from_script(
             index=index,
             keyword=step.keyword,
             description=step.description,
-            input=step.params,
+            input=deepcopy(step.params),
         )
         for index, step in enumerate(step for step in script.steps if step.enabled)
     ]
@@ -294,7 +330,7 @@ def _task_from_script(
         script_revision=version.revision if version else 1,
         environment=payload.environment,
         target_device=payload.target_device,
-        variables=payload.variables,
+        variables=deepcopy(payload.variables),
         executor=payload.executor,
         log_path=str(log_path),
         report_dir=str(report_dir),
@@ -319,11 +355,11 @@ def _framework_request(
                 keyword=step.keyword,
                 description=step.description,
                 enabled=True,
-                params=step.input,
+                params=deepcopy(step.input),
             )
             for step in task.steps
         ],
-        variables=task.variables,
+        variables=deepcopy(task.variables),
         environment={"name": task.environment} if task.environment else {},
         target_device={"id": task.target_device} if task.target_device else None,
         log_path=Path(task.log_path),
@@ -356,6 +392,15 @@ def _summary(task: ExecutionTask) -> ExecutionTaskSummary:
 def _mark_task_started(task: ExecutionTask) -> None:
     task.status = "running"
     task.started_at = task.started_at or utc_now()
+
+
+def _mark_task_canceled(task: ExecutionTask) -> None:
+    task.status = "canceled"
+    for step in task.steps:
+        if step.status in {"pending", "running"}:
+            step.status = "canceled"
+            step.finished_at = step.finished_at or utc_now()
+            step.duration_ms = _duration_ms(step.started_at, step.finished_at)
 
 
 def _find_step(task: ExecutionTask, step_id: str | None) -> ExecutionStepResult | None:
