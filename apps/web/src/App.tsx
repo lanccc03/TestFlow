@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { Navigate, NavLink, Route, Routes } from 'react-router'
 import { Cable, ChevronRight, Server } from 'lucide-react'
 
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
+
 import { appRoutes, navGroups } from './app/routes'
 import { createWebSocketClient, type WebSocketStatus } from './lib/websocket'
 import type { BackendStatus } from './testflow'
@@ -66,20 +69,29 @@ function App() {
   }, [])
 
   return (
-    <div className="app-frame">
-      <aside className="sidebar" aria-label="主导航">
-        <div className="brand">
-          <div className="brand-mark">TF</div>
+    <div className="grid min-h-screen grid-cols-[264px_minmax(0,1fr)] bg-background text-foreground max-lg:grid-cols-1">
+      <aside
+        className="flex flex-col gap-7 border-r border-sidebar-border bg-sidebar px-3.5 py-5 text-sidebar-foreground max-lg:gap-4"
+        aria-label="主导航"
+      >
+        <div className="flex items-center gap-3 px-2">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-xs font-bold text-sidebar-primary-foreground">
+            TF
+          </div>
           <div>
-            <strong>TestFlow</strong>
-            <span>自动化测试工作台</span>
+            <strong className="block text-base font-semibold text-sidebar-foreground">
+              TestFlow
+            </strong>
+            <span className="mt-0.5 block text-xs text-sidebar-foreground/60">
+              自动化测试工作台
+            </span>
           </div>
         </div>
 
-        <nav className="nav-list">
+        <nav className="grid gap-2 max-sm:grid-cols-1 max-lg:grid-cols-3">
           {navGroups.map((group) => (
-            <div className="nav-group" key={group.id}>
-              <div className="nav-group-label">
+            <div className="grid gap-2 border-t border-sidebar-border pt-4" key={group.id}>
+              <div className="flex items-center gap-2 px-2 text-xs font-semibold text-sidebar-foreground/60">
                 <group.icon aria-hidden="true" size={14} />
                 {group.label}
               </div>
@@ -88,7 +100,11 @@ function App() {
                 .map((route) => (
                   <NavLink
                     className={({ isActive }) =>
-                      `nav-link${isActive ? ' nav-link-active' : ''}`
+                      cn(
+                        'grid min-h-9 grid-cols-[18px_minmax(0,1fr)_14px] items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/75 no-underline transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+                        isActive &&
+                          'bg-sidebar-accent text-sidebar-accent-foreground font-semibold',
+                      )
                     }
                     end
                     key={route.path}
@@ -104,13 +120,13 @@ function App() {
         </nav>
       </aside>
 
-      <div className="workspace">
-        <header className="topbar">
+      <div className="grid min-w-0 grid-rows-[auto_1fr]">
+        <header className="flex min-h-18 items-center justify-between gap-4 border-b bg-card/90 px-7 py-3.5 max-sm:px-4 max-md:flex-col max-md:items-start">
           <div>
-            <p>前端应用壳与基础交互框架</p>
-            <strong>阶段三</strong>
+            <p className="m-0 block text-xs text-muted-foreground">前端应用壳与基础交互框架</p>
+            <strong className="mt-0.5 block text-lg font-semibold text-foreground">阶段三</strong>
           </div>
-          <div className="status-strip" aria-label="系统状态">
+          <div className="flex flex-wrap justify-end gap-2.5" aria-label="系统状态">
             <StatusPill
               icon={Server}
               label="后端服务"
@@ -128,7 +144,7 @@ function App() {
           </div>
         </header>
 
-        <main className="main-content">
+        <main className="grid gap-5 p-7 pb-8 max-sm:px-4">
           <Routes>
             <Route element={<Navigate replace to="/scripts" />} path="/" />
             {appRoutes.map((route) => (
@@ -158,11 +174,19 @@ function StatusPill({
   value: string
 }) {
   return (
-    <div className={`status-pill status-pill-${tone}`}>
+    <Badge
+      className={cn(
+        'min-h-8 gap-1.5 rounded-lg px-2.5 font-medium',
+        tone === 'success'
+          ? 'bg-primary text-primary-foreground'
+          : 'bg-secondary text-secondary-foreground',
+      )}
+      variant={tone === 'success' ? 'default' : 'secondary'}
+    >
       <Icon aria-hidden="true" size={14} />
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
+      <span className="text-current/70">{label}</span>
+      <strong className="font-semibold">{value}</strong>
+    </Badge>
   )
 }
 

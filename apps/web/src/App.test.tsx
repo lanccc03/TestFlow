@@ -4,8 +4,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 
 const httpGet = vi.hoisted(() => vi.fn())
 const httpPost = vi.hoisted(() => vi.fn())
@@ -195,24 +193,29 @@ describe('App', () => {
     expect(screen.getByText('等待指定秒数')).toBeInTheDocument()
   })
 
-  it('only marks the exact navigation route as active', async () => {
+  it('only marks the exact navigation route as current', async () => {
     renderApp(['/scripts/new'])
 
     expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /脚本管理/ })).not.toHaveClass(
-      'nav-link-active',
+    expect(screen.getByRole('link', { name: /脚本管理/ })).not.toHaveAttribute(
+      'aria-current',
+      'page',
     )
-    expect(screen.getByRole('link', { name: /脚本编辑器/ })).toHaveClass(
-      'nav-link-active',
+    expect(screen.getByRole('link', { name: /脚本编辑器/ })).toHaveAttribute(
+      'aria-current',
+      'page',
     )
   })
 
-  it('keeps the selected navigation item styling while hovered', () => {
-    const css = readFileSync(resolve(process.cwd(), 'src/index.css'), 'utf8')
+  it('does not render legacy navigation styling classes', async () => {
+    renderApp(['/scripts/new'])
 
-    expect(css).toMatch(/\.nav-link-active:hover\s*{/)
-    expect(css).toMatch(
-      /\.nav-link-active:hover\s*{[^}]*background:\s*#e7f7f3;[^}]*color:\s*#0e383b;/s,
+    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /脚本管理/ }).className).not.toContain(
+      'nav-link',
+    )
+    expect(screen.getByRole('link', { name: /脚本编辑器/ }).className).not.toContain(
+      'nav-link',
     )
   })
 
