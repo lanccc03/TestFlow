@@ -103,7 +103,7 @@ function App() {
                       cn(
                         'grid min-h-9 grid-cols-[18px_minmax(0,1fr)_14px] items-center gap-2.5 rounded-lg px-2.5 text-sm text-sidebar-foreground/75 no-underline transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
                         isActive &&
-                          'bg-sidebar-accent text-sidebar-accent-foreground font-semibold',
+                        'bg-sidebar-accent text-sidebar-accent-foreground font-semibold',
                       )
                     }
                     end
@@ -144,7 +144,7 @@ function App() {
           </div>
         </header>
 
-        <main className="grid gap-5 p-7 pb-8 max-sm:px-4">
+        <main className="grid gap-5 p-3 pb-8 max-sm:px-4">
           <Routes>
             <Route element={<Navigate replace to="/scripts" />} path="/" />
             {appRoutes.map((route) => (
