@@ -1,9 +1,12 @@
 import asyncio
+from typing import get_args
 
 from autotest.contracts import (
     CancellationToken,
     FrameworkEvent,
+    FrameworkEventType,
     FrameworkRunRequest,
+    FrameworkStatus,
     FrameworkStep,
 )
 from autotest.entry import run_script
@@ -35,6 +38,27 @@ def make_request(
 
 def event_types(events: list[FrameworkEvent]) -> list[str]:
     return [event.type for event in events]
+
+
+def test_contract_event_types_include_adapter_surface() -> None:
+    assert set(get_args(FrameworkEventType)) == {
+        "run_started",
+        "step_started",
+        "log",
+        "step_finished",
+        "run_finished",
+        "attachment",
+        "run_error",
+    }
+
+
+def test_contract_statuses_include_run_and_step_statuses() -> None:
+    assert set(get_args(FrameworkStatus)) == {
+        "passed",
+        "failed",
+        "canceled",
+        "error",
+    }
 
 
 def test_log_message_step_emits_passed_run_events() -> None:

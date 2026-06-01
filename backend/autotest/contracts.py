@@ -9,8 +9,10 @@ FrameworkEventType = Literal[
     "log",
     "step_finished",
     "run_finished",
+    "attachment",
+    "run_error",
 ]
-FrameworkStatus = Literal["passed", "failed", "canceled"]
+FrameworkStatus = Literal["passed", "failed", "canceled", "error"]
 FrameworkLogLevel = Literal["debug", "info", "warning", "error"]
 
 
