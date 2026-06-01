@@ -180,8 +180,9 @@ describe('App', () => {
       screen.getByRole('heading', { name: '脚本管理' }),
     ).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /脚本管理/ })).toBeInTheDocument()
-    expect(screen.getAllByText('后端服务')).toHaveLength(2)
-    expect(screen.getAllByText('WebSocket')).toHaveLength(2)
+    expect(screen.getByLabelText('系统状态')).toHaveTextContent('后端服务')
+    expect(screen.getByLabelText('系统状态')).toHaveTextContent('WebSocket')
+    expect(screen.queryByLabelText('运行状态')).not.toBeInTheDocument()
     expect(screen.getByRole('main')).toBeInTheDocument()
   })
 

@@ -1,0 +1,24 @@
+schema_version: 1
+id: smoke-cockpit
+name: 座舱冒烟测试
+description: ''
+status: published
+tags: []
+group: ''
+variables: []
+steps:
+- id: step-1
+  keyword: log.message
+  params:
+    message: startup ok
+  description: 记录启动
+  enabled: true
+- id: step-2
+  keyword: wait
+  params:
+    seconds: 0
+  description: 短等待
+  enabled: true
+version:
+  revision: 1
+  updated_at: '2026-06-01T06:49:12.883234+00:00'
