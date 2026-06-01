@@ -1,42 +1,60 @@
-# Repository Guidelines
+# 仓库指南
 
-## Project Structure & Module Organization
+## 项目结构
 
-TestFlow is a pnpm workspace with a desktop shell, web UI, and local backend.
+TestFlow 是一个 pnpm workspace，包含 Vite Web 应用、Electron 桌面壳和 FastAPI 后端。
 
-- `apps/web/`: React 19 + Vite frontend. Source lives in `src/`; static entrypoint is `index.html`.
-- `apps/desktop/`: Electron main and preload code in `src/main/` and `src/preload/`.
-- `backend/`: FastAPI service in `app/`, with pytest tests in `tests/`.
-- `data/reports/` and `data/scripts/`: local runtime data placeholders; keep generated or large local artifacts out of commits unless intentionally versioned.
-- `docs/`: project documentation.
+- `apps/web/`: React 19 + Vite 前端。源码位于 `src/`；shadcn 组件位于 `src/components/ui/`。
+- `apps/desktop/`: Electron main/preload 代码位于 `src/main/` 和 `src/preload/`。
+- `backend/`: FastAPI 服务位于 `app/`，pytest 测试位于 `tests/`。
+- `data/reports/` 和 `data/scripts/`: 本地运行数据占位目录。除非明确需要版本化，不要提交生成产物或大型本地文件。
+- `docs/`: 项目文档，包括 Superpowers specs 和 plans。
 
-## Build, Test, and Development Commands
+## 常用命令
 
-- `pnpm install`: install workspace JavaScript dependencies.
-- `cd backend && uv sync`: install Python backend dependencies.
-- `pnpm dev:web`: start Vite at `http://127.0.0.1:5174`.
-- `pnpm dev:backend`: start FastAPI at `http://127.0.0.1:8000`.
-- `pnpm dev:desktop`: build Electron and launch it against the Vite dev server.
-- `pnpm check:web`: TypeScript-check and build the web app.
-- `pnpm check:desktop`: type-check Electron code.
-- `pnpm check:backend`: run Ruff checks for the backend.
-- `pnpm test:backend`: run backend pytest tests.
-- `pnpm check`: run all current checks and backend tests.
+- `pnpm install`: 安装 workspace JavaScript 依赖。
+- `cd backend && uv sync`: 安装 Python 后端依赖。
+- `pnpm dev:web`: 启动 Vite，地址为 `http://127.0.0.1:5174`。
+- `pnpm dev:backend`: 启动 FastAPI，地址为 `http://127.0.0.1:8000`。
+- `pnpm dev:desktop`: 构建 Electron 并连接 Vite dev server 启动桌面应用。
+- `pnpm check:web`: 对 Web 应用执行类型检查和构建。
+- `pnpm --filter @testflow/web test`: 运行 Web Vitest 测试。
+- `pnpm check:desktop`: 对 Electron 代码执行类型检查。
+- `pnpm test:desktop`: 运行 Electron 测试。
+- `pnpm check:backend`: 运行后端 Ruff 检查。
+- `pnpm test:backend`: 运行后端 pytest 测试。
+- `pnpm check`: 运行 Web 构建、桌面检查/测试、后端检查/测试。它不运行 Web Vitest；涉及前端行为变更时需额外运行 `pnpm --filter @testflow/web test`。
 
-## Coding Style & Naming Conventions
+## 代码风格
 
-Use TypeScript for frontend and Electron code. React components should be `PascalCase` (`App.tsx`), local variables and functions `camelCase`, and CSS classes descriptive kebab-case. Match the style of the file you edit; current web files use single quotes without semicolons, while Electron files use double quotes with semicolons.
+前端和 Electron 代码使用 TypeScript。React 组件使用 `PascalCase`，局部变量和函数使用 `camelCase`，Python 函数使用 `snake_case`。
 
-Backend code targets Python 3.12. Use Ruff rules from `backend/pyproject.toml` with 88-character lines, sorted imports, modern type hints, and `snake_case` functions.
+匹配正在编辑文件的现有风格。应用层 Web 文件通常使用单引号且不写分号；生成的 shadcn UI 文件可能使用双引号；Electron 文件使用双引号和分号。
 
-## Testing Guidelines
+后端代码面向 Python 3.12。遵循 `backend/pyproject.toml` 中的 Ruff 规则，包括 88 字符行宽、排序导入和现代类型标注。
 
-Backend tests use pytest and live under `backend/tests/` as `test_*.py`. Name tests by behavior, for example `test_health_returns_service_status_and_data_directory`. Add or update tests when changing FastAPI routes or backend logic. Frontend and desktop coverage currently relies on TypeScript/build checks; add package-level tests when introducing nontrivial UI or Electron behavior.
+## Web UI 与样式
 
-## Commit & Pull Request Guidelines
+Web 应用使用 Tailwind CSS v4 和 shadcn/ui。`apps/web/src/index.css` 只用于 imports、theme tokens、shadcn base layer 和最小全局 reset；不要在其中新增业务选择器或全局元素样式。
 
-History currently uses short, direct commit messages such as `change default port to 5174` and `initial commit.` Keep commits focused and imperative. Pull requests should include a concise description, commands run, linked issues if applicable, and screenshots for visible UI changes.
+优先使用 shadcn 组件，而不是自定义 markup。添加组件前先检查 `apps/web/src/components/ui/`；新增 shadcn 组件使用 `pnpm dlx shadcn@latest add <component> -c apps/web`，并在提交前审查生成文件。未经明确批准，不要覆盖本地修改过的 shadcn 组件。
 
-## Agent-Specific Instructions
+使用语义化 Tailwind token（如 `bg-background`、`text-muted-foreground`、`border-border`、`bg-sidebar`）和 JSX utilities。避免 raw colors 和自定义品牌变量，SSH terminal 等窄范围集成除外。条件 class 使用 `cn()`；用 `gap-*` 替代 `space-*`；宽高相等时用 `size-*`；响应式使用 Tailwind 前缀，不写自定义 media query。
 
-When answering library, framework, SDK, API, CLI, or cloud-service questions for this repo, use Context7 MCP for current documentation before responding. Do not use it for general refactoring, business-logic debugging, code review, or scripts written from scratch.
+不要重新引入已移除的业务 class，例如 `.content-panel`、`.script-*`、`.tool-*`、`.execution-*`、`.nav-link-active`、`.catalog-placeholder`，也不要恢复全局 `input/select/textarea/button/code` 样式。
+
+## 测试指南
+
+后端测试使用 pytest，位于 `backend/tests/`，文件名为 `test_*.py`。修改 FastAPI 路由、service、adapter 或后端数据处理时，需要新增或更新后端测试。
+
+Web 测试使用 Vitest 和 Testing Library，位于 `apps/web/src`，文件名为 `*.test.ts` 或 `*.test.tsx`。修改路由行为、API client、组件交互或非平凡 UI 状态时，需要新增或更新 Web 测试。测试应断言行为和语义，不断言已移除的样式 class。优先使用 role、label、文本、URL 和 ARIA 断言，例如用 `aria-current="page"` 验证当前导航。不要添加读取 `src/index.css` 来验证业务 class 文本的测试。
+
+涉及可见 Web UI 变更时，运行 `pnpm check:web`、`pnpm --filter @testflow/web test`，并在浏览器中验证受影响路由。Pull Request 中应附上可见 UI 变更截图。
+
+## Commit 与 Pull Request
+
+当前历史使用简短直接的 commit message，例如 `change default port to 5174` 和 `initial commit.`。保持提交聚焦，并使用祈使语气。
+
+## Agent 专用说明
+
+当回答本仓库中关于 library、framework、SDK、API、CLI 或 cloud service 的问题时，先使用 Context7 MCP 获取当前文档再回答。一般重构、业务逻辑调试、代码审查或从零编写脚本时不需要使用 Context7。
