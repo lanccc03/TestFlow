@@ -79,8 +79,8 @@ vi.mock('@xterm/addon-fit', () => ({
 
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}))
 
-import { CommandLibraryPage, SshTerminalPage } from './ToolPages'
-import { resetSshTerminalStore } from './sshTerminalStore'
+import { CommandLibraryPage, SshTerminalPage } from '@/features/tools'
+import { resetSshTerminalStore } from '@/features/tools/ssh-terminal/store'
 
 const command = {
   id: 'command-1',
