@@ -33,7 +33,8 @@ def list_reports_endpoint(
 
 @router.get("/reports/{task_id}", response_model=None)
 def get_report_endpoint(task_id: str, request: Request) -> dict[str, object] | Response:
-    report = execution_service(request).get_report(task_id)
+    service = execution_service(request)
+    report = service.get_report(task_id)
     if report is None:
         return error_response(
             status_code=404,

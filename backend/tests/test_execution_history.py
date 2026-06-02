@@ -290,7 +290,8 @@ async def test_execution_service_persists_failed_task_report(tmp_path: Path) -> 
 
     await service.start()
     try:
-        created = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
+        create_payload = ExecutionTaskCreate(script_id="smoke-cockpit")
+        created = await service.create_task(create_payload)
         final_task = await service.wait_for_task(created.id, timeout=2)
     finally:
         await service.stop()

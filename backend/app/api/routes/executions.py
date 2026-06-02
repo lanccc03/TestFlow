@@ -6,7 +6,11 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.api.dependencies import execution_service
 from app.core.errors import error_response
-from app.modules.executions.schemas import ExecutionTaskCreate, ExecutionTaskFilters, TaskStatus
+from app.modules.executions.schemas import (
+    ExecutionTaskCreate,
+    ExecutionTaskFilters,
+    TaskStatus,
+)
 from app.modules.executions.service import (
     TaskAlreadyFinishedError,
     TaskNotFoundError,
