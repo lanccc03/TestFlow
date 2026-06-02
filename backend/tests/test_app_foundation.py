@@ -247,10 +247,12 @@ def test_execution_modules_export_compatible_api() -> None:
 def test_terminal_modules_export_compatible_ssh_api() -> None:
     from app.integrations.ssh.client import SshConnector
     from app.modules.terminal.schemas import SshConnectMessage
-    from app.modules.terminal.websocket import _relay_output
-    from app.modules.terminal.websocket import _sanitize_message
-    from app.modules.terminal.websocket import _send_json
-    from app.modules.terminal.websocket import handle_ssh_terminal_websocket
+    from app.modules.terminal.websocket import (
+        _relay_output,
+        _sanitize_message,
+        _send_json,
+        handle_ssh_terminal_websocket,
+    )
     from app.ssh_terminal import SshConnectMessage as LegacySshConnectMessage
     from app.ssh_terminal import SshConnector as LegacySshConnector
     from app.ssh_terminal import _relay_output as legacy_relay_output
