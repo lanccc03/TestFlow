@@ -49,11 +49,11 @@ Web 应用使用 Tailwind CSS v4 和 shadcn/ui。`apps/web/src/index.css` 只用
 
 Web 测试使用 Vitest 和 Testing Library，位于 `apps/web/src`，文件名为 `*.test.ts` 或 `*.test.tsx`。修改路由行为、API client、组件交互或非平凡 UI 状态时，需要新增或更新 Web 测试。测试应断言行为和语义，不断言已移除的样式 class。优先使用 role、label、文本、URL 和 ARIA 断言，例如用 `aria-current="page"` 验证当前导航。不要添加读取 `src/index.css` 来验证业务 class 文本的测试。
 
-涉及可见 Web UI 变更时，运行 `pnpm check:web`、`pnpm --filter @testflow/web test`，并在浏览器中验证受影响路由。Pull Request 中应附上可见 UI 变更截图。
+涉及可见 Web UI 变更时，运行 `pnpm check:web`、`pnpm --filter @testflow/web test`，并在浏览器中验证受影响路由。
 
 ## Commit 与 Pull Request
 
-当前历史使用简短直接的 commit message，例如 `change default port to 5174` 和 `initial commit.`。保持提交聚焦，并使用祈使语气。
+当前历史使用简短直接的 commit message，例如 `change default port to 5174` 和 `initial commit.`。保持提交聚焦，并使用祈使语气。不要在 commit message 末尾添加 Co-Authored-By 行。
 
 ## Agent 专用说明
 
