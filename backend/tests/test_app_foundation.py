@@ -149,6 +149,28 @@ def test_local_vite_origin_is_allowed_for_browser_api_calls(tmp_path: Path) -> N
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5174"
 
 
+def test_script_and_keyword_modules_export_compatible_catalog_api() -> None:
+    from app.modules.keywords.schemas import KeywordMetadata, KeywordParameter
+    from app.modules.keywords.service import load_keywords
+    from app.modules.scripts.schemas import ScriptStep, TestScript
+    from app.modules.scripts.service import read_script, save_script
+    from app.script_catalog import KeywordMetadata as LegacyKeywordMetadata
+    from app.script_catalog import KeywordParameter as LegacyKeywordParameter
+    from app.script_catalog import ScriptStep as LegacyScriptStep
+    from app.script_catalog import TestScript as LegacyTestScript
+    from app.script_catalog import load_keywords as legacy_load_keywords
+    from app.script_catalog import read_script as legacy_read_script
+    from app.script_catalog import save_script as legacy_save_script
+
+    assert LegacyKeywordMetadata is KeywordMetadata
+    assert LegacyKeywordParameter is KeywordParameter
+    assert LegacyScriptStep is ScriptStep
+    assert LegacyTestScript is TestScript
+    assert legacy_load_keywords is load_keywords
+    assert legacy_read_script is read_script
+    assert legacy_save_script is save_script
+
+
 def test_core_and_db_imports_remain_compatible() -> None:
     from app.config import Settings as LegacySettings
     from app.config import get_settings as legacy_get_settings
