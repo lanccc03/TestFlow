@@ -5,8 +5,8 @@ from uuid import uuid4
 from app.core.config import Settings
 from app.modules.executions.events import ExecutionEventBus
 from app.modules.executions.runner import (
-    ExecutionRunner,
     TERMINAL_STATUSES,
+    ExecutionRunner,
     _mark_task_canceled,
     task_from_script,
     task_summary,
