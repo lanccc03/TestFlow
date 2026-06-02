@@ -96,8 +96,16 @@ def test_http_errors_use_common_error_response_format(tmp_path: Path) -> None:
 
 
 def test_api_route_modules_keep_expected_prefixes() -> None:
-    from app.api.routes import commands, executions, health, keywords, reports, scripts
-    from app.api.routes import terminal, websockets
+    from app.api.routes import (
+        commands,
+        executions,
+        health,
+        keywords,
+        reports,
+        scripts,
+        terminal,
+        websockets,
+    )
 
     assert health.router.prefix == ""
     assert reports.router.prefix == ""
