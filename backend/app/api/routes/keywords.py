@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
 
-from app.script_catalog import load_keywords
+from app.modules.keywords.service import load_keywords
 
 router = APIRouter()
 

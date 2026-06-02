@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Response
 
 from app.core.errors import error_response
-from app.script_catalog import (
+from app.modules.scripts import (
     ScriptValidationError,
     TestScript,
     delete_script,

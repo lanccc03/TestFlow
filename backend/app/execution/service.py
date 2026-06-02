@@ -20,7 +20,7 @@ from app.execution.models import (
     TaskStatus,
     utc_now,
 )
-from app.script_catalog import TestScript, read_script
+from app.modules.scripts import TestScript, read_script
 from autotest.contracts import (
     CancellationToken,
     FrameworkEvent,
