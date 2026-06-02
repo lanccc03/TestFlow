@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import api_router, websocket_router
+from app.api.routes.health import router as health_router
 from app.config import Settings, get_settings
 from app.db import ensure_database
 from app.errors import register_exception_handlers
@@ -44,17 +45,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_headers=["*"],
     )
     register_exception_handlers(app)
+    app.include_router(health_router)
     app.include_router(api_router)
     app.include_router(websocket_router)
-
-    @app.get("/health")
-    def read_health() -> dict[str, str]:
-        return {
-            "status": "ok",
-            "service": resolved_settings.service_name,
-            "version": resolved_settings.version,
-            "data_dir": resolved_settings.data_dir.as_posix(),
-        }
 
     return app
 
