@@ -199,13 +199,15 @@ def test_command_module_exports_compatible_library_api() -> None:
     from app.command_library import delete_command_template as legacy_delete
     from app.command_library import list_command_templates as legacy_list
     from app.command_library import update_command_template as legacy_update
-    from app.modules.commands import CommandTemplatePayload
-    from app.modules.commands import CommandTemplateRecord
-    from app.modules.commands import CommandTemplateResponse
-    from app.modules.commands import create_command_template
-    from app.modules.commands import delete_command_template
-    from app.modules.commands import list_command_templates
-    from app.modules.commands import update_command_template
+    from app.modules.commands import (
+        CommandTemplatePayload,
+        CommandTemplateRecord,
+        CommandTemplateResponse,
+        create_command_template,
+        delete_command_template,
+        list_command_templates,
+        update_command_template,
+    )
 
     assert LegacyPayload is CommandTemplatePayload
     assert LegacyRecord is CommandTemplateRecord

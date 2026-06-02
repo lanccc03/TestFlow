@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Response
 
+from app.core.errors import error_response
 from app.modules.commands import (
     CommandTemplatePayload,
     create_command_template,
@@ -7,7 +8,6 @@ from app.modules.commands import (
     list_command_templates,
     update_command_template,
 )
-from app.core.errors import error_response
 
 router = APIRouter()
 
