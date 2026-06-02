@@ -1,9 +1,11 @@
 import sqlite3
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from app.db.session import ensure_database
 from app.main import create_app
 from app.modules.executions.repository import (
     get_execution_report,
@@ -15,7 +17,16 @@ from app.modules.executions.schemas import (
     ExecutionLogEntry,
     ExecutionStepResult,
     ExecutionTask,
+    ExecutionTaskCreate,
     ExecutionTaskFilters,
+)
+from app.modules.executions.service import ExecutionService
+from app.modules.scripts import (
+    ScriptStep,
+    save_script,
+)
+from app.modules.scripts import (
+    TestScript as CatalogTestScript,
 )
 
 
@@ -206,3 +217,89 @@ def test_repository_empty_filter_returns_nothing(tmp_path: Path) -> None:
         ExecutionTaskFilters(script_id="no-match"),
     )
     assert result == []
+
+
+@pytest.mark.anyio
+async def test_execution_service_persists_finished_task_history(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    ensure_database(settings)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="smoke-cockpit",
+            name="Smoke Cockpit",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="log.message",
+                    description="Startup log",
+                    params={"message": "startup ok"},
+                )
+            ],
+        ),
+    )
+    service = ExecutionService(settings)
+
+    await service.start()
+    try:
+        created = await service.create_task(
+            ExecutionTaskCreate(
+                script_id="smoke-cockpit",
+                environment="local",
+                target_device="bench-1",
+                executor="alice",
+            )
+        )
+        final_task = await service.wait_for_task(created.id, timeout=2)
+    finally:
+        await service.stop()
+
+    restarted_service = ExecutionService(settings)
+    stored_task = restarted_service.get_task(final_task.id)
+    summaries = restarted_service.list_tasks(ExecutionTaskFilters(executor="alice"))
+
+    assert final_task.status == "passed"
+    assert stored_task is not None
+    assert stored_task.id == final_task.id
+    assert stored_task.logs[0].message == "startup ok"
+    assert [summary.id for summary in summaries] == [final_task.id]
+
+
+@pytest.mark.anyio
+async def test_execution_service_persists_failed_task_report(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+    ensure_database(settings)
+    save_script(
+        settings,
+        CatalogTestScript(
+            id="smoke-cockpit",
+            name="Smoke Cockpit",
+            status="published",
+            steps=[
+                ScriptStep(
+                    id="step-1",
+                    keyword="wait",
+                    description="Bad wait",
+                    params={"seconds": -1},
+                )
+            ],
+        ),
+    )
+    service = ExecutionService(settings)
+
+    await service.start()
+    try:
+        created = await service.create_task(ExecutionTaskCreate(script_id="smoke-cockpit"))
+        final_task = await service.wait_for_task(created.id, timeout=2)
+    finally:
+        await service.stop()
+
+    report = ExecutionService(settings).get_report(final_task.id)
+
+    assert final_task.status == "failed"
+    assert report is not None
+    assert report.task.steps[0].status == "failed"
+    assert report.task.steps[0].error_message == (
+        "wait.seconds must be greater than or equal to 0"
+    )

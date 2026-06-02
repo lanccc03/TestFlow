@@ -4,6 +4,11 @@ from uuid import uuid4
 
 from app.core.config import Settings
 from app.modules.executions.events import ExecutionEventBus
+from app.modules.executions.repository import (
+    get_execution_report,
+    get_execution_task,
+    list_execution_task_summaries,
+)
 from app.modules.executions.runner import (
     TERMINAL_STATUSES,
     ExecutionRunner,
@@ -13,8 +18,10 @@ from app.modules.executions.runner import (
 )
 from app.modules.executions.schemas import (
     ExecutionEventMessage,
+    ExecutionReport,
     ExecutionTask,
     ExecutionTaskCreate,
+    ExecutionTaskFilters,
     ExecutionTaskSummary,
     TaskStatus,
 )
@@ -75,12 +82,38 @@ class ExecutionService:
         await self._runner.enqueue(task.id)
         return task.model_copy(deep=True)
 
-    def list_tasks(self) -> list[ExecutionTaskSummary]:
-        return [task_summary(task) for task in self._tasks.values()]
+    def list_tasks(
+        self,
+        filters: ExecutionTaskFilters | None = None,
+    ) -> list[ExecutionTaskSummary]:
+        filters = filters or ExecutionTaskFilters()
+        summaries_by_id: dict[str, ExecutionTaskSummary] = {
+            summary.id: summary
+            for summary in list_execution_task_summaries(self.settings, filters)
+        }
+        for task in self._tasks.values():
+            if _task_matches_filters(task, filters):
+                summaries_by_id[task.id] = task_summary(task)
+        return sorted(
+            summaries_by_id.values(),
+            key=lambda summary: summary.created_at,
+            reverse=True,
+        )
 
     def get_task(self, task_id: str) -> ExecutionTask | None:
         task = self._tasks.get(task_id)
-        return task.model_copy(deep=True) if task is not None else None
+        if task is not None:
+            return task.model_copy(deep=True)
+        return get_execution_task(self.settings, task_id)
+
+    def get_report(self, task_id: str) -> ExecutionReport | None:
+        stored = get_execution_report(self.settings, task_id)
+        if stored is not None:
+            return stored
+        task = self._tasks.get(task_id)
+        if task is not None:
+            return ExecutionReport(task=task.model_copy(deep=True))
+        return None
 
     async def cancel_task(self, task_id: str) -> ExecutionTask:
         task = self._tasks.get(task_id)
@@ -122,3 +155,20 @@ class ExecutionService:
         event: FrameworkEvent,
     ) -> None:
         await self._runner.handle_framework_event(task, event)
+
+
+def _task_matches_filters(
+    task: ExecutionTask,
+    filters: ExecutionTaskFilters,
+) -> bool:
+    if filters.script_id and task.script_id != filters.script_id:
+        return False
+    if filters.status and task.status != filters.status:
+        return False
+    if filters.created_from and task.created_at < filters.created_from:
+        return False
+    if filters.created_to and task.created_at > filters.created_to:
+        return False
+    if filters.executor and task.executor != filters.executor:
+        return False
+    return True

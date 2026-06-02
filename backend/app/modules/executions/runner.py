@@ -9,6 +9,7 @@ from typing import Any
 
 from app.core.config import Settings
 from app.modules.executions.events import ExecutionEventBus
+from app.modules.executions.repository import save_execution_report
 from app.modules.executions.schemas import (
     ExecutionEventMessage,
     ExecutionLogEntry,
@@ -104,6 +105,8 @@ class ExecutionRunner:
     async def finish_task(self, task: ExecutionTask) -> None:
         task.finished_at = task.finished_at or utc_now()
         task.duration_ms = _duration_ms(task.started_at, task.finished_at)
+        if task.status in TERMINAL_STATUSES:
+            await self._persist_finished_task(task)
         await self.events.publish(
             ExecutionEventMessage(
                 type="task_status",
@@ -120,6 +123,16 @@ class ExecutionRunner:
                 task=task,
             )
         )
+
+    async def _persist_finished_task(self, task: ExecutionTask) -> None:
+        try:
+            save_execution_report(self.settings, task)
+        except Exception as error:  # noqa: BLE001
+            await self.append_log(
+                task,
+                f"Report persistence failed: {error}",
+                level="error",
+            )
 
     async def handle_framework_event(
         self,
