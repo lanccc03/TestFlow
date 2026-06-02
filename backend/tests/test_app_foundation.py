@@ -216,3 +216,29 @@ def test_command_module_exports_compatible_library_api() -> None:
     assert legacy_delete is delete_command_template
     assert legacy_list is list_command_templates
     assert legacy_update is update_command_template
+
+
+def test_execution_modules_export_compatible_api() -> None:
+    from app.execution.events import ExecutionEventBus as LegacyEventBus
+    from app.execution.models import ExecutionTask as LegacyExecutionTask
+    from app.execution.models import ExecutionTaskCreate as LegacyExecutionTaskCreate
+    from app.execution.service import ExecutionService as LegacyExecutionService
+    from app.execution.service import TaskAlreadyFinishedError as LegacyFinishedError
+    from app.execution.service import TaskNotFoundError as LegacyNotFoundError
+    from app.execution.service import _framework_request as legacy_framework_request
+    from app.modules.executions.events import ExecutionEventBus
+    from app.modules.executions.runner import _framework_request
+    from app.modules.executions.schemas import ExecutionTask, ExecutionTaskCreate
+    from app.modules.executions.service import (
+        ExecutionService,
+        TaskAlreadyFinishedError,
+        TaskNotFoundError,
+    )
+
+    assert LegacyEventBus is ExecutionEventBus
+    assert LegacyExecutionTask is ExecutionTask
+    assert LegacyExecutionTaskCreate is ExecutionTaskCreate
+    assert LegacyExecutionService is ExecutionService
+    assert LegacyFinishedError is TaskAlreadyFinishedError
+    assert LegacyNotFoundError is TaskNotFoundError
+    assert legacy_framework_request is _framework_request
