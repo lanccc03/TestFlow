@@ -5,7 +5,7 @@ from fastapi import APIRouter, Request, Response, WebSocket
 from starlette.websockets import WebSocketDisconnect
 
 from app.api.dependencies import execution_service
-from app.errors import error_response
+from app.core.errors import error_response
 from app.execution.models import ExecutionTaskCreate
 from app.execution.service import TaskAlreadyFinishedError, TaskNotFoundError
 

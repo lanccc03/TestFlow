@@ -7,7 +7,7 @@ from app.command_library import (
     list_command_templates,
     update_command_template,
 )
-from app.errors import error_response
+from app.core.errors import error_response
 
 router = APIRouter()
 
