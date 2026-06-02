@@ -6,8 +6,11 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.api.dependencies import execution_service
 from app.core.errors import error_response
-from app.execution.models import ExecutionTaskCreate
-from app.execution.service import TaskAlreadyFinishedError, TaskNotFoundError
+from app.modules.executions.schemas import ExecutionTaskCreate
+from app.modules.executions.service import (
+    TaskAlreadyFinishedError,
+    TaskNotFoundError,
+)
 
 router = APIRouter()
 websocket_router = APIRouter()

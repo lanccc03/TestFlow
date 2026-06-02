@@ -1,6 +1,6 @@
 from fastapi import Request
 
-from app.execution.service import ExecutionService
+from app.modules.executions.service import ExecutionService
 
 
 def execution_service(request: Request) -> ExecutionService:

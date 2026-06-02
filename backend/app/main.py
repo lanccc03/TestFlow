@@ -10,7 +10,7 @@ from app.core.config import Settings, get_settings
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.db.session import ensure_database
-from app.execution.service import ExecutionService
+from app.modules.executions.service import ExecutionService
 
 
 @asynccontextmanager
