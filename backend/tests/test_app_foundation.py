@@ -242,3 +242,27 @@ def test_execution_modules_export_compatible_api() -> None:
     assert LegacyFinishedError is TaskAlreadyFinishedError
     assert LegacyNotFoundError is TaskNotFoundError
     assert legacy_framework_request is _framework_request
+
+
+def test_terminal_modules_export_compatible_ssh_api() -> None:
+    from app.integrations.ssh.client import SshConnector
+    from app.modules.terminal.schemas import SshConnectMessage
+    from app.modules.terminal.websocket import _relay_output
+    from app.modules.terminal.websocket import _sanitize_message
+    from app.modules.terminal.websocket import _send_json
+    from app.modules.terminal.websocket import handle_ssh_terminal_websocket
+    from app.ssh_terminal import SshConnectMessage as LegacySshConnectMessage
+    from app.ssh_terminal import SshConnector as LegacySshConnector
+    from app.ssh_terminal import _relay_output as legacy_relay_output
+    from app.ssh_terminal import _sanitize_message as legacy_sanitize_message
+    from app.ssh_terminal import _send_json as legacy_send_json
+    from app.ssh_terminal import (
+        handle_ssh_terminal_websocket as legacy_handle_ssh_terminal_websocket,
+    )
+
+    assert LegacySshConnectMessage is SshConnectMessage
+    assert LegacySshConnector is SshConnector
+    assert legacy_handle_ssh_terminal_websocket is handle_ssh_terminal_websocket
+    assert legacy_relay_output is _relay_output
+    assert legacy_sanitize_message is _sanitize_message
+    assert legacy_send_json is _send_json
