@@ -13,7 +13,7 @@ import {
 import type React from 'react'
 
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import { TaskPage } from '@/features/execution/TaskPage'
+import { TaskPage } from '@/features/execution'
 import { ScriptEditorPage, ScriptListPage } from '@/features/scripts'
 import { CommandLibraryPage, SshTerminalPage } from '@/features/tools/ToolPages'
 

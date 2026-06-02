@@ -32,7 +32,7 @@ vi.mock('@/lib/websocket', () => ({
   createWebSocketClient: vi.fn(() => webSocketMock),
 }))
 
-import { TaskPage } from './TaskPage'
+import { TaskPage } from '@/features/execution'
 
 const pendingTask = {
   id: 'task-1',
