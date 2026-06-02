@@ -152,8 +152,7 @@ def test_local_vite_origin_is_allowed_for_browser_api_calls(tmp_path: Path) -> N
 def test_core_and_db_imports_remain_compatible() -> None:
     from app.config import Settings as LegacySettings
     from app.config import get_settings as legacy_get_settings
-    from app.core.config import Settings
-    from app.core.config import get_settings
+    from app.core.config import Settings, get_settings
     from app.core.errors import error_response
     from app.core.logging import configure_logging
     from app.db import create_db_engine, ensure_database, run_migrations
