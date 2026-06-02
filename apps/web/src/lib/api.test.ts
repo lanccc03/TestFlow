@@ -273,7 +273,7 @@ describe('createApiClient', () => {
     expect(connectionEvent.status).toBe('connected')
     expect(taskStatusEvent.status).toBe('running')
 
-    expect(httpClient.get).toHaveBeenCalledWith('/api/tasks')
+    expect(httpClient.get).toHaveBeenCalledWith('/api/tasks', { params: {} })
     expect(httpClient.post).toHaveBeenCalledWith('/api/tasks', createPayload)
     expect(httpClient.post).toHaveBeenCalledWith(
       '/api/tasks',
@@ -326,6 +326,65 @@ describe('createApiClient', () => {
       status: 422,
       details: [],
     })
+  })
+
+  it('calls execution history and report endpoints with filters', async () => {
+    const executionTask: ExecutionTask = {
+      id: 'task-1',
+      script_id: 'smoke-cockpit',
+      script_name: '座舱冒烟测试',
+      script_revision: 2,
+      status: 'failed',
+      environment: 'staging',
+      target_device: 'bench-1',
+      variables: {},
+      executor: 'alice',
+      created_at: '2026-06-01T10:00:00+00:00',
+      started_at: '2026-06-01T10:00:01+00:00',
+      finished_at: '2026-06-01T10:10:00+00:00',
+      duration_ms: 599000,
+      log_path: 'data/reports/task-1/task.log',
+      report_dir: 'data/reports/task-1',
+      steps: [],
+      logs: [],
+      error_message: '',
+    }
+    const httpClient = {
+      get: vi
+        .fn()
+        .mockResolvedValueOnce({ data: { items: [] } })
+        .mockResolvedValueOnce({
+          data: {
+            task: executionTask,
+            attachments: [],
+            raw_framework_report: null,
+          },
+        }),
+    } as unknown as AxiosInstance
+    const client = createApiClient({
+      baseUrl: 'http://localhost',
+      httpClient,
+    })
+
+    await client.listTasks({
+      script_id: 'smoke-cockpit',
+      status: 'failed',
+      created_from: '2026-06-01T00:00:00+00:00',
+      created_to: '2026-06-01T23:59:59+00:00',
+      executor: 'alice',
+    })
+    await client.getReport('task-1')
+
+    expect(httpClient.get).toHaveBeenNthCalledWith(1, '/api/tasks', {
+      params: {
+        script_id: 'smoke-cockpit',
+        status: 'failed',
+        created_from: '2026-06-01T00:00:00+00:00',
+        created_to: '2026-06-01T23:59:59+00:00',
+        executor: 'alice',
+      },
+    })
+    expect(httpClient.get).toHaveBeenNthCalledWith(2, '/api/reports/task-1')
   })
 
   it('exposes backend field-level error details', async () => {

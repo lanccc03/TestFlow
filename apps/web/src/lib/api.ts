@@ -175,6 +175,26 @@ export type ExecutionTaskSummary = {
   failed_step_count: number
 }
 
+export type ExecutionTaskFilters = {
+  script_id?: string
+  status?: TaskStatus
+  created_from?: string
+  created_to?: string
+  executor?: string
+}
+
+export type ExecutionReportAttachment = {
+  path: string
+  name: string
+  step_id: string | null
+}
+
+export type ExecutionReport = {
+  task: ExecutionTask
+  attachments: ExecutionReportAttachment[]
+  raw_framework_report: Record<string, unknown> | null
+}
+
 export type ExecutionUpdateEvent = {
   type: 'task_status' | 'step_status' | 'log' | 'task_finished'
   task_id?: string
@@ -195,6 +215,12 @@ export type ConnectionExecutionEvent = {
 export type ExecutionEventMessage =
   | ExecutionUpdateEvent
   | ConnectionExecutionEvent
+
+function compactParams<T extends Record<string, unknown>>(params: T) {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== '' && value != null),
+  )
+}
 
 type ApiClientOptions = {
   baseUrl: string
@@ -299,13 +325,22 @@ export function createApiClient({
       ),
     deleteCommand: (commandId: string) =>
       remove(`/api/commands/${commandId}`),
-    listTasks: () => request<ItemList<ExecutionTaskSummary>>('/api/tasks'),
+    listTasks: (filters: ExecutionTaskFilters = {}) =>
+      request<ItemList<ExecutionTaskSummary>>('/api/tasks', {
+        params: compactParams(filters),
+      }),
     getTask: (taskId: string) =>
       request<ExecutionTask>(`/api/tasks/${taskId}`),
     createTask: (task: ExecutionTaskCreate) =>
       post<ExecutionTask, ExecutionTaskCreate>('/api/tasks', task),
     cancelTask: (taskId: string) =>
       postEmpty<ExecutionTask>(`/api/tasks/${taskId}/cancel`),
+    listReports: (filters: ExecutionTaskFilters = {}) =>
+      request<ItemList<ExecutionTaskSummary>>('/api/reports', {
+        params: compactParams(filters),
+      }),
+    getReport: (taskId: string) =>
+      request<ExecutionReport>(`/api/reports/${taskId}`),
     listItems: <T = unknown>(path: string) => request<ItemList<T>>(path),
   }
 }
