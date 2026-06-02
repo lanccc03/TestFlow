@@ -44,7 +44,7 @@ export function TaskPage() {
   })
   const tasksQuery = useQuery({
     queryKey: ['tasks'],
-    queryFn: api.listTasks,
+    queryFn: () => api.listTasks(),
   })
 
   const publishedScripts = useMemo(
