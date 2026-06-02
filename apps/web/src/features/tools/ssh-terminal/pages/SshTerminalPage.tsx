@@ -143,7 +143,6 @@ export function SshTerminalPage() {
   return (
     <PagePanel>
       <PageHeader
-        eyebrow="阶段八"
         title="SSH 终端"
         subtitle="连接测试设备并通过命令库获得输入联想。"
         actions={

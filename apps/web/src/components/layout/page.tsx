@@ -26,21 +26,16 @@ export function PagePanel({
 
 export function PageHeader({
   actions,
-  eyebrow,
   subtitle,
   title,
 }: {
   actions?: React.ReactNode
-  eyebrow?: React.ReactNode
   subtitle?: React.ReactNode
   title: React.ReactNode
 }) {
   return (
     <div className="flex items-start justify-between gap-4 max-sm:flex-col">
       <div className="grid gap-1.5">
-        {eyebrow ? (
-          <p className="m-0 text-xs font-bold text-muted-foreground">{eyebrow}</p>
-        ) : null}
         <h1 className="m-0 text-3xl font-semibold leading-tight text-foreground">
           {title}
         </h1>

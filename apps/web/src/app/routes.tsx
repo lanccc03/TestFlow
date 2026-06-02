@@ -32,7 +32,6 @@ export type AppRoute = {
   navHidden?: boolean
 }
 
-const upcomingLabel = '等待后续阶段接入数据'
 
 function PlaceholderPage({
   action,
@@ -46,7 +45,6 @@ function PlaceholderPage({
   return (
     <PagePanel>
       <PageHeader
-        eyebrow={upcomingLabel}
         title={title}
         subtitle={description}
       />

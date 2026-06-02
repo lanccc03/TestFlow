@@ -83,7 +83,6 @@ export function ScriptListPage() {
   return (
     <PagePanel>
       <PageHeader
-        eyebrow="阶段五"
         title="脚本管理"
         subtitle="管理 YAML 测试脚本、筛选分组标签，并进入可视化编辑。"
         actions={

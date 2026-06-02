@@ -214,7 +214,6 @@ export function ScriptEditorPage() {
   return (
     <PagePanel>
       <PageHeader
-        eyebrow="阶段五"
         title="脚本编辑器"
         subtitle="通过关键字和参数表单编排 YAML 测试脚本。"
         actions={

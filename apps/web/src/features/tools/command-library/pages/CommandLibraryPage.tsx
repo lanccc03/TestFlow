@@ -91,7 +91,6 @@ export function CommandLibraryPage() {
   return (
     <PagePanel>
       <PageHeader
-        eyebrow="阶段八"
         title="命令库"
         subtitle="维护完整 SSH 命令，并在终端输入时用于联想。"
         actions={

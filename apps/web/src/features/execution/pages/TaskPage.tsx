@@ -138,7 +138,6 @@ export function TaskPage() {
   return (
     <PagePanel>
       <PageHeader
-        eyebrow="阶段六"
         title="执行任务"
         subtitle="选择已发布脚本，启动本地执行并查看实时任务输出。"
         actions={
