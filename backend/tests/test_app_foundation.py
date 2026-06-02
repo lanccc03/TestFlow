@@ -95,6 +95,36 @@ def test_http_errors_use_common_error_response_format(tmp_path: Path) -> None:
     }
 
 
+def test_api_route_modules_keep_expected_prefixes() -> None:
+    from app.api.routes import commands, executions, health, keywords, reports, scripts
+    from app.api.routes import terminal, websockets
+
+    assert health.router.prefix == ""
+    assert reports.router.prefix == ""
+    assert keywords.router.prefix == ""
+    assert scripts.router.prefix == ""
+    assert executions.router.prefix == ""
+    assert commands.router.prefix == ""
+    assert websockets.router.prefix == ""
+    assert terminal.router.prefix == ""
+
+
+def test_api_package_exports_compatibility_endpoints() -> None:
+    from app.api import (
+        api_router,
+        execution_websocket_endpoint,
+        ssh_websocket_endpoint,
+        websocket_endpoint,
+        websocket_router,
+    )
+
+    assert api_router.prefix == "/api"
+    assert websocket_router.prefix == ""
+    assert websocket_endpoint.__name__ == "websocket_endpoint"
+    assert execution_websocket_endpoint.__name__ == "execution_websocket_endpoint"
+    assert ssh_websocket_endpoint.__name__ == "ssh_websocket_endpoint"
+
+
 def test_local_vite_origin_is_allowed_for_browser_api_calls(tmp_path: Path) -> None:
     settings = Settings(data_dir=tmp_path)
 
