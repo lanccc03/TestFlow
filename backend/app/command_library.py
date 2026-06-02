@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from pydantic import Field as PydanticField
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 
-from app.config import Settings
+from app.core.config import Settings
 
 
 def _utc_now() -> datetime:

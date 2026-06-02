@@ -5,7 +5,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.config import Settings
+from app.core.config import Settings
 
 ParameterType = Literal["string", "integer", "number", "boolean", "object", "array"]
 ScriptStatus = Literal["draft", "published"]

@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from app.config import Settings
+from app.core.config import Settings
 from app.execution.events import ExecutionEventBus
 from app.execution.models import (
     ExecutionEventMessage,
