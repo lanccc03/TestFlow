@@ -92,6 +92,26 @@ class ExecutionTaskSummary(BaseModel):
     failed_step_count: int
 
 
+class ExecutionTaskFilters(BaseModel):
+    script_id: str | None = None
+    status: TaskStatus | None = None
+    created_from: str | None = None
+    created_to: str | None = None
+    executor: str | None = None
+
+
+class ExecutionReportAttachment(BaseModel):
+    path: str
+    name: str
+    step_id: str | None = None
+
+
+class ExecutionReport(BaseModel):
+    task: ExecutionTask
+    attachments: list[ExecutionReportAttachment] = Field(default_factory=list)
+    raw_framework_report: dict[str, Any] | None = None
+
+
 class ExecutionEventMessage(BaseModel):
     type: ExecutionEventType
     task_id: str
