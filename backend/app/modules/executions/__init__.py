@@ -1,4 +1,5 @@
 from app.modules.executions.events import ExecutionEventBus
+from app.modules.executions.models import ExecutionReportRecord, ExecutionTaskRecord
 from app.modules.executions.runner import (
     TERMINAL_STATUSES,
     _framework_request,
@@ -27,6 +28,8 @@ from app.modules.executions.service import (
 __all__ = [
     "ExecutionEventBus",
     "ExecutionEventMessage",
+    "ExecutionReportRecord",
+    "ExecutionTaskRecord",
     "ExecutionEventType",
     "ExecutionLogEntry",
     "ExecutionService",

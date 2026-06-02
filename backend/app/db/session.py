@@ -2,6 +2,7 @@ from sqlalchemy import Engine, text
 from sqlmodel import SQLModel, create_engine
 
 import app.modules.commands.models  # noqa: F401
+import app.modules.executions.models  # noqa: F401
 from app.core.config import Settings
 
 
