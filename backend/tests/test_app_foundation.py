@@ -147,3 +147,24 @@ def test_local_vite_origin_is_allowed_for_browser_api_calls(tmp_path: Path) -> N
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5174"
+
+
+def test_core_and_db_imports_remain_compatible() -> None:
+    from app.config import Settings as LegacySettings
+    from app.config import get_settings as legacy_get_settings
+    from app.core.config import Settings
+    from app.core.config import get_settings
+    from app.core.errors import error_response
+    from app.core.logging import configure_logging
+    from app.db import create_db_engine, ensure_database, run_migrations
+    from app.db.session import create_db_engine as canonical_create_db_engine
+    from app.errors import error_response as legacy_error_response
+    from app.logging import configure_logging as legacy_configure_logging
+
+    assert LegacySettings is Settings
+    assert legacy_get_settings is get_settings
+    assert legacy_error_response is error_response
+    assert legacy_configure_logging is configure_logging
+    assert create_db_engine is canonical_create_db_engine
+    assert ensure_database.__name__ == "ensure_database"
+    assert run_migrations.__name__ == "run_migrations"
