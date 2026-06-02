@@ -189,3 +189,28 @@ def test_core_and_db_imports_remain_compatible() -> None:
     assert create_db_engine is canonical_create_db_engine
     assert ensure_database.__name__ == "ensure_database"
     assert run_migrations.__name__ == "run_migrations"
+
+
+def test_command_module_exports_compatible_library_api() -> None:
+    from app.command_library import CommandTemplatePayload as LegacyPayload
+    from app.command_library import CommandTemplateRecord as LegacyRecord
+    from app.command_library import CommandTemplateResponse as LegacyResponse
+    from app.command_library import create_command_template as legacy_create
+    from app.command_library import delete_command_template as legacy_delete
+    from app.command_library import list_command_templates as legacy_list
+    from app.command_library import update_command_template as legacy_update
+    from app.modules.commands import CommandTemplatePayload
+    from app.modules.commands import CommandTemplateRecord
+    from app.modules.commands import CommandTemplateResponse
+    from app.modules.commands import create_command_template
+    from app.modules.commands import delete_command_template
+    from app.modules.commands import list_command_templates
+    from app.modules.commands import update_command_template
+
+    assert LegacyPayload is CommandTemplatePayload
+    assert LegacyRecord is CommandTemplateRecord
+    assert LegacyResponse is CommandTemplateResponse
+    assert legacy_create is create_command_template
+    assert legacy_delete is delete_command_template
+    assert legacy_list is list_command_templates
+    assert legacy_update is update_command_template
