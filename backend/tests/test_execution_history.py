@@ -303,3 +303,86 @@ async def test_execution_service_persists_failed_task_report(tmp_path: Path) -> 
     assert report.task.steps[0].error_message == (
         "wait.seconds must be greater than or equal to 0"
     )
+
+
+def test_task_api_lists_persisted_history_with_filters(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+
+    with TestClient(create_app(settings)):
+        task = ExecutionTask(
+            id="exec-1",
+            script_id="smoke-cockpit",
+            script_name="Smoke Cockpit",
+            script_revision=1,
+            status="passed",
+            executor="alice",
+            created_at="2026-06-01T00:00:00+00:00",
+            report_dir=str(tmp_path / "reports" / "exec-1"),
+        )
+        save_execution_report(settings, task)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.get(
+            "/api/tasks",
+            params={
+                "script_id": "smoke-cockpit",
+                "status": "passed",
+                "executor": "alice",
+                "created_from": "2026-06-01T00:00:00+00:00",
+                "created_to": "2026-06-01T23:59:59+00:00",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json()["items"][0]["id"] == "exec-1"
+
+
+def test_report_api_reads_persisted_report_detail(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+
+    with TestClient(create_app(settings)):
+        task = ExecutionTask(
+            id="exec-1",
+            script_id="smoke-cockpit",
+            script_name="Smoke Cockpit",
+            script_revision=1,
+            status="failed",
+            created_at="2026-06-01T00:00:00+00:00",
+            report_dir=str(tmp_path / "reports" / "exec-1"),
+            steps=[
+                ExecutionStepResult(
+                    id="step-1",
+                    index=0,
+                    keyword="wait",
+                    status="failed",
+                    error_message="wait.seconds must be greater than or equal to 0",
+                )
+            ],
+            logs=[
+                ExecutionLogEntry(
+                    timestamp="2026-06-01T00:00:01+00:00",
+                    level="error",
+                    message="wait.seconds must be greater than or equal to 0",
+                    step_id="step-1",
+                )
+            ],
+        )
+        save_execution_report(settings, task)
+
+    with TestClient(create_app(settings)) as client:
+        list_response = client.get("/api/reports")
+        detail_response = client.get("/api/reports/exec-1")
+        missing_response = client.get("/api/reports/missing")
+
+    assert list_response.status_code == 200
+    assert list_response.json()["items"][0]["id"] == "exec-1"
+    assert detail_response.status_code == 200
+    assert detail_response.json()["task"]["id"] == "exec-1"
+    assert detail_response.json()["task"]["steps"][0]["error_message"] == (
+        "wait.seconds must be greater than or equal to 0"
+    )
+    assert detail_response.json()["task"]["logs"][0]["message"] == (
+        "wait.seconds must be greater than or equal to 0"
+    )
+    assert missing_response.status_code == 404
+    assert missing_response.json()["error"]["code"] == "not_found"

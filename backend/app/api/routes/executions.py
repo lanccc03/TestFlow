@@ -6,7 +6,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.api.dependencies import execution_service
 from app.core.errors import error_response
-from app.modules.executions.schemas import ExecutionTaskCreate
+from app.modules.executions.schemas import ExecutionTaskCreate, ExecutionTaskFilters, TaskStatus
 from app.modules.executions.service import (
     TaskAlreadyFinishedError,
     TaskNotFoundError,
@@ -17,11 +17,25 @@ websocket_router = APIRouter()
 
 
 @router.get("/tasks")
-def list_execution_tasks(request: Request) -> dict[str, list[dict[str, object]]]:
+def list_execution_tasks(
+    request: Request,
+    script_id: str | None = None,
+    status: TaskStatus | None = None,
+    created_from: str | None = None,
+    created_to: str | None = None,
+    executor: str | None = None,
+) -> dict[str, list[dict[str, object]]]:
     service = execution_service(request)
+    filters = ExecutionTaskFilters(
+        script_id=script_id,
+        status=status,
+        created_from=created_from,
+        created_to=created_to,
+        executor=executor,
+    )
     return {
         "items": [
-            summary.model_dump(mode="json") for summary in service.list_tasks()
+            summary.model_dump(mode="json") for summary in service.list_tasks(filters)
         ]
     }
 
