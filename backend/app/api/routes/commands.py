@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Response
 
-from app.command_library import (
+from app.modules.commands import (
     CommandTemplatePayload,
     create_command_template,
     delete_command_template,
