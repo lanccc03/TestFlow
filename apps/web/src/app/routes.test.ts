@@ -11,6 +11,7 @@ describe('appRoutes', () => {
       '/tasks',
       '/history',
       '/reports',
+      '/reports/:taskId',
       '/ssh',
       '/scp',
       '/commands',

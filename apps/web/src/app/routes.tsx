@@ -13,7 +13,12 @@ import {
 import type React from 'react'
 
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import { TaskPage } from '@/features/execution'
+import {
+  HistoryPage,
+  ReportDetailPage,
+  ReportListPage,
+  TaskPage,
+} from '@/features/execution'
 import { ScriptEditorPage, ScriptListPage } from '@/features/scripts'
 import { CommandLibraryPage, SshTerminalPage } from '@/features/tools'
 
@@ -94,13 +99,7 @@ export const appRoutes: AppRoute[] = [
     description: '查看历史任务、结果和执行日志入口。',
     navGroup: 'execution',
     icon: History,
-    element: (
-      <PlaceholderPage
-        title="执行历史"
-        description="按时间查看测试任务结果和失败摘要。"
-        action="历史记录将在数据库模型完成后显示"
-      />
-    ),
+    element: <HistoryPage />,
   },
   {
     path: '/reports',
@@ -108,13 +107,16 @@ export const appRoutes: AppRoute[] = [
     description: '展示执行报告、步骤结果和日志片段。',
     navGroup: 'execution',
     icon: FileText,
-    element: (
-      <PlaceholderPage
-        title="报告详情"
-        description="查看报告摘要、步骤状态和原始执行输出。"
-        action="报告视图将在阶段七接入"
-      />
-    ),
+    element: <ReportListPage />,
+  },
+  {
+    path: '/reports/:taskId',
+    label: '报告详情',
+    description: '展示执行报告、步骤结果和日志片段。',
+    navGroup: 'execution',
+    icon: FileText,
+    element: <ReportDetailPage />,
+    navHidden: true,
   },
   {
     path: '/ssh',
