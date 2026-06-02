@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket
 
-from app.ssh_terminal import handle_ssh_terminal_websocket
+from app.modules.terminal.websocket import handle_ssh_terminal_websocket
 
 router = APIRouter()
 
