@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
-from app.ssh_terminal import handle_ssh_terminal_websocket
+from app.modules.terminal.websocket import handle_ssh_terminal_websocket
 
 
 @pytest.mark.anyio

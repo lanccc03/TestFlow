@@ -5,25 +5,25 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from app.api import execution_websocket_endpoint
-from app.config import Settings
-from app.execution.events import ExecutionEventBus
-from app.execution.models import (
+from app.core.config import Settings
+from app.main import create_app
+from app.modules.executions.events import ExecutionEventBus
+from app.modules.executions.runner import _framework_request
+from app.modules.executions.schemas import (
     ExecutionEventMessage,
     ExecutionTask,
     ExecutionTaskCreate,
 )
-from app.execution.service import (
+from app.modules.executions.service import (
     ExecutionService,
     TaskAlreadyFinishedError,
     TaskNotFoundError,
-    _framework_request,
 )
-from app.main import create_app
-from app.script_catalog import (
+from app.modules.scripts import (
     ScriptStep,
     save_script,
 )
-from app.script_catalog import (
+from app.modules.scripts import (
     TestScript as CatalogTestScript,
 )
 from autotest.contracts import CancellationToken, FrameworkEvent

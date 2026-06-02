@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
 from app.api import websocket_endpoint
-from app.config import Settings
+from app.core.config import Settings
 from app.main import create_app
 
 
@@ -149,122 +149,21 @@ def test_local_vite_origin_is_allowed_for_browser_api_calls(tmp_path: Path) -> N
     assert response.headers["access-control-allow-origin"] == "http://127.0.0.1:5174"
 
 
-def test_script_and_keyword_modules_export_compatible_catalog_api() -> None:
-    from app.modules.keywords.schemas import KeywordMetadata, KeywordParameter
-    from app.modules.keywords.service import load_keywords
-    from app.modules.scripts.schemas import ScriptStep, TestScript
-    from app.modules.scripts.service import read_script, save_script
-    from app.script_catalog import KeywordMetadata as LegacyKeywordMetadata
-    from app.script_catalog import KeywordParameter as LegacyKeywordParameter
-    from app.script_catalog import ScriptStep as LegacyScriptStep
-    from app.script_catalog import TestScript as LegacyTestScript
-    from app.script_catalog import load_keywords as legacy_load_keywords
-    from app.script_catalog import read_script as legacy_read_script
-    from app.script_catalog import save_script as legacy_save_script
+def test_legacy_backend_shims_have_been_removed() -> None:
+    backend_root = Path(__file__).resolve().parents[1]
+    legacy_paths = [
+        backend_root / "app/command_library.py",
+        backend_root / "app/config.py",
+        backend_root / "app/errors.py",
+        backend_root / "app/execution",
+        backend_root / "app/logging.py",
+        backend_root / "app/script_catalog.py",
+        backend_root / "app/ssh_terminal.py",
+    ]
 
-    assert LegacyKeywordMetadata is KeywordMetadata
-    assert LegacyKeywordParameter is KeywordParameter
-    assert LegacyScriptStep is ScriptStep
-    assert LegacyTestScript is TestScript
-    assert legacy_load_keywords is load_keywords
-    assert legacy_read_script is read_script
-    assert legacy_save_script is save_script
-
-
-def test_core_and_db_imports_remain_compatible() -> None:
-    from app.config import Settings as LegacySettings
-    from app.config import get_settings as legacy_get_settings
-    from app.core.config import Settings, get_settings
-    from app.core.errors import error_response
-    from app.core.logging import configure_logging
-    from app.db import create_db_engine, ensure_database, run_migrations
-    from app.db.session import create_db_engine as canonical_create_db_engine
-    from app.errors import error_response as legacy_error_response
-    from app.logging import configure_logging as legacy_configure_logging
-
-    assert LegacySettings is Settings
-    assert legacy_get_settings is get_settings
-    assert legacy_error_response is error_response
-    assert legacy_configure_logging is configure_logging
-    assert create_db_engine is canonical_create_db_engine
-    assert ensure_database.__name__ == "ensure_database"
-    assert run_migrations.__name__ == "run_migrations"
-
-
-def test_command_module_exports_compatible_library_api() -> None:
-    from app.command_library import CommandTemplatePayload as LegacyPayload
-    from app.command_library import CommandTemplateRecord as LegacyRecord
-    from app.command_library import CommandTemplateResponse as LegacyResponse
-    from app.command_library import create_command_template as legacy_create
-    from app.command_library import delete_command_template as legacy_delete
-    from app.command_library import list_command_templates as legacy_list
-    from app.command_library import update_command_template as legacy_update
-    from app.modules.commands import (
-        CommandTemplatePayload,
-        CommandTemplateRecord,
-        CommandTemplateResponse,
-        create_command_template,
-        delete_command_template,
-        list_command_templates,
-        update_command_template,
-    )
-
-    assert LegacyPayload is CommandTemplatePayload
-    assert LegacyRecord is CommandTemplateRecord
-    assert LegacyResponse is CommandTemplateResponse
-    assert legacy_create is create_command_template
-    assert legacy_delete is delete_command_template
-    assert legacy_list is list_command_templates
-    assert legacy_update is update_command_template
-
-
-def test_execution_modules_export_compatible_api() -> None:
-    from app.execution.events import ExecutionEventBus as LegacyEventBus
-    from app.execution.models import ExecutionTask as LegacyExecutionTask
-    from app.execution.models import ExecutionTaskCreate as LegacyExecutionTaskCreate
-    from app.execution.service import ExecutionService as LegacyExecutionService
-    from app.execution.service import TaskAlreadyFinishedError as LegacyFinishedError
-    from app.execution.service import TaskNotFoundError as LegacyNotFoundError
-    from app.execution.service import _framework_request as legacy_framework_request
-    from app.modules.executions.events import ExecutionEventBus
-    from app.modules.executions.runner import _framework_request
-    from app.modules.executions.schemas import ExecutionTask, ExecutionTaskCreate
-    from app.modules.executions.service import (
-        ExecutionService,
-        TaskAlreadyFinishedError,
-        TaskNotFoundError,
-    )
-
-    assert LegacyEventBus is ExecutionEventBus
-    assert LegacyExecutionTask is ExecutionTask
-    assert LegacyExecutionTaskCreate is ExecutionTaskCreate
-    assert LegacyExecutionService is ExecutionService
-    assert LegacyFinishedError is TaskAlreadyFinishedError
-    assert LegacyNotFoundError is TaskNotFoundError
-    assert legacy_framework_request is _framework_request
-
-
-def test_terminal_modules_export_compatible_ssh_api() -> None:
-    from app.integrations.ssh.client import SshConnector
-    from app.modules.terminal.schemas import SshConnectMessage
-    from app.modules.terminal.websocket import (
-        _relay_output,
-        _sanitize_message,
-        _send_json,
-        handle_ssh_terminal_websocket,
-    )
-    from app.ssh_terminal import SshConnectMessage as LegacySshConnectMessage
-    from app.ssh_terminal import SshConnector as LegacySshConnector
-    from app.ssh_terminal import _relay_output as legacy_relay_output
-    from app.ssh_terminal import _sanitize_message as legacy_sanitize_message
-    from app.ssh_terminal import _send_json as legacy_send_json
-    from app.ssh_terminal import (
-        handle_ssh_terminal_websocket as legacy_handle_ssh_terminal_websocket,
-    )
-
-    assert LegacySshConnectMessage is SshConnectMessage
-    assert LegacySshConnector is SshConnector
-    assert legacy_handle_ssh_terminal_websocket is handle_ssh_terminal_websocket
-    assert legacy_relay_output is _relay_output
-    assert legacy_sanitize_message is _sanitize_message
-    assert legacy_send_json is _send_json
+    existing_paths = [
+        path.relative_to(backend_root).as_posix()
+        for path in legacy_paths
+        if path.exists()
+    ]
+    assert existing_paths == []
