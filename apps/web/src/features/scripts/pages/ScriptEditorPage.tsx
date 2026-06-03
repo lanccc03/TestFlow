@@ -273,7 +273,7 @@ export function ScriptEditorPage() {
         </Alert>
       ) : null}
 
-      <div className="grid grid-cols-[minmax(280px,0.8fr)_minmax(320px,1fr)] gap-4 max-xl:grid-cols-1">
+      <div className="grid gap-4">
         <Card className="gap-3">
           <CardHeader>
             <CardTitle>基本信息</CardTitle>
@@ -327,171 +327,173 @@ export function ScriptEditorPage() {
           </CardContent>
         </Card>
 
-        <Card className="gap-3">
-          <CardHeader>
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle>步骤列表</CardTitle>
-              <Button onClick={addStep} type="button" variant="secondary">
-                <Plus aria-hidden="true" data-icon="inline-start" />
-                添加步骤
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="grid gap-2">
-            {script.steps.length === 0 ? (
-              <EmptyState title="暂无步骤" />
-            ) : (
-              script.steps.map((step, index) => (
-                <button
-                  className={cn(
-                    'grid gap-1 rounded-lg border bg-card p-2.5 text-left text-card-foreground transition-colors hover:bg-muted/60',
-                    step.id === selectedStep?.id &&
-                      'border-ring ring-2 ring-ring/20',
-                  )}
-                  key={step.id}
-                  onClick={() => setSelectedStepId(step.id)}
-                  type="button"
-                >
-                  <span className="text-xs text-muted-foreground">
-                    步骤 {index + 1}
-                  </span>
-                  <strong className="text-sm font-semibold">
-                    {step.keyword || '未选择关键字'}
-                  </strong>
-                  <em className="text-xs not-italic text-muted-foreground">
-                    {step.enabled ? '启用' : '禁用'}
-                  </em>
-                </button>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-full gap-3">
-          <CardHeader>
-            <CardTitle>步骤详情</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            {selectedStep ? (
-              <>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => moveStep(selectedStep.id, -1)}
-                    size="icon-sm"
+        <div className="grid grid-cols-[minmax(280px,0.8fr)_minmax(320px,1fr)] gap-4 max-xl:grid-cols-1">
+          <Card className="gap-3">
+            <CardHeader>
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle>步骤列表</CardTitle>
+                <Button onClick={addStep} type="button" variant="secondary">
+                  <Plus aria-hidden="true" data-icon="inline-start" />
+                  添加步骤
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-2">
+              {script.steps.length === 0 ? (
+                <EmptyState title="暂无步骤" />
+              ) : (
+                script.steps.map((step, index) => (
+                  <button
+                    className={cn(
+                      'grid gap-1 rounded-lg border bg-card p-2.5 text-left text-card-foreground transition-colors hover:bg-muted/60',
+                      step.id === selectedStep?.id &&
+                        'border-ring ring-2 ring-ring/20',
+                    )}
+                    key={step.id}
+                    onClick={() => setSelectedStepId(step.id)}
                     type="button"
-                    variant="ghost"
                   >
-                    <ArrowUp aria-hidden="true" />
-                  </Button>
-                  <Button
-                    onClick={() => moveStep(selectedStep.id, 1)}
-                    size="icon-sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <ArrowDown aria-hidden="true" />
-                  </Button>
-                  <Button
-                    onClick={() => copyStep(selectedStep)}
-                    size="icon-sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <Copy aria-hidden="true" />
-                  </Button>
-                  <Button
-                    onClick={() => removeStep(selectedStep.id)}
-                    size="icon-sm"
-                    type="button"
-                    variant="destructive"
-                  >
-                    <Trash2 aria-hidden="true" />
-                  </Button>
-                </div>
-                <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
-                  <label className="grid gap-1.5">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      关键字
+                    <span className="text-xs text-muted-foreground">
+                      步骤 {index + 1}
                     </span>
-                    <Select
-                      value={selectedStep.keyword}
-                      onValueChange={(value) =>
-                        updateStep(selectedStep.id, {
-                          keyword: value,
-                          params: {},
-                        })
-                      }
+                    <strong className="text-sm font-semibold">
+                      {step.keyword || '未选择关键字'}
+                    </strong>
+                    <em className="text-xs not-italic text-muted-foreground">
+                      {step.enabled ? '启用' : '禁用'}
+                    </em>
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="gap-3">
+            <CardHeader>
+              <CardTitle>步骤详情</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              {selectedStep ? (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => moveStep(selectedStep.id, -1)}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
                     >
-                      <SelectTrigger aria-label="关键字">
-                        <SelectValue placeholder="选择关键字" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {groupKeywords(keywords).map(([module, items]) => (
-                          <div key={module}>
-                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
-                              {module}
+                      <ArrowUp aria-hidden="true" />
+                    </Button>
+                    <Button
+                      onClick={() => moveStep(selectedStep.id, 1)}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <ArrowDown aria-hidden="true" />
+                    </Button>
+                    <Button
+                      onClick={() => copyStep(selectedStep)}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Copy aria-hidden="true" />
+                    </Button>
+                    <Button
+                      onClick={() => removeStep(selectedStep.id)}
+                      size="icon-sm"
+                      type="button"
+                      variant="destructive"
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
+                    <label className="grid gap-1.5">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        关键字
+                      </span>
+                      <Select
+                        value={selectedStep.keyword}
+                        onValueChange={(value) =>
+                          updateStep(selectedStep.id, {
+                            keyword: value,
+                            params: {},
+                          })
+                        }
+                      >
+                        <SelectTrigger aria-label="关键字">
+                          <SelectValue placeholder="选择关键字" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {groupKeywords(keywords).map(([module, items]) => (
+                            <div key={module}>
+                              <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                                {module}
+                              </div>
+                              {items.map((keyword) => (
+                                <SelectItem
+                                  key={keyword.name}
+                                  value={keyword.name}
+                                >
+                                  {keyword.name}
+                                </SelectItem>
+                              ))}
                             </div>
-                            {items.map((keyword) => (
-                              <SelectItem
-                                key={keyword.name}
-                                value={keyword.name}
-                              >
-                                {keyword.name}
-                              </SelectItem>
-                            ))}
-                          </div>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </label>
-                  <label className="grid gap-1.5">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      启用步骤
-                    </span>
-                    <Checkbox
-                      aria-label="启用步骤"
-                      checked={selectedStep.enabled}
-                      onCheckedChange={(checked) =>
-                        updateStep(selectedStep.id, {
-                          enabled: checked === true,
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="col-span-full grid gap-1.5">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      步骤描述
-                    </span>
-                    <Textarea
-                      aria-label="步骤描述"
-                      value={selectedStep.description}
-                      onChange={(event) =>
-                        updateStep(selectedStep.id, {
-                          description: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                </div>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </label>
+                    <label className="grid gap-1.5">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        启用步骤
+                      </span>
+                      <Checkbox
+                        aria-label="启用步骤"
+                        checked={selectedStep.enabled}
+                        onCheckedChange={(checked) =>
+                          updateStep(selectedStep.id, {
+                            enabled: checked === true,
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="col-span-full grid gap-1.5">
+                      <span className="text-xs font-semibold text-muted-foreground">
+                        步骤描述
+                      </span>
+                      <Textarea
+                        aria-label="步骤描述"
+                        value={selectedStep.description}
+                        onChange={(event) =>
+                          updateStep(selectedStep.id, {
+                            description: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
 
-                <div className="grid gap-2.5">
-                  {selectedKeyword?.parameters.map((parameter) => (
-                    <ParameterInput
-                      key={parameter.name}
-                      onChange={(value) =>
-                        updateParam(selectedStep, parameter, value)
-                      }
-                      parameter={parameter}
-                      value={selectedStep.params[parameter.name]}
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <EmptyState title="请选择或添加步骤" />
-            )}
-          </CardContent>
-        </Card>
+                  <div className="grid gap-2.5">
+                    {selectedKeyword?.parameters.map((parameter) => (
+                      <ParameterInput
+                        key={parameter.name}
+                        onChange={(value) =>
+                          updateParam(selectedStep, parameter, value)
+                        }
+                        parameter={parameter}
+                        value={selectedStep.params[parameter.name]}
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <EmptyState title="请选择或添加步骤" />
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </PagePanel>
   )
