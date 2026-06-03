@@ -216,4 +216,54 @@ describe('Report pages', () => {
     expect(screen.getByText('wait.seconds must be greater than or equal to 0')).toBeInTheDocument()
     expect(screen.getByText('failure.txt')).toBeInTheDocument()
   })
+
+  it('prefers the framework HTML report when one is available', async () => {
+    apiMock.getReport.mockResolvedValue({
+      task: {
+        ...reportTask,
+        framework_report: {
+          kind: 'html',
+          title: '自动化框架报告',
+          source: 'file',
+          root_dir: 'C:/framework/reports/exec-1',
+          entry: 'index.html',
+        },
+      },
+      attachments: [],
+      raw_framework_report: null,
+      framework_report: {
+        kind: 'html',
+        title: '自动化框架报告',
+        source: 'file',
+        root_dir: 'C:/framework/reports/exec-1',
+        entry: 'index.html',
+      },
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/reports/exec-1']}>
+        <QueryClientProvider
+          client={
+            new QueryClient({
+              defaultOptions: { queries: { retry: false } },
+            })
+          }
+        >
+          <Routes>
+            <Route path="/reports/:taskId" element={<ReportDetailPage />} />
+          </Routes>
+        </QueryClientProvider>
+      </MemoryRouter>,
+    )
+
+    expect(await screen.findByText('自动化框架报告')).toBeInTheDocument()
+    expect(screen.getByTitle('框架 HTML 报告')).toHaveAttribute(
+      'src',
+      'http://127.0.0.1:8000/api/reports/exec-1/framework-report',
+    )
+    expect(screen.getByRole('link', { name: '打开框架报告' })).toHaveAttribute(
+      'href',
+      'http://127.0.0.1:8000/api/reports/exec-1/framework-report',
+    )
+  })
 })

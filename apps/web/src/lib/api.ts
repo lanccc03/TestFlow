@@ -152,6 +152,7 @@ export type ExecutionTask = {
   duration_ms: number | null
   log_path: string
   report_dir: string
+  framework_report?: ExecutionFrameworkReport | null
   steps: ExecutionStepResult[]
   logs: ExecutionLogEntry[]
   error_message: string
@@ -189,10 +190,19 @@ export type ExecutionReportAttachment = {
   step_id: string | null
 }
 
+export type ExecutionFrameworkReport = {
+  kind: 'html'
+  title: string
+  source: 'file' | 'url'
+  entry: string
+  root_dir: string
+}
+
 export type ExecutionReport = {
   task: ExecutionTask
   attachments: ExecutionReportAttachment[]
   raw_framework_report: Record<string, unknown> | null
+  framework_report?: ExecutionFrameworkReport | null
 }
 
 export type ExecutionUpdateEvent = {
@@ -237,6 +247,10 @@ export class ApiError extends Error {
     this.details = details
     this.status = status
   }
+}
+
+export function frameworkReportUrl(baseUrl: string, taskId: string) {
+  return `${baseUrl.replace(/\/+$/, '')}/api/reports/${encodeURIComponent(taskId)}/framework-report`
 }
 
 export function createApiClient({
