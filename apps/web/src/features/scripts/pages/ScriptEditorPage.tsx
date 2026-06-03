@@ -2,6 +2,7 @@ import {
   ArrowDown,
   ArrowUp,
   Copy,
+  Play,
   Plus,
   Save,
   Trash2,
@@ -105,6 +106,16 @@ export function ScriptEditorPage() {
       if (!scriptId) {
         navigate(`/scripts/${savedScript.id}`)
       }
+    },
+    onError: (error) => {
+      setIssues(normalizeMutationIssues(error))
+    },
+  })
+
+  const executeMutation = useMutation({
+    mutationFn: () => api.createTask({ script_id: script.id }),
+    onSuccess: (_task) => {
+      navigate(`/tasks`)
     },
     onError: (error) => {
       setIssues(normalizeMutationIssues(error))
@@ -228,6 +239,18 @@ export function ScriptEditorPage() {
             </Button>
             <Button onClick={() => submit('published')} type="button">
               发布
+            </Button>
+            <Button
+              className="bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800"
+              disabled={!scriptId || executeMutation.isPending}
+              onClick={() => executeMutation.mutate()}
+              type="button"
+            >
+              <Play
+                aria-hidden="true"
+                data-icon="inline-start"
+              />
+              执行
             </Button>
           </>
         }
