@@ -430,3 +430,87 @@ def test_report_api_reads_persisted_report_detail(tmp_path: Path) -> None:
     )
     assert missing_response.status_code == 404
     assert missing_response.json()["error"]["code"] == "not_found"
+
+
+def save_framework_report_task(settings: Settings, tmp_path: Path) -> Path:
+    framework_root = tmp_path / "framework-output"
+    assets_dir = framework_root / "assets"
+    assets_dir.mkdir(parents=True)
+    framework_entry = framework_root / "index.html"
+    framework_entry.write_text(
+        '<html><head><link rel="stylesheet" href="assets/report.css"></head>'
+        "<body>Framework HTML Report</body></html>",
+        encoding="utf-8",
+    )
+    (assets_dir / "report.css").write_text(
+        "body { color: rgb(20, 40, 60); }",
+        encoding="utf-8",
+    )
+
+    with TestClient(create_app(settings)):
+        save_execution_report(
+            settings,
+            ExecutionTask(
+                id="exec-html",
+                script_id="smoke-cockpit",
+                script_name="Smoke Cockpit",
+                script_revision=1,
+                status="passed",
+                created_at="2026-06-01T00:00:00+00:00",
+                report_dir=str(tmp_path / "reports" / "exec-html"),
+                framework_report=ExecutionFrameworkReport(
+                    kind="html",
+                    title="自动化框架报告",
+                    source="file",
+                    root_dir=str(framework_root),
+                    entry="index.html",
+                ),
+            ),
+        )
+
+    return framework_root
+
+
+def test_report_api_serves_framework_html_report_from_external_directory(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path / "testflow-data")
+    save_framework_report_task(settings, tmp_path)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.get("/api/reports/exec-html/framework-report")
+
+    assert response.status_code == 200
+    assert "Framework HTML Report" in response.text
+    assert response.headers["content-type"].startswith("text/html")
+
+
+def test_report_api_serves_framework_html_report_assets(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path / "testflow-data")
+    save_framework_report_task(settings, tmp_path)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.get(
+            "/api/reports/exec-html/framework-report/assets/report.css"
+        )
+
+    assert response.status_code == 200
+    assert "rgb(20, 40, 60)" in response.text
+    assert "text/css" in response.headers["content-type"]
+
+
+def test_framework_report_file_resolver_rejects_path_traversal(
+    tmp_path: Path,
+) -> None:
+    from app.modules.executions.report_files import (
+        FrameworkReportFileForbidden,
+        resolve_framework_report_file,
+    )
+
+    settings = Settings(data_dir=tmp_path / "testflow-data")
+    save_framework_report_task(settings, tmp_path)
+    report = get_execution_report(settings, "exec-html")
+
+    assert report is not None
+    with pytest.raises(FrameworkReportFileForbidden):
+        resolve_framework_report_file(report, "../secret.txt")
