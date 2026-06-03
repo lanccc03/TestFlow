@@ -99,7 +99,7 @@ export function ScriptEditorPage() {
       setScript(savedScript)
       setTagText(savedScript.tags.join(', '))
       setSaveMessage(
-        savedScript.status === 'published' ? '已发布' : '草稿已保存',
+        savedScript.status === 'published' ? '已保存' : '草稿已保存',
       )
       queryClient.setQueryData(['script', savedScript.id], savedScript)
       await queryClient.invalidateQueries({ queryKey: ['scripts'] })
@@ -238,7 +238,7 @@ export function ScriptEditorPage() {
               保存草稿
             </Button>
             <Button onClick={() => submit('published')} type="button">
-              发布
+              保存
             </Button>
             <Button
               className="bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800"
@@ -250,7 +250,7 @@ export function ScriptEditorPage() {
                 aria-hidden="true"
                 data-icon="inline-start"
               />
-              执行
+              运行
             </Button>
           </>
         }
