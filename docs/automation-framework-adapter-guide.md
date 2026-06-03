@@ -139,6 +139,7 @@ Unknown autotest runtime: <value>
 | `step_finished` | 单个步骤结束 | `task_id`, `step_id`, `step_index`, `keyword`, `status` |
 | `attachment` | 产生截图、trace、报告等附件 | `task_id`, `attachment_path` |
 | `run_finished` | 脚本正常结束、失败或取消 | `task_id`, `status` |
+| `framework_report` | 框架生成 HTML 报告入口 | `task_id`, `report_kind`, `report_source`, `report_root_dir`, `report_entry` |
 | `run_error` | 框架基础设施异常 | `task_id`, `error_message` |
 
 状态值：
@@ -302,20 +303,24 @@ FrameworkEvent(
 
 ## 附件和报告
 
-附件路径应写在 `request.artifact_dir` 下，报告主文件可写在 `request.report_dir` 下。
+框架自己的 HTML 报告应保留在框架报告目录中，不要复制到 TestFlow 的 `data/`
+目录，也不要让 TestFlow 重新生成一份报告详情。真实 runtime 在拿到报告入口后发出
+`framework_report` 事件：
 
-建议目录：
-
-```text
-data/reports/<task_id>/
-  report.json
-  artifacts/
-    step-1-screenshot.png
-    framework-trace.zip
-    raw-framework-report.json
+```python
+FrameworkEvent(
+    type="framework_report",
+    task_id=request.task_id,
+    report_kind="html",
+    report_source="file",
+    report_root_dir=framework_report_dir,
+    report_entry=framework_report_dir / "index.html",
+    report_title="自动化框架报告",
+)
 ```
 
-发附件事件：
+TestFlow 会保存这个入口，并通过报告详情页优先展示框架 HTML 报告。普通截图、
+trace、日志压缩包等仍然使用 `attachment` 事件。
 
 ```python
 FrameworkEvent(
