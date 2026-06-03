@@ -60,7 +60,18 @@ class MockRunCanceled(Exception):
     """Raised when the mock cancellation token requests a cooperative stop."""
 
 
-async def run_script(
+class MockAutotestRuntime:
+    def list_keywords(self) -> list[FrameworkKeywordDef]:
+        return list(KEYWORD_DEFINITIONS)
+
+    def run_script(
+        self,
+        request: FrameworkRunRequest,
+    ) -> AsyncIterator[FrameworkEvent]:
+        return _run_script(request)
+
+
+async def _run_script(
     request: FrameworkRunRequest,
 ) -> AsyncIterator[FrameworkEvent]:
     yield FrameworkEvent(type="run_started", task_id=request.task_id)

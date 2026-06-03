@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     data_dir: Path = Field(default=PROJECT_ROOT / "data")
     host: str = "127.0.0.1"
     port: int = 8000
+    autotest_runtime: str = "mock"
 
     @property
     def scripts_dir(self) -> Path:
