@@ -31,7 +31,7 @@ def read_script(settings: Settings, script_id: str) -> TestScript:
 
 
 def save_script(settings: Settings, script: TestScript) -> tuple[TestScript, bool]:
-    keywords = {keyword.name: keyword for keyword in load_keywords(settings)}
+    keywords = {keyword.name: keyword for keyword in load_keywords()}
     if script.status == "published":
         issues = validate_script(script, keywords)
         if issues:

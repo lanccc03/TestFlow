@@ -3,6 +3,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
+FrameworkKeywordParamType = Literal[
+    "string", "integer", "number", "boolean", "object", "array"
+]
+
 FrameworkEventType = Literal[
     "run_started",
     "step_started",
@@ -66,3 +70,23 @@ class FrameworkEvent:
     error_detail: dict[str, Any] | str | None = None
     attachment_path: Path | str | None = None
     attachment_name: str | None = None
+
+
+@dataclass(frozen=True)
+class FrameworkKeywordParam:
+    name: str
+    description: str = ""
+    type: FrameworkKeywordParamType = "string"
+    default: Any = None
+    required: bool = False
+    example: Any = None
+
+
+@dataclass(frozen=True)
+class FrameworkKeywordDef:
+    name: str
+    description: str = ""
+    module: str = ""
+    parameters: tuple[FrameworkKeywordParam, ...] = ()
+    example: dict[str, Any] = field(default_factory=dict)
+    enabled: bool = True

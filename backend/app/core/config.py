@@ -21,10 +21,6 @@ class Settings(BaseSettings):
         return self.data_dir / "scripts"
 
     @property
-    def keyword_config_path(self) -> Path:
-        return self.data_dir / "keywords.yaml"
-
-    @property
     def reports_dir(self) -> Path:
         return self.data_dir / "reports"
 

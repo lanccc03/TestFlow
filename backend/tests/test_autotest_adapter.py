@@ -5,11 +5,12 @@ from autotest.contracts import (
     CancellationToken,
     FrameworkEvent,
     FrameworkEventType,
+    FrameworkKeywordDef,
     FrameworkRunRequest,
     FrameworkStatus,
     FrameworkStep,
 )
-from autotest.entry import run_script
+from autotest.entry import list_keywords, run_script
 
 
 async def collect_events(request: FrameworkRunRequest) -> list[FrameworkEvent]:
@@ -178,3 +179,93 @@ def test_real_asyncio_task_cancellation_propagates() -> None:
     events = asyncio.run(run_and_cancel())
 
     assert event_types(events) == ["run_started", "step_started"]
+
+
+# ── list_keywords ───────────────────────────────────────────────
+
+
+def test_list_keywords_returns_known_keywords() -> None:
+    keywords = list_keywords()
+
+    names = {kw.name for kw in keywords}
+    assert names == {"wait", "log.message"}
+
+
+def test_list_keywords_is_idempotent_and_independent() -> None:
+    first = list_keywords()
+    second = list_keywords()
+
+    assert first is not second
+    assert first == second
+
+    first.append(
+        FrameworkKeywordDef(
+            name="extra",
+            module="test",
+        )
+    )
+    assert len(list_keywords()) == len(second)
+
+
+def test_list_keywords_wait_definition() -> None:
+    keywords = list_keywords()
+    wait = next(kw for kw in keywords if kw.name == "wait")
+
+    assert wait.description == "等待指定秒数"
+    assert wait.module == "flow"
+    assert wait.enabled is True
+    assert wait.example == {"seconds": 5}
+    assert len(wait.parameters) == 1
+
+    param = wait.parameters[0]
+    assert param.name == "seconds"
+    assert param.type == "integer"
+    assert param.default == 1
+    assert param.required is True
+    assert param.example == 5
+
+
+def test_list_keywords_log_message_definition() -> None:
+    keywords = list_keywords()
+    log_msg = next(kw for kw in keywords if kw.name == "log.message")
+
+    assert log_msg.description == "记录执行日志消息"
+    assert log_msg.module == "flow"
+    assert log_msg.enabled is True
+    assert log_msg.example == {"message": "系统已进入测试状态"}
+    assert len(log_msg.parameters) == 1
+
+    param = log_msg.parameters[0]
+    assert param.name == "message"
+    assert param.type == "string"
+    assert param.default == ""
+    assert param.required is True
+
+
+def test_list_keywords_output_converts_to_keyword_metadata() -> None:
+    from app.modules.keywords.schemas import KeywordMetadata, KeywordParameter
+
+    keywords = list_keywords()
+    metadata = KeywordMetadata(
+        name=keywords[0].name,
+        description=keywords[0].description,
+        module=keywords[0].module,
+        parameters=[
+            KeywordParameter(
+                name=p.name,
+                description=p.description,
+                type=p.type,
+                default=p.default,
+                required=p.required,
+                example=p.example,
+            )
+            for p in keywords[0].parameters
+        ],
+        example=keywords[0].example,
+        enabled=keywords[0].enabled,
+    )
+
+    dumped = metadata.model_dump(mode="json")
+    assert dumped["name"] == "wait"
+    assert dumped["module"] == "flow"
+    assert dumped["parameters"][0]["type"] == "integer"

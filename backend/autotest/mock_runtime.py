@@ -3,10 +3,53 @@ from collections.abc import AsyncIterator
 from numbers import Real
 from typing import Any
 
-from autotest.contracts import FrameworkEvent, FrameworkRunRequest, FrameworkStep
+from autotest.contracts import (
+    FrameworkEvent,
+    FrameworkKeywordDef,
+    FrameworkKeywordParam,
+    FrameworkRunRequest,
+    FrameworkStep,
+)
 
 MAX_WAIT_SECONDS = 2.0
 WAIT_POLL_SECONDS = 0.05
+
+KEYWORD_DEFINITIONS: list[FrameworkKeywordDef] = [
+    FrameworkKeywordDef(
+        name="wait",
+        description="等待指定秒数",
+        module="flow",
+        parameters=(
+            FrameworkKeywordParam(
+                name="seconds",
+                description="等待时长，单位秒",
+                type="integer",
+                default=1,
+                required=True,
+                example=5,
+            ),
+        ),
+        example={"seconds": 5},
+        enabled=True,
+    ),
+    FrameworkKeywordDef(
+        name="log.message",
+        description="记录执行日志消息",
+        module="flow",
+        parameters=(
+            FrameworkKeywordParam(
+                name="message",
+                description="日志内容",
+                type="string",
+                default="",
+                required=True,
+                example="系统已进入测试状态",
+            ),
+        ),
+        example={"message": "系统已进入测试状态"},
+        enabled=True,
+    ),
+]
 
 
 class MockKeywordError(Exception):
