@@ -12,6 +12,7 @@ from app.modules.executions.events import ExecutionEventBus
 from app.modules.executions.repository import save_execution_report
 from app.modules.executions.schemas import (
     ExecutionEventMessage,
+    ExecutionFrameworkReport,
     ExecutionLogEntry,
     ExecutionStepResult,
     ExecutionTask,
@@ -194,6 +195,21 @@ class ExecutionRunner:
             step = _find_step(task, event.step_id)
             if step is not None and event.attachment_path is not None:
                 step.attachments.append(str(event.attachment_path))
+            return
+
+        if event.type == "framework_report":
+            if event.report_kind == "html" and event.report_entry is not None:
+                report_source = event.report_source or "file"
+                report_root_dir = event.report_root_dir
+                if report_source == "file" and report_root_dir is None:
+                    report_root_dir = Path(event.report_entry).parent
+                task.framework_report = ExecutionFrameworkReport(
+                    kind="html",
+                    title=event.report_title or "框架报告",
+                    source=report_source,
+                    root_dir=str(report_root_dir or ""),
+                    entry=str(event.report_entry),
+                )
             return
 
         if event.type == "run_error":

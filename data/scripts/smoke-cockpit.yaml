@@ -16,9 +16,15 @@ steps:
 - id: step-2
   keyword: wait
   params:
-    seconds: 0
+    seconds: 3
   description: 短等待
   enabled: true
+- id: step-1780476830569
+  keyword: log.message
+  params:
+    message: '111'
+  description: ''
+  enabled: true
 version:
-  revision: 1
-  updated_at: '2026-06-01T06:49:12.883234+00:00'
+  revision: 2
+  updated_at: '2026-06-03T08:54:01.116993+00:00'

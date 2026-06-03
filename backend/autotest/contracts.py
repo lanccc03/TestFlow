@@ -14,6 +14,7 @@ FrameworkEventType = Literal[
     "step_finished",
     "run_finished",
     "attachment",
+    "framework_report",
     "run_error",
 ]
 FrameworkStatus = Literal["passed", "failed", "canceled", "error"]
@@ -70,6 +71,11 @@ class FrameworkEvent:
     error_detail: dict[str, Any] | str | None = None
     attachment_path: Path | str | None = None
     attachment_name: str | None = None
+    report_kind: Literal["html"] | None = None
+    report_source: Literal["file", "url"] | None = None
+    report_root_dir: Path | str | None = None
+    report_entry: Path | str | None = None
+    report_title: str | None = None
 
 
 @dataclass(frozen=True)

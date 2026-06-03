@@ -16,6 +16,8 @@ StepStatus = Literal[
     "skipped",
 ]
 ExecutionEventType = Literal["task_status", "step_status", "log", "task_finished"]
+ReportKind = Literal["html"]
+ReportSource = Literal["file", "url"]
 
 
 def utc_now() -> str:
@@ -53,6 +55,14 @@ class ExecutionStepResult(BaseModel):
     attachments: list[str] = Field(default_factory=list)
 
 
+class ExecutionFrameworkReport(BaseModel):
+    kind: ReportKind = "html"
+    title: str = "框架报告"
+    source: ReportSource = "file"
+    entry: str
+    root_dir: str = ""
+
+
 class ExecutionTask(BaseModel):
     id: str
     script_id: str
@@ -69,6 +79,7 @@ class ExecutionTask(BaseModel):
     duration_ms: int | None = None
     log_path: str = ""
     report_dir: str = ""
+    framework_report: ExecutionFrameworkReport | None = None
     steps: list[ExecutionStepResult] = Field(default_factory=list)
     logs: list[ExecutionLogEntry] = Field(default_factory=list)
     error_message: str = ""
@@ -110,6 +121,7 @@ class ExecutionReport(BaseModel):
     task: ExecutionTask
     attachments: list[ExecutionReportAttachment] = Field(default_factory=list)
     raw_framework_report: dict[str, Any] | None = None
+    framework_report: ExecutionFrameworkReport | None = None
 
 
 class ExecutionEventMessage(BaseModel):

@@ -622,3 +622,37 @@ async def test_execution_service_run_error_not_overwritten_by_run_finished(
 
     assert task.status == "error"
     assert task.error_message == "adapter exploded"
+
+
+@pytest.mark.anyio
+async def test_execution_service_records_framework_html_report_event(tmp_path) -> None:
+    task = ExecutionTask(
+        id="task-1",
+        script_id="script-1",
+        script_name="Smoke Test",
+        script_revision=1,
+        log_path=str(tmp_path / "task-1.log"),
+    )
+    service = ExecutionService(Settings(data_dir=tmp_path))
+    framework_root = tmp_path / "framework-output"
+    framework_entry = framework_root / "index.html"
+
+    await service._handle_framework_event(
+        task,
+        FrameworkEvent(
+            type="framework_report",
+            task_id=task.id,
+            report_kind="html",
+            report_source="file",
+            report_root_dir=framework_root,
+            report_entry=framework_entry,
+            report_title="自动化框架报告",
+        ),
+    )
+
+    assert task.framework_report is not None
+    assert task.framework_report.kind == "html"
+    assert task.framework_report.source == "file"
+    assert task.framework_report.root_dir == str(framework_root)
+    assert task.framework_report.entry == str(framework_entry)
+    assert task.framework_report.title == "自动化框架报告"

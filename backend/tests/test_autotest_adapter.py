@@ -49,6 +49,7 @@ def test_contract_event_types_include_adapter_surface() -> None:
         "step_finished",
         "run_finished",
         "attachment",
+        "framework_report",
         "run_error",
     }
 
