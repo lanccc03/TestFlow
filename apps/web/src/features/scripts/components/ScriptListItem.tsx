@@ -1,4 +1,4 @@
-import { Copy, Trash2 } from 'lucide-react'
+import { Copy, Play, Trash2 } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
@@ -11,12 +11,14 @@ export function ScriptListItem({
   onCopy,
   onDelete,
   onPrepareDelete,
+  onRun,
   script,
 }: {
   confirmDeleteId: string | undefined
   onCopy: () => void
   onDelete: () => void
   onPrepareDelete: () => void
+  onRun: () => void
   script: ScriptSummary
 }) {
   return (
@@ -64,6 +66,16 @@ export function ScriptListItem({
         </div>
       </dl>
       <div className="flex flex-wrap justify-end gap-1.5">
+        <Button
+          aria-label={`运行 ${script.name}`}
+          className="text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+          onClick={onRun}
+          size="icon-sm"
+          type="button"
+          variant="ghost"
+        >
+          <Play aria-hidden="true" />
+        </Button>
         <Button asChild size="sm" variant="secondary">
           <Link to={`/scripts/${script.id}`}>编辑</Link>
         </Button>

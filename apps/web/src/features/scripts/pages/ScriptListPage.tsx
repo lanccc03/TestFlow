@@ -58,6 +58,12 @@ export function ScriptListPage() {
       navigate(`/scripts/${script.id}`)
     },
   })
+  const executeMutation = useMutation({
+    mutationFn: (scriptId: string) => api.createTask({ script_id: scriptId }),
+    onSuccess: () => {
+      navigate('/tasks')
+    },
+  })
 
   const scripts = scriptsQuery.data?.items ?? []
   const groups = uniqueValues(
@@ -121,6 +127,7 @@ export function ScriptListPage() {
                 onCopy={() => copyMutation.mutate(script.id)}
                 onDelete={() => deleteMutation.mutate(script.id)}
                 onPrepareDelete={() => setConfirmDeleteId(script.id)}
+                onRun={() => executeMutation.mutate(script.id)}
                 script={script}
               />
             ))
