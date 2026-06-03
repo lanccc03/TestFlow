@@ -30,11 +30,7 @@ def save_execution_report(settings: Settings, task: ExecutionTask) -> ExecutionR
         task=task.model_copy(deep=True),
         attachments=attachments,
         raw_framework_report=None,
-    )
-    report_path = report_dir / "testflow-report.json"
-    report_path.write_text(
-        json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2),
-        encoding="utf-8",
+        framework_report=task.framework_report,
     )
 
     summary = _summary_from_task(task)
@@ -57,7 +53,7 @@ def save_execution_report(settings: Settings, task: ExecutionTask) -> ExecutionR
         error_message=task.error_message,
         log_path=task.log_path,
         report_dir=str(report_dir),
-        report_json_path=str(report_path),
+        report_json_path="",
         variables_json=json.dumps(task.variables, ensure_ascii=False),
         persisted_at=_utc_now(),
     )
@@ -135,6 +131,7 @@ def get_execution_report(
         task=task,
         attachments=attachments,
         raw_framework_report=raw_framework_report,
+        framework_report=task.framework_report,
     )
 
 

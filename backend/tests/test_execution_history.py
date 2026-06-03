@@ -14,6 +14,7 @@ from app.modules.executions.repository import (
     save_execution_report,
 )
 from app.modules.executions.schemas import (
+    ExecutionFrameworkReport,
     ExecutionLogEntry,
     ExecutionStepResult,
     ExecutionTask,
@@ -108,7 +109,49 @@ def test_repository_saves_and_reads_execution_report(tmp_path: Path) -> None:
     assert report.attachments[0].name == "failure.txt"
     assert report.attachments[0].step_id == "step-1"
     assert report.raw_framework_report is None
-    assert report_json.is_file()
+    assert not report_json.exists()
+
+
+def test_repository_saves_framework_html_report_reference_without_generating_detail_file(
+    tmp_path: Path,
+) -> None:
+    settings = Settings(data_dir=tmp_path)
+    framework_root = tmp_path / "framework-output"
+    framework_root.mkdir()
+    framework_entry = framework_root / "index.html"
+    framework_entry.write_text("<html>framework report</html>", encoding="utf-8")
+
+    with TestClient(create_app(settings)):
+        task = ExecutionTask(
+            id="exec-html",
+            script_id="smoke-cockpit",
+            script_name="Smoke Cockpit",
+            script_revision=1,
+            status="passed",
+            executor="alice",
+            created_at="2026-06-01T00:00:00+00:00",
+            report_dir=str(tmp_path / "reports" / "exec-html"),
+            framework_report=ExecutionFrameworkReport(
+                kind="html",
+                title="自动化框架报告",
+                source="file",
+                root_dir=str(framework_root),
+                entry=str(framework_entry),
+            ),
+        )
+
+        save_execution_report(settings, task)
+
+    report = get_execution_report(settings, "exec-html")
+    report_json = tmp_path / "reports" / "exec-html" / "testflow-report.json"
+
+    assert report is not None
+    assert report.framework_report is not None
+    assert report.framework_report.kind == "html"
+    assert report.framework_report.title == "自动化框架报告"
+    assert report.framework_report.root_dir == str(framework_root)
+    assert report.framework_report.entry == str(framework_entry)
+    assert not report_json.exists()
 
 
 def test_repository_filters_history_summaries(tmp_path: Path) -> None:
