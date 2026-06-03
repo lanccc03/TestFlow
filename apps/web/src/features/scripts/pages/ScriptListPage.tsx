@@ -4,12 +4,10 @@ import { Link, useNavigate } from 'react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
@@ -36,11 +34,6 @@ export function ScriptListPage() {
     queryKey: ['scripts'],
     queryFn: api.listScripts,
   })
-  const keywordsQuery = useQuery({
-    queryKey: ['keywords'],
-    queryFn: api.listKeywords,
-  })
-
   const deleteMutation = useMutation({
     mutationFn: api.deleteScript,
     onSuccess: async () => {
@@ -67,7 +60,6 @@ export function ScriptListPage() {
   })
 
   const scripts = scriptsQuery.data?.items ?? []
-  const keywords = keywordsQuery.data?.items ?? []
   const groups = uniqueValues(
     scripts.map((script) => script.group).filter(Boolean),
   )
@@ -108,67 +100,33 @@ export function ScriptListPage() {
         tags={tags}
       />
 
-      <div className="grid grid-cols-[minmax(0,1.2fr)_minmax(300px,0.8fr)] gap-4 max-xl:grid-cols-1">
-        <Card className="gap-3">
-          <CardHeader>
-            <CardTitle>脚本列表</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2.5">
-            {scriptsQuery.isPending ? (
-              <EmptyState title="正在加载" />
-            ) : scriptsQuery.isError ? (
-              <Alert variant="destructive">
-                <AlertDescription>后端脚本数据不可用</AlertDescription>
-              </Alert>
-            ) : filteredScripts.length === 0 ? (
-              <EmptyState title="没有匹配的脚本" />
-            ) : (
-              filteredScripts.map((script) => (
-                <ScriptListItem
-                  confirmDeleteId={confirmDeleteId}
-                  key={script.id}
-                  onCopy={() => copyMutation.mutate(script.id)}
-                  onDelete={() => deleteMutation.mutate(script.id)}
-                  onPrepareDelete={() => setConfirmDeleteId(script.id)}
-                  script={script}
-                />
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="gap-3">
-          <CardHeader>
-            <CardTitle>关键字库</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2.5">
-            {keywordsQuery.isPending ? (
-              <EmptyState title="正在加载" />
-            ) : (
-              keywords.map((keyword) => (
-                <Card size="sm" key={keyword.name}>
-                  <CardHeader className="border-b">
-                    <CardTitle>{keyword.name}</CardTitle>
-                    <Badge
-                      variant={keyword.enabled ? 'default' : 'secondary'}
-                    >
-                      {keyword.module}
-                    </Badge>
-                  </CardHeader>
-                  <CardContent className="grid gap-2">
-                    <CardDescription>{keyword.description}</CardDescription>
-                    <span className="text-xs text-muted-foreground">
-                      {keyword.parameters.length > 0
-                        ? `${keyword.parameters.length} 个参数`
-                        : '无参数'}
-                    </span>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="gap-3">
+        <CardHeader>
+          <CardTitle>脚本列表</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-2.5">
+          {scriptsQuery.isPending ? (
+            <EmptyState title="正在加载" />
+          ) : scriptsQuery.isError ? (
+            <Alert variant="destructive">
+              <AlertDescription>后端脚本数据不可用</AlertDescription>
+            </Alert>
+          ) : filteredScripts.length === 0 ? (
+            <EmptyState title="没有匹配的脚本" />
+          ) : (
+            filteredScripts.map((script) => (
+              <ScriptListItem
+                confirmDeleteId={confirmDeleteId}
+                key={script.id}
+                onCopy={() => copyMutation.mutate(script.id)}
+                onDelete={() => deleteMutation.mutate(script.id)}
+                onPrepareDelete={() => setConfirmDeleteId(script.id)}
+                script={script}
+              />
+            ))
+          )}
+        </CardContent>
+      </Card>
     </PagePanel>
   )
 }
