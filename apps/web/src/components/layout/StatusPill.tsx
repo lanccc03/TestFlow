@@ -1,6 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 export function StatusPill({
@@ -15,18 +14,21 @@ export function StatusPill({
   value: string
 }) {
   return (
-    <Badge
+    <span
       className={cn(
-        'min-h-8 gap-1.5 rounded-lg px-2.5 font-medium',
-        tone === 'success'
-          ? 'bg-primary text-primary-foreground'
-          : 'bg-secondary text-secondary-foreground',
+        'inline-flex h-7 items-center gap-1.5 whitespace-nowrap px-2 text-[11px] leading-none text-sidebar-foreground/75',
       )}
-      variant={tone === 'success' ? 'default' : 'secondary'}
     >
-      <Icon aria-hidden="true" size={14} />
-      <span className="text-current/70">{label}</span>
-      <strong className="font-semibold">{value}</strong>
-    </Badge>
+      <Icon aria-hidden="true" className="text-sidebar-foreground/50" size={13} />
+      <span
+        aria-hidden="true"
+        className={cn(
+          'size-1.5 rounded-full',
+          tone === 'success' ? 'bg-emerald-400' : 'bg-amber-400',
+        )}
+      />
+      <span className="text-sidebar-foreground/55 max-sm:hidden">{label}</span>
+      <strong className="font-medium text-sidebar-foreground">{value}</strong>
+    </span>
   )
 }

@@ -27,8 +27,16 @@ export function TopStatusBar({
   websocketStatus: WebSocketStatus
 }) {
   return (
-    <header className="flex min-h-18 items-center justify-between gap-4 border-b bg-card/90 px-7 py-3.5 max-sm:px-4 max-md:flex-col max-md:items-start">
-      <div className="flex flex-wrap justify-end gap-2.5" aria-label="系统状态">
+    <footer className="fixed inset-x-0 bottom-0 z-50 flex h-8 items-center justify-between border-t border-sidebar-border bg-sidebar px-2 text-xs text-sidebar-foreground shadow-[0_-1px_2px_rgb(0_0_0_/_0.06)]">
+      <div className="flex min-w-0 items-center gap-1 px-1 text-[11px] text-sidebar-foreground/60 max-sm:hidden">
+        <span className="font-medium text-sidebar-foreground/75">TestFlow</span>
+        <span aria-hidden="true">/</span>
+        <span>工作台就绪</span>
+      </div>
+      <div
+        className="flex min-w-0 items-center divide-x divide-sidebar-border max-sm:ml-auto"
+        aria-label="系统状态"
+      >
         <StatusPill
           icon={Server}
           label="后端服务"
@@ -44,6 +52,6 @@ export function TopStatusBar({
           value={websocketStateLabels[websocketStatus.state]}
         />
       </div>
-    </header>
+    </footer>
   )
 }

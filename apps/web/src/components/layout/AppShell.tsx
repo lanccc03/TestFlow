@@ -15,17 +15,19 @@ export function AppShell({
   websocketStatus: WebSocketStatus
 }) {
   return (
-    <div className="grid min-h-screen grid-cols-[264px_minmax(0,1fr)] bg-background text-foreground max-lg:grid-cols-1">
-      <Sidebar />
-      <div className="grid min-w-0 grid-rows-[auto_1fr]">
-        <TopStatusBar
-          backendStatus={backendStatus}
-          websocketStatus={websocketStatus}
-        />
-        <main className="grid gap-5 p-3 pb-8 max-sm:px-4">
-          {children}
-        </main>
+    <>
+      <div className="grid min-h-screen grid-cols-[264px_minmax(0,1fr)] bg-background pb-10 text-foreground max-lg:grid-cols-1">
+        <Sidebar />
+        <div className="min-w-0">
+          <main className="grid gap-5 p-3 pb-8 max-sm:px-4">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+      <TopStatusBar
+        backendStatus={backendStatus}
+        websocketStatus={websocketStatus}
+      />
+    </>
   )
 }
