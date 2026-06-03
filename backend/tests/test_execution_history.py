@@ -112,7 +112,7 @@ def test_repository_saves_and_reads_execution_report(tmp_path: Path) -> None:
     assert not report_json.exists()
 
 
-def test_repository_saves_framework_html_report_reference_without_generating_detail_file(
+def test_repository_saves_framework_html_report_ref_without_detail_file(
     tmp_path: Path,
 ) -> None:
     settings = Settings(data_dir=tmp_path)
