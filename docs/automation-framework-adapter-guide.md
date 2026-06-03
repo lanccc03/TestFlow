@@ -109,8 +109,8 @@ Unknown autotest runtime: <value>
 | `environment` | 环境信息 | 连接环境、运行配置或 profile |
 | `target_device` | 目标设备 | 设备、浏览器、主机或被测对象信息 |
 | `log_path` | TestFlow 日志路径 | 可追加框架原始日志 |
-| `report_dir` | 报告目录 | 存放框架报告或索引文件 |
-| `artifact_dir` | 附件目录 | 存放截图、trace、视频、原始报告 |
+| `report_dir` | TestFlow 任务报告目录 | 平台分配的任务目录；框架 HTML 报告不要求写入这里 |
+| `artifact_dir` | TestFlow 附件目录 | 可存放普通截图、trace、视频等附件；框架自有报告目录可独立存在 |
 | `cancellation_token` | 取消令牌 | 在步骤前、等待中和长操作间隙轮询 |
 
 `FrameworkStep` 字段：
@@ -137,10 +137,20 @@ Unknown autotest runtime: <value>
 | `step_started` | 单个步骤开始 | `task_id`, `step_id`, `step_index`, `keyword` |
 | `log` | 框架日志或步骤日志 | `task_id`, `message`, `level` |
 | `step_finished` | 单个步骤结束 | `task_id`, `step_id`, `step_index`, `keyword`, `status` |
-| `attachment` | 产生截图、trace、报告等附件 | `task_id`, `attachment_path` |
+| `attachment` | 产生截图、trace、日志包等普通附件 | `task_id`, `attachment_path` |
 | `run_finished` | 脚本正常结束、失败或取消 | `task_id`, `status` |
-| `framework_report` | 框架生成 HTML 报告入口 | `task_id`, `report_kind`, `report_source`, `report_root_dir`, `report_entry` |
+| `framework_report` | 框架生成 HTML 报告入口 | `task_id`, `report_kind`, `report_source`, `report_entry` |
 | `run_error` | 框架基础设施异常 | `task_id`, `error_message` |
+
+`framework_report` 字段：
+
+| 字段 | 含义 | 适配建议 |
+| --- | --- | --- |
+| `report_kind` | 报告类型 | 当前只支持 `"html"` |
+| `report_source` | 报告来源 | 本地文件用 `"file"`；外部可访问地址用 `"url"` |
+| `report_root_dir` | 本地 HTML 报告根目录 | `report_source="file"` 时建议必填，指向框架生成报告的目录 |
+| `report_entry` | 报告入口 | 本地文件可用绝对路径或相对 `report_root_dir` 的路径；URL 报告填完整 URL |
+| `report_title` | 前端显示标题 | 可选，默认显示为“框架报告” |
 
 状态值：
 
@@ -160,6 +170,7 @@ log*
 attachment*
 step_finished
 ...
+framework_report?
 run_finished
 ```
 
@@ -225,12 +236,13 @@ FrameworkKeywordDef(
 3. 每个执行步骤先发 `step_started`。
 4. 将 `step.keyword` 和 `step.params` 转成真实框架调用。
 5. 框架日志转成 `log` 事件。
-6. 框架附件写入 `request.artifact_dir`，再发 `attachment` 事件。
+6. 普通框架附件可写入 `request.artifact_dir`，再发 `attachment` 事件。
 7. 步骤成功发 `step_finished(status="passed", output=...)`。
 8. 步骤业务失败发 `step_finished(status="failed", error_message=...)`，随后
    `run_finished(status="failed")`。
 9. 用户取消发 `step_finished(status="canceled")` 和 `run_finished(status="canceled")`。
 10. 基础设施异常发 `run_error`，随后 `run_finished(status="error")`。
+11. 如果框架生成了 HTML 报告，在 `run_finished` 前发 `framework_report` 事件。
 
 `output` 必须是可 JSON 序列化的 `dict[str, Any]`。不要放入框架对象、文件句柄、
 数据库连接或异常对象。
@@ -319,8 +331,27 @@ FrameworkEvent(
 )
 ```
 
-TestFlow 会保存这个入口，并通过报告详情页优先展示框架 HTML 报告。普通截图、
-trace、日志压缩包等仍然使用 `attachment` 事件。
+`report_root_dir` 是框架生成报告的根目录，`report_entry` 是 HTML 入口文件。
+`report_entry` 可以是绝对路径，也可以是相对 `report_root_dir` 的路径。为了让报告内的
+CSS、JS、图片等相对资源可访问，建议始终传入稳定的 `report_root_dir`。
+
+TestFlow 会保存这个入口，并通过报告详情页优先展示框架 HTML 报告。对于
+`report_source="file"` 的本地报告，后端提供：
+
+```text
+GET /api/reports/{task_id}/framework-report
+GET /api/reports/{task_id}/framework-report/{asset_path}
+```
+
+第一个接口返回 HTML 入口文件，第二个接口只允许读取 `report_root_dir` 下面的相对资源。
+后端会解析真实路径，拒绝越过 `report_root_dir` 的访问；路径逃逸返回 `403`，文件缺失返回
+`404`。如果 `report_source="url"`，前端直接打开 `report_entry`。
+
+TestFlow 仍会保存任务快照、步骤状态、日志和附件索引作为兜底详情；如果没有
+`framework_report`，报告详情页会显示这些平台结构化信息。TestFlow 不再生成
+`testflow-report.json` 作为报告详情文件。
+
+普通截图、trace、日志压缩包等仍然使用 `attachment` 事件：
 
 ```python
 FrameworkEvent(
@@ -334,10 +365,10 @@ FrameworkEvent(
 )
 ```
 
-`attachment_path` 可以是 `Path` 或字符串。建议使用绝对路径或相对 `report_dir` 可稳定解析
-的路径。
+`attachment_path` 可以是 `Path` 或字符串。普通附件建议写入 `request.artifact_dir`，
+或使用后端可稳定访问的绝对路径；HTML 报告入口不要通过 `attachment` 表达。
 
-## 最小实现步骤
+## 最小接入步骤
 
 1. 在 `backend/autotest/real_runtime.py` 中实现 `RealAutotestRuntime`。
 2. 实现 `list_keywords()`，先返回真实框架可执行的最小关键字集合。
@@ -345,8 +376,9 @@ FrameworkEvent(
 4. 增加关键字调用分发，把 `FrameworkStep` 转成真实框架调用。
 5. 接入取消检查。
 6. 接入错误映射。
-7. 接入附件和原始报告保存。
-8. 设置 `TESTFLOW_AUTOTEST_RUNTIME=real` 后运行测试和手工 smoke。
+7. 普通附件发 `attachment` 事件。
+8. 框架 HTML 报告生成完成后发 `framework_report` 事件，报告文件保留在框架目录。
+9. 设置 `TESTFLOW_AUTOTEST_RUNTIME=real` 后运行测试和手工 smoke。
 
 ## 测试要求
 
@@ -361,8 +393,15 @@ FrameworkEvent(
   - 验证取消会返回 `canceled`。
   - 验证基础设施异常会返回 `run_error` 和 `error`。
   - 验证附件事件能被执行层记录。
+  - 验证事件契约包含 `framework_report`。
 - `backend/tests/test_execution_service.py`
   - 使用 fake runtime 覆盖执行服务对事件的处理，不依赖真实外部系统。
+  - 验证 `framework_report` 事件能记录到任务和报告详情。
+- `backend/tests/test_execution_history.py`
+  - 验证框架 HTML 报告入口可持久化。
+  - 验证 `/api/reports/{task_id}/framework-report` 能返回入口 HTML。
+  - 验证报告内相对资源只能从 `report_root_dir` 下读取。
+  - 验证 TestFlow 不生成 `testflow-report.json` 作为报告详情。
 
 基础验证命令：
 
@@ -394,7 +433,12 @@ uv run pytest tests/test_real_autotest_runtime.py
 - [ ] 用户取消映射为 `canceled`。
 - [ ] `asyncio.CancelledError` 不被吞掉。
 - [ ] `output`、`error_detail` 可 JSON 序列化。
-- [ ] 附件写入 `report_dir` 或 `artifact_dir` 下，并发出 `attachment` 事件。
+- [ ] 普通附件写入稳定路径，并发出 `attachment` 事件。
+- [ ] HTML 报告保留在框架报告目录中，不复制到 TestFlow `data/` 目录。
+- [ ] HTML 报告生成后发出 `framework_report` 事件。
+- [ ] `framework_report` 使用 `report_kind="html"` 和正确的 `report_source`。
+- [ ] 本地 HTML 报告提供有效的 `report_root_dir` 和 `report_entry`。
+- [ ] `/api/reports/{task_id}/framework-report` 可以打开框架 HTML 报告。
 - [ ] `TESTFLOW_AUTOTEST_RUNTIME=real` 可以启动后端。
 - [ ] `pnpm check:backend` 通过。
 - [ ] `pnpm test:backend` 通过。
@@ -406,5 +450,7 @@ uv run pytest tests/test_real_autotest_runtime.py
 - 不要在 runtime 内发布 WebSocket 消息。
 - 不要把真实框架对象直接塞进 `FrameworkEvent.output`。
 - 不要把用户取消当成失败。
-- 不要为了接入真实框架修改前端 API schema。
+- 不要为了某个具体真实框架再修改前端 API schema；使用现有 `framework_report` 契约。
+- 不要把框架 HTML 报告复制到 `data/reports/`。
+- 不要让 runtime 生成 TestFlow 自己的 `testflow-report.json`。
 - 不要让默认测试依赖真实设备、远程服务或私有凭据。
