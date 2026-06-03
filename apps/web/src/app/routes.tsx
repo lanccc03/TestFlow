@@ -86,7 +86,7 @@ export const appRoutes: AppRoute[] = [
   {
     path: '/tasks',
     label: '执行任务',
-    description: '发起单脚本执行并查看实时进度。',
+    description: '查看当前执行任务、实时日志和最近任务状态。',
     navGroup: 'execution',
     icon: Activity,
     element: <TaskPage />,

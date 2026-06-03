@@ -24,7 +24,7 @@ export function statusVariant(status: TaskStatus | StepStatus) {
 export function taskStatusLabel(status: TaskStatus | StepStatus) {
   if (status === 'pending') return '等待中'
   if (status === 'running') return '运行中'
-  if (status === 'passed') return '通过'
+  if (status === 'passed') return '已通过'
   if (status === 'failed') return '失败'
   if (status === 'skipped') return '已跳过'
   if (status === 'canceled') return '已取消'

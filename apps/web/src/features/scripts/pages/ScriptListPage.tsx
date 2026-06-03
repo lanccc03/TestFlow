@@ -60,8 +60,8 @@ export function ScriptListPage() {
   })
   const executeMutation = useMutation({
     mutationFn: (scriptId: string) => api.createTask({ script_id: scriptId }),
-    onSuccess: () => {
-      navigate('/tasks')
+    onSuccess: (task) => {
+      navigate(`/tasks?taskId=${encodeURIComponent(task.id)}`)
     },
   })
 

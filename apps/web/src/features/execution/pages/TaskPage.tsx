@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query'
+import { useSearchParams } from 'react-router'
 
 import { Badge } from '@/components/ui/badge'
 import {
@@ -15,15 +15,13 @@ import {
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import {
   createApiClient,
-  type ExecutionTask,
 } from '@/lib/api'
 import { createWebSocketClient } from '@/lib/websocket'
 import { backendBaseUrl } from '@/app/config'
 
 import { executionWebSocketUrl } from '../constants'
 import { formatEventLog, formatLogEntry, statusVariant, taskStatusLabel } from '../utils/taskFormatters'
-import { canCancelTask, isExecutionEventMessage, shouldRefreshTasks } from '../utils/taskGuards'
-import { TaskControlPanel } from '../components/TaskControlPanel'
+import { isExecutionEventMessage, shouldRefreshTasks } from '../utils/taskGuards'
 import { TaskDetail } from '../components/TaskDetail'
 import { TaskSummaryItem } from '../components/TaskSummaryItem'
 
@@ -31,62 +29,49 @@ const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function TaskPage() {
   const queryClient = useQueryClient()
-  const [selectedScriptId, setSelectedScriptId] = useState('')
-  const [environment, setEnvironment] = useState('local')
-  const [targetDevice, setTargetDevice] = useState('')
-  const [activeTask, setActiveTask] = useState<ExecutionTask | null>(null)
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [selectedTaskId, setSelectedTaskId] = useState(
+    () => searchParams.get('taskId') ?? '',
+  )
   const [liveLogs, setLiveLogs] = useState<string[]>([])
-  const activeTaskIdRef = useRef<string | null>(null)
+  const activeTaskIdRef = useRef<string | null>(selectedTaskId || null)
 
-  const scriptsQuery = useQuery({
-    queryKey: ['scripts'],
-    queryFn: api.listScripts,
-  })
   const tasksQuery = useQuery({
     queryKey: ['tasks'],
     queryFn: () => api.listTasks(),
   })
 
-  const publishedScripts = useMemo(
-    () =>
-      (scriptsQuery.data?.items ?? []).filter(
-        (script) => script.status === 'published',
-      ),
-    [scriptsQuery.data?.items],
-  )
-  const selectedScript = publishedScripts.find(
-    (script) => script.id === selectedScriptId,
-  )
+  const activeTask = useQuery({
+    queryKey: ['task', selectedTaskId],
+    queryFn: () => api.getTask(selectedTaskId),
+    enabled: Boolean(selectedTaskId),
+  }).data ?? null
+
   const recentTasks = tasksQuery.data?.items ?? []
 
   useEffect(() => {
-    if (!selectedScriptId && publishedScripts.length > 0) {
-      setSelectedScriptId(publishedScripts[0].id)
-    }
-  }, [publishedScripts, selectedScriptId])
+    const taskId = searchParams.get('taskId') ?? ''
+    setSelectedTaskId(taskId)
+    activeTaskIdRef.current = taskId || null
+  }, [searchParams])
 
-  const createMutation = useMutation({
-    mutationFn: () =>
-      api.createTask({
-        script_id: selectedScriptId,
-        environment,
-        target_device: targetDevice,
-        variables: {},
-      }),
-    onSuccess: async (task) => {
-      activeTaskIdRef.current = task.id
-      setActiveTask(task)
-      setLiveLogs(task.logs.map(formatLogEntry))
-      await queryClient.invalidateQueries({ queryKey: ['tasks'] })
-    },
-  })
-  const cancelMutation = useMutation({
-    mutationFn: (taskId: string) => api.cancelTask(taskId),
-    onSuccess: async (task) => {
-      setActiveTask(task)
-      await queryClient.invalidateQueries({ queryKey: ['tasks'] })
-    },
-  })
+  useEffect(() => {
+    if (selectedTaskId || searchParams.has('taskId')) {
+      return
+    }
+    const activeSummary = recentTasks.find(
+      (task) => task.status === 'pending' || task.status === 'running',
+    )
+    if (activeSummary) {
+      activeTaskIdRef.current = activeSummary.id
+      setSearchParams({ taskId: activeSummary.id }, { replace: true })
+    }
+  }, [recentTasks, searchParams, selectedTaskId, setSearchParams])
+
+  useEffect(() => {
+    activeTaskIdRef.current = activeTask?.id ?? (selectedTaskId || null)
+    setLiveLogs(activeTask ? activeTask.logs.map(formatLogEntry) : [])
+  }, [activeTask, selectedTaskId])
 
   useEffect(() => {
     const client = createWebSocketClient({ url: executionWebSocketUrl })
@@ -102,7 +87,7 @@ export function TaskPage() {
         const isPageTask = Boolean(activeTaskId && messageTaskId === activeTaskId)
 
         if (isPageTask && message.task) {
-          setActiveTask(message.task)
+          queryClient.setQueryData(['task', messageTaskId], message.task)
         }
         if (isPageTask && message.type === 'log' && message.message) {
           setLiveLogs((current) => [...current, formatEventLog(message)])
@@ -121,25 +106,15 @@ export function TaskPage() {
     }
   }, [queryClient])
 
-  function startExecution() {
-    if (!selectedScriptId) {
-      return
-    }
-    createMutation.mutate()
-  }
-
-  function cancelExecution() {
-    const task = activeTask
-    if (canCancelTask(task)) {
-      cancelMutation.mutate(task.id)
-    }
+  function selectTask(taskId: string) {
+    setSearchParams({ taskId })
   }
 
   return (
     <PagePanel>
       <PageHeader
         title="执行任务"
-        subtitle="选择已发布脚本，启动本地执行并查看实时任务输出。"
+        subtitle="查看当前执行任务、实时输出和最近任务状态。"
         actions={
           <Badge variant={activeTask ? statusVariant(activeTask.status) : 'secondary'}>
             {activeTask ? taskStatusLabel(activeTask.status) : '未启动'}
@@ -147,23 +122,6 @@ export function TaskPage() {
         }
       />
 
-      <TaskControlPanel
-        selectedScriptId={selectedScriptId}
-        onSelectedScriptIdChange={setSelectedScriptId}
-        environment={environment}
-        onEnvironmentChange={setEnvironment}
-        targetDevice={targetDevice}
-        onTargetDeviceChange={setTargetDevice}
-        publishedScripts={publishedScripts}
-        selectedScript={selectedScript}
-        activeTask={activeTask}
-        createMutationIsPending={createMutation.isPending}
-        cancelMutationIsPending={cancelMutation.isPending}
-        scriptsQueryIsError={scriptsQuery.isError}
-        scriptsQueryIsPending={scriptsQuery.isPending}
-        onStartExecution={startExecution}
-        onCancelExecution={cancelExecution}
-      />
 
       <div className="grid grid-cols-[minmax(300px,0.8fr)_minmax(0,1.2fr)] gap-4 max-xl:grid-cols-1">
         <Card>
@@ -212,7 +170,13 @@ export function TaskPage() {
               <EmptyState title="暂无执行任务" />
             ) : (
               recentTasks.map((task) => (
-                <TaskSummaryItem key={task.id} task={task} />
+                <TaskSummaryItem
+                  isSelected={task.id === selectedTaskId}
+                  key={task.id}
+                  onSelect={() => selectTask(task.id)}
+                  showTaskId={Boolean(selectedTaskId)}
+                  task={task}
+                />
               ))
             )}
           </CardContent>

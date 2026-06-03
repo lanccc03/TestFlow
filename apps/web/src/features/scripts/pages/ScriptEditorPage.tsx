@@ -114,8 +114,8 @@ export function ScriptEditorPage() {
 
   const executeMutation = useMutation({
     mutationFn: () => api.createTask({ script_id: script.id }),
-    onSuccess: (_task) => {
-      navigate(`/tasks`)
+    onSuccess: (task) => {
+      navigate(`/tasks?taskId=${encodeURIComponent(task.id)}`)
     },
     onError: (error) => {
       setIssues(normalizeMutationIssues(error))
