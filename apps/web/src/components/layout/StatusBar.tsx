@@ -19,7 +19,7 @@ const websocketStateLabels: Record<WebSocketStatus['state'], string> = {
   reconnecting: '重连中',
 }
 
-export function TopStatusBar({
+export function StatusBar({
   backendStatus,
   websocketStatus,
 }: {

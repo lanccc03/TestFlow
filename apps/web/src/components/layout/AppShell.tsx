@@ -1,7 +1,7 @@
 import type React from 'react'
 
 import { Sidebar } from './Sidebar'
-import { TopStatusBar } from './TopStatusBar'
+import { StatusBar } from './StatusBar'
 import type { BackendStatus } from '@/testflow'
 import type { WebSocketStatus } from '@/lib/websocket'
 
@@ -24,7 +24,7 @@ export function AppShell({
           </main>
         </div>
       </div>
-      <TopStatusBar
+      <StatusBar
         backendStatus={backendStatus}
         websocketStatus={websocketStatus}
       />
