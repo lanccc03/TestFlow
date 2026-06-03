@@ -79,6 +79,36 @@ async def test_websocket_endpoint_ignores_client_disconnect() -> None:
     await websocket_endpoint(DisconnectingWebSocket())  # type: ignore[arg-type]
 
 
+@pytest.mark.anyio
+async def test_websocket_endpoint_stays_open_until_client_disconnect() -> None:
+    class TrackingWebSocket:
+        def __init__(self) -> None:
+            self.closed = False
+            self.messages: list[dict[str, str]] = []
+            self.receive_calls = 0
+
+        async def accept(self) -> None:
+            return None
+
+        async def send_json(self, message: dict[str, str]) -> None:
+            self.messages.append(message)
+
+        async def receive_text(self) -> str:
+            self.receive_calls += 1
+            raise WebSocketDisconnect(code=1000)
+
+        async def close(self) -> None:
+            self.closed = True
+
+    websocket = TrackingWebSocket()
+
+    await websocket_endpoint(websocket)  # type: ignore[arg-type]
+
+    assert websocket.messages == [{"type": "connection", "status": "connected"}]
+    assert websocket.receive_calls == 1
+    assert websocket.closed is False
+
+
 def test_http_errors_use_common_error_response_format(tmp_path: Path) -> None:
     settings = Settings(data_dir=tmp_path)
 

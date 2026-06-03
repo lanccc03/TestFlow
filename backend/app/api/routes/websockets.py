@@ -9,6 +9,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     try:
         await websocket.accept()
         await websocket.send_json({"type": "connection", "status": "connected"})
-        await websocket.close()
+        while True:
+            await websocket.receive_text()
     except WebSocketDisconnect:
         return
