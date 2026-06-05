@@ -3,6 +3,7 @@ import { EventEmitter } from 'node:events'
 import { test } from 'node:test'
 
 import { BackendProcessManager } from '../dist/main/backend-process.js'
+import { createBackendProcessOptions } from '../dist/main/backend-config.js'
 
 class FakeChildProcess extends EventEmitter {
   killed = false
@@ -100,3 +101,24 @@ test('stop terminates a running backend process and reports stopped', async () =
   assert.equal(manager.getStatus().state, 'stopped')
 }
 )
+
+test('desktop backend defaults to single-process uvicorn without reload', () => {
+  const options = createBackendProcessOptions({
+    appPath: '/repo/apps/desktop',
+    isPackaged: false,
+    resourcesPath: '/repo/resources',
+  })
+
+  assert.deepEqual(options.args, [
+    'run',
+    'python',
+    '-m',
+    'uvicorn',
+    'app.main:app',
+    '--host',
+    '127.0.0.1',
+    '--port',
+    '8000',
+  ])
+  assert.equal(options.args.includes('--reload'), false)
+})

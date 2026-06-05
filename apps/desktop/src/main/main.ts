@@ -1,12 +1,10 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
 import path from "node:path";
 
+import { createBackendProcessOptions } from "./backend-config.js";
 import { BackendProcessManager } from "./backend-process.js";
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
-const BACKEND_HOST = process.env.TESTFLOW_BACKEND_HOST ?? "127.0.0.1";
-const BACKEND_PORT = Number(process.env.TESTFLOW_BACKEND_PORT ?? "8000");
-const BACKEND_HEALTH_URL = `http://${BACKEND_HOST}:${BACKEND_PORT}/health`;
 
 let backendManager: BackendProcessManager | undefined;
 
@@ -44,33 +42,14 @@ function createMainWindow(): void {
 }
 
 function createBackendManager(): BackendProcessManager {
-  const backendCwd =
-    process.env.TESTFLOW_BACKEND_CWD ??
-    (app.isPackaged
-      ? path.join(process.resourcesPath, "backend")
-      : path.resolve(app.getAppPath(), "../..", "backend"));
-  const command = process.env.TESTFLOW_BACKEND_COMMAND ?? "uv";
-  const args = process.env.TESTFLOW_BACKEND_ARGS
-    ? process.env.TESTFLOW_BACKEND_ARGS.split(" ")
-    : [
-        "run",
-        "python",
-        "-m",
-        "uvicorn",
-        "app.main:app",
-        "--reload",
-        "--host",
-        BACKEND_HOST,
-        "--port",
-        String(BACKEND_PORT),
-      ];
+  const options = createBackendProcessOptions({
+    appPath: app.getAppPath(),
+    isPackaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+  });
 
   return new BackendProcessManager({
-    args,
-    command,
-    cwd: backendCwd,
-    env: { PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
-    healthUrl: BACKEND_HEALTH_URL,
+    ...options,
   });
 }
 
