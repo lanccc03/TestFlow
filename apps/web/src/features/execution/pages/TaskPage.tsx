@@ -13,19 +13,12 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import {
-  createApiClient,
-} from '@/lib/api'
-import { createWebSocketClient } from '@/lib/websocket'
-import { backendBaseUrl } from '@/app/config'
+import { api, createExecutionSocket } from '@/app/backend'
 
-import { executionWebSocketUrl } from '../constants'
 import { formatEventLog, formatLogEntry, statusVariant, taskStatusLabel } from '../utils/taskFormatters'
 import { isExecutionEventMessage, shouldRefreshTasks } from '../utils/taskGuards'
 import { TaskDetail } from '../components/TaskDetail'
 import { TaskSummaryItem } from '../components/TaskSummaryItem'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function TaskPage() {
   const queryClient = useQueryClient()
@@ -74,7 +67,7 @@ export function TaskPage() {
   }, [activeTask, selectedTaskId])
 
   useEffect(() => {
-    const client = createWebSocketClient({ url: executionWebSocketUrl })
+    const client = createExecutionSocket()
     const unsubscribe = client.subscribe(
       () => undefined,
       (message) => {

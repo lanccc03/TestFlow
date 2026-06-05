@@ -23,16 +23,11 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import {
-  createApiClient,
-  type CommandTemplate,
-} from '@/lib/api'
-import { backendBaseUrl } from '@/app/config'
+import { api } from '@/app/backend'
+import type { CommandTemplate } from '@/lib/api'
 import { sshWebSocketUrl, useSshTerminalStore } from '../store'
 import { filterCommandSuggestions } from '../utils/commandSuggestions'
 import { sshStatusLabel } from '../utils/sshStatus'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function SshTerminalPage() {
   const terminalContainerRef = useRef<HTMLDivElement | null>(null)

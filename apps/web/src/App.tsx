@@ -2,15 +2,15 @@ import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 
 import { appRoutes } from './app/routes'
-import { backendBaseUrl, websocketUrl } from './app/config'
-import { createWebSocketClient, type WebSocketStatus } from './lib/websocket'
+import { backendUrls, createBackendStatusSocket } from './app/backend'
+import type { WebSocketStatus } from './lib/websocket'
 import { AppShell } from '@/components/layout/AppShell'
 import type { BackendStatus } from './testflow'
 
 
 function App() {
   const [backendStatus, setBackendStatus] = useState<BackendStatus>({
-    healthUrl: `${backendBaseUrl}/health`,
+    healthUrl: backendUrls.health,
     state: window.testflow ? 'starting' : 'stopped',
   })
   const [websocketStatus, setWebsocketStatus] = useState<WebSocketStatus>({
@@ -39,7 +39,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const client = createWebSocketClient({ url: websocketUrl })
+    const client = createBackendStatusSocket()
     const unsubscribe = client.subscribe((status) => setWebsocketStatus(status))
     client.connect()
 

@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 
-export const sshWebSocketUrl = 'ws://127.0.0.1:8000/ws/ssh'
+import { backendUrls } from '@/app/backend'
+
+export const sshWebSocketUrl = backendUrls.sshWebSocket
 
 export type SshConnectionForm = {
   host: string

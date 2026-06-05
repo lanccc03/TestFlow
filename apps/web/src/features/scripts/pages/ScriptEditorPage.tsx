@@ -30,14 +30,13 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
+import { api } from '@/app/backend'
 import { cn, parseTags } from '@/lib/utils'
 import {
-  createApiClient,
   type KeywordParameter,
   type ScriptStep,
   type TestScript,
 } from '@/lib/api'
-import { backendBaseUrl } from '@/app/config'
 
 import { ParameterInput } from '../components/ParameterInput'
 import { emptyScript } from '../constants'
@@ -48,8 +47,6 @@ import {
   normalizeMutationIssues,
   validateScript,
 } from '../utils/validation'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function ScriptEditorPage() {
   const { scriptId } = useParams()

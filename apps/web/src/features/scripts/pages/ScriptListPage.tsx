@@ -12,14 +12,11 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import { createApiClient } from '@/lib/api'
-import { backendBaseUrl } from '@/app/config'
+import { api } from '@/app/backend'
 
 import { ScriptFilters } from '../components/ScriptFilters'
 import { ScriptListItem } from '../components/ScriptListItem'
 import { filterScripts, uniqueValues } from '../utils/filters'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function ScriptListPage() {
   const navigate = useNavigate()

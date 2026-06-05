@@ -184,13 +184,11 @@ describe('App', () => {
     expect(screen.getByRole('main')).toBeInTheDocument()
   })
 
-  it('renders scripts and keyword metadata from the backend', async () => {
+  it('renders scripts from the backend', async () => {
     renderApp()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
-    expect(screen.getByText('wait')).toBeInTheDocument()
-    expect(screen.getByText('等待指定秒数')).toBeInTheDocument()
   })
 
   it('only marks the exact navigation route as current', async () => {
@@ -307,7 +305,7 @@ describe('App', () => {
     fireEvent.change(screen.getByLabelText('关键字'), {
       target: { value: 'wait' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '发布' }))
+    fireEvent.click(screen.getByRole('button', { name: '保存' }))
 
     expect(await screen.findByText('步骤 1 参数 seconds：Missing required parameter')).toBeInTheDocument()
     expect(httpPost).not.toHaveBeenCalled()

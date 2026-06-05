@@ -12,18 +12,14 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
+import { api, backendUrls } from '@/app/backend'
 import {
-  createApiClient,
-  frameworkReportUrl,
   type ExecutionFrameworkReport,
   type ExecutionReportAttachment,
   type ExecutionTask,
 } from '@/lib/api'
-import { backendBaseUrl } from '@/app/config'
 
 import { formatLogEntry, statusVariant, taskStatusLabel } from '../utils/taskFormatters'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function ReportDetailPage() {
   const { taskId } = useParams<{ taskId: string }>()
@@ -82,7 +78,7 @@ function FrameworkHtmlReport({
 }) {
   const reportUrl = report.source === 'url'
     ? report.entry
-    : frameworkReportUrl(backendBaseUrl, taskId)
+    : backendUrls.frameworkReport(taskId)
 
   return (
     <Card>

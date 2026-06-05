@@ -19,12 +19,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import { createApiClient, type ExecutionTaskFilters } from '@/lib/api'
-import { backendBaseUrl } from '@/app/config'
+import { api } from '@/app/backend'
+import type { ExecutionTaskFilters } from '@/lib/api'
 
 import { statusVariant, taskStatusLabel } from '../utils/taskFormatters'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function HistoryPage() {
   const queryClient = useQueryClient()

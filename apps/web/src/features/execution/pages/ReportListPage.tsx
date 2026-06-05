@@ -10,12 +10,9 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import { createApiClient } from '@/lib/api'
-import { backendBaseUrl } from '@/app/config'
+import { api } from '@/app/backend'
 
 import { statusVariant, taskStatusLabel } from '../utils/taskFormatters'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function ReportListPage() {
   const reportsQuery = useQuery({

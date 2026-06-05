@@ -17,17 +17,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
+import { api } from '@/app/backend'
 import { parseTags } from '@/lib/utils'
 import {
-  createApiClient,
   type CommandTemplate,
   type CommandTemplatePayload,
 } from '@/lib/api'
-import { backendBaseUrl } from '@/app/config'
 import { emptyCommandForm } from '../constants'
 import { CommandListItem } from '../components/CommandListItem'
-
-const api = createApiClient({ baseUrl: backendBaseUrl })
 
 export function CommandLibraryPage() {
   const queryClient = useQueryClient()
