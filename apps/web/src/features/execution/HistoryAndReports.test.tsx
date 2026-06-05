@@ -83,6 +83,9 @@ describe('HistoryPage', () => {
   it('filters execution history and links to report details', async () => {
     renderWithProviders(<HistoryPage />)
 
+    expect(await screen.findByRole('group', { name: '历史筛选' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '任务记录' })).toBeInTheDocument()
+
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('执行人'), {
       target: { value: 'alice' },
