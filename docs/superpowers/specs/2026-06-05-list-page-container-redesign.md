@@ -2,13 +2,14 @@
 
 ## Summary
 
-TestFlow's web UI currently uses `Card` for page sections, list containers, and list rows. The result is a repeated `PagePanel -> Card -> Card item` structure that makes list-heavy pages feel visually fragmented. This redesign narrows the first visual polish pass to list pages and replaces nested cards with a desktop-tool container model: open page workspace, compact filter toolbar, structured list/table rows, and reserved card usage for genuinely independent content.
+TestFlow's web UI currently uses `Card` for page sections, list containers, and list rows. The result is a repeated `PagePanel -> Card -> Card item` structure that makes list-heavy pages feel visually fragmented. This redesign narrows the first visual polish pass to list pages and replaces nested cards with shadcn/ui `Table` surfaces: compact filter toolbar, structured table columns, dense rows, and reserved card usage for genuinely independent content.
 
 ## Goals
 
 - Reduce visible card nesting on list-heavy pages.
 - Make TestFlow feel more like a desktop testing workbench than a generic web admin dashboard.
 - Improve scanning density for scripts, task history, and reports.
+- Use shadcn/ui `Table` for list data instead of custom row/list primitives.
 - Keep the first implementation low risk by avoiding editor, terminal, and report viewer workflow rewrites.
 - Preserve current behavior, route structure, data fetching hooks, and accessibility semantics.
 
@@ -21,6 +22,8 @@ The first implementation should cover these pages:
 - `apps/web/src/features/execution/pages/ReportListPage.tsx`
 
 Shared components may be introduced under existing ownership boundaries when they reduce repeated layout code. Good candidates are layout-level primitives in `apps/web/src/components/layout/` or feature-local list row components when the semantics are domain-specific.
+
+The first implementation should add shadcn/ui `table` if `apps/web/src/components/ui/table.tsx` is not already present. TanStack Table should only be introduced if the implementation needs a real column model, client-side sorting, pagination, column visibility, or reusable data-table behavior. Static tables are preferred for this first pass because current list behavior is already handled by page hooks and API filters.
 
 Out of scope for this pass:
 
@@ -45,7 +48,7 @@ Recommended direction:
 
 ### Filter Toolbar
 
-Filter controls on list pages should be presented as a compact toolbar below the page header, not as a standalone card.
+Filter controls on list pages should be presented as a compact toolbar below the page header, not as a standalone card. This toolbar may be ordinary layout markup around existing shadcn form controls; it does not need to be a new shared component unless duplication becomes meaningful.
 
 Recommended direction:
 
@@ -54,25 +57,26 @@ Recommended direction:
 - Use subtle separators or grouped spacing instead of a surrounding card.
 - Preserve existing filter behavior and controlled values.
 
-### List Surface
+### Table Surface
 
-The list itself should be one surface, not a card containing row cards.
+The list itself should be one table surface, not a card containing row cards.
 
 Recommended direction:
 
-- Use a container with one light border or background at most.
-- Add a small header row when it improves scanning.
-- Use `border-b`, hover background, selected background, and right-aligned actions for row hierarchy.
+- Use shadcn/ui `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, and `TableCell`.
+- Wrap the table in one light bordered `rounded-lg` overflow container when needed.
+- Use table headers for stable scanning columns.
+- Use row hover background and right-aligned action cells for interaction.
 - Avoid per-row `Card` unless a row truly needs independent object framing.
 
-### Rows
+### Table Rows
 
 Rows should feel like dense desktop records.
 
 Recommended direction:
 
 - Main identity on the left: title/name, short description, status.
-- Metadata in aligned columns where possible: group, tags, steps, revision, status, time.
+- Metadata in aligned columns: group, tags, steps, revision, status, time, environment, executor, and duration where relevant.
 - Actions grouped on the right with icon buttons.
 - Use badges sparingly; metadata should not all become chips.
 - Preserve keyboard and screen-reader behavior for row actions.
@@ -98,11 +102,8 @@ Target design:
 
 - `PageHeader` remains at the top with "新建脚本".
 - `ScriptFilters` becomes a toolbar-style block.
-- The script list becomes a single list surface.
-- Each script becomes a row:
-  - Left: script name, status, description or ID.
-  - Middle: group/tags and step/revision metadata in stable columns.
-  - Right: run, edit, copy, delete actions.
+- The script list becomes a single shadcn table surface.
+- Each script becomes a table row with columns for script identity, status, group/tags, steps, revision, updated time, and actions.
 - The existing delete confirmation behavior remains inline.
 
 ### History Page
@@ -112,8 +113,8 @@ Current issue: filter card and task record card create a heavy two-card stack, a
 Target design:
 
 - Filter controls become a toolbar.
-- Task records become a row list with status, script, timestamps, duration, and actions aligned for scanning.
-- Selected state uses a row highlight rather than a nested-card ring style.
+- Task records become a shadcn table with status, script, executor, environment, timestamps, duration, steps, and actions aligned for scanning.
+- Selected state, if used on a future history table interaction, should use table row state rather than a nested-card ring style.
 
 ### Report List
 
@@ -122,26 +123,27 @@ Current issue: report list has an outer card and repeated inner cards for each r
 Target design:
 
 - Report list becomes a single report surface.
-- Each report row emphasizes title, status, generated time, source task/script, and open/download actions if present.
+- Each report row becomes a table row emphasizing title, status, generated time, source task/script, executor, duration, steps, and open/download actions if present.
 - Failed or incomplete reports use semantic color in status text/badge, not a full card treatment.
 
 ## Component Architecture
 
-The implementation should avoid a large one-off rewrite inside each page. Introduce only small primitives that match existing patterns:
+The implementation should avoid a large one-off rewrite inside each page. Use shadcn/ui table components directly first:
 
-- `ListSurface`: optional shared wrapper for list/table surfaces.
-- `ListToolbar`: optional shared wrapper for filter/action rows.
-- Feature-specific row components remain in their feature folders when their content is domain-specific.
+- Add `apps/web/src/components/ui/table.tsx` via `pnpm dlx shadcn@latest add table -c apps/web` if missing.
+- Use direct `Table` composition in simple pages.
+- Feature-specific table row helpers may live in feature folders when history and report rows share meaningful content.
+- Introduce TanStack Table only if a concrete requirement appears for sorting, pagination, column visibility, or reusable column definitions.
 
-If a shared primitive only saves a few class names and obscures intent, keep the classes local instead.
+If a shared wrapper only saves a few class names and obscures table semantics, keep the shadcn table composition local instead.
 
 ## Accessibility
 
 - Preserve current labels for inputs, selects, and buttons.
 - Keep icon-only actions labeled with `aria-label`.
-- Use semantic grouping for list rows, such as `ul/li`, `table`, or clearly labeled regions depending on the final markup.
+- Preserve real table semantics through shadcn/ui `Table` composition.
 - Maintain focus-visible states for interactive rows and actions.
-- Do not make an entire row clickable if that competes with multiple inline action buttons, unless keyboard behavior is explicitly handled.
+- Do not make an entire table row clickable if that competes with multiple inline action buttons, unless keyboard behavior is explicitly handled.
 
 ## Testing And Verification
 
@@ -165,6 +167,6 @@ Visual verification:
 
 - The affected list pages no longer use the three-layer `PagePanel -> Card -> row Card` pattern.
 - Filters read as toolbar controls rather than standalone cards.
-- Rows are scannable and visually denser than the current card rows.
+- Rows are rendered through shadcn/ui table components and are visually denser than the current card rows.
 - Existing page behavior and route tests still pass.
 - `Card` remains in the codebase but is no longer the default repeated-list container for these pages.
