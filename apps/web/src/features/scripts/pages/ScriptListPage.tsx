@@ -66,132 +66,130 @@ export function ScriptListPage() {
         tags={tags}
       />
 
-      <div className="overflow-hidden rounded-lg border bg-background">
-        <Table aria-label="脚本列表">
-          <TableHeader>
+      <Table aria-label="脚本列表">
+        <TableHeader>
+          <TableRow>
+            <TableHead>脚本</TableHead>
+            <TableHead>状态</TableHead>
+            <TableHead>分组 / 标签</TableHead>
+            <TableHead className="text-right">步骤</TableHead>
+            <TableHead className="text-right">版本</TableHead>
+            <TableHead className="text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {scriptsQuery.isPending ? (
             <TableRow>
-              <TableHead>脚本</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>分组 / 标签</TableHead>
-              <TableHead className="text-right">步骤</TableHead>
-              <TableHead className="text-right">版本</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableCell colSpan={6}>
+                <EmptyState title="正在加载" />
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {scriptsQuery.isPending ? (
-              <TableRow>
-                <TableCell colSpan={6}>
-                  <EmptyState title="正在加载" />
-                </TableCell>
-              </TableRow>
-            ) : scriptsQuery.isError ? (
-              <TableRow>
-                <TableCell colSpan={6}>
-                  <Alert variant="destructive">
-                    <AlertDescription>后端脚本数据不可用</AlertDescription>
-                  </Alert>
-                </TableCell>
-              </TableRow>
-            ) : filteredScripts.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6}>
-                  <EmptyState title="没有匹配的脚本" />
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredScripts.map((script) => (
-                <TableRow key={script.id}>
-                  <TableCell className="max-w-[360px]">
-                    <div className="grid gap-1">
-                      <div className="font-medium">{script.name}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {script.description || script.id}
-                      </div>
+          ) : scriptsQuery.isError ? (
+            <TableRow>
+              <TableCell colSpan={6}>
+                <Alert variant="destructive">
+                  <AlertDescription>后端脚本数据不可用</AlertDescription>
+                </Alert>
+              </TableCell>
+            </TableRow>
+          ) : filteredScripts.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6}>
+                <EmptyState title="没有匹配的脚本" />
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredScripts.map((script) => (
+              <TableRow key={script.id}>
+                <TableCell className="max-w-[360px]">
+                  <div className="grid gap-1">
+                    <div className="font-medium">{script.name}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {script.description || script.id}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={script.status === 'published' ? 'default' : 'secondary'}>
-                      {script.status === 'published' ? '已发布' : '草稿'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-wrap gap-1.5">
-                      {script.group ? (
-                        <Badge variant="secondary">{script.group}</Badge>
-                      ) : null}
-                      {script.tags.map((tag) => (
-                        <Badge key={tag} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {script.enabled_step_count}/{script.step_count}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    v{script.revision}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1.5">
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={script.status === 'published' ? 'default' : 'secondary'}>
+                    {script.status === 'published' ? '已发布' : '草稿'}
+                  </Badge>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-1.5">
+                    {script.group ? (
+                      <Badge variant="secondary">{script.group}</Badge>
+                    ) : null}
+                    {script.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {script.enabled_step_count}/{script.step_count}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  v{script.revision}
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1.5">
+                    <Button
+                      aria-label={`运行 ${script.name}`}
+                      onClick={() => executeMutation.mutate(script.id)}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Play aria-hidden="true" />
+                    </Button>
+                    <Button
+                      aria-label={`编辑 ${script.name}`}
+                      asChild
+                      size="icon-sm"
+                      variant="ghost"
+                    >
+                      <Link to={`/scripts/${script.id}`}>
+                        <Edit3 aria-hidden="true" />
+                      </Link>
+                    </Button>
+                    <Button
+                      aria-label={`复制 ${script.name}`}
+                      onClick={() => copyMutation.mutate(script.id)}
+                      size="icon-sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Copy aria-hidden="true" />
+                    </Button>
+                    {confirmDeleteId === script.id ? (
                       <Button
-                        aria-label={`运行 ${script.name}`}
-                        onClick={() => executeMutation.mutate(script.id)}
+                        aria-label={`确认删除 ${script.name}`}
+                        onClick={() => deleteMutation.mutate(script.id)}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        确认
+                      </Button>
+                    ) : (
+                      <Button
+                        aria-label={`删除 ${script.name}`}
+                        onClick={() => setConfirmDeleteId(script.id)}
                         size="icon-sm"
                         type="button"
                         variant="ghost"
                       >
-                        <Play aria-hidden="true" />
+                        <Trash2 aria-hidden="true" />
                       </Button>
-                      <Button
-                        aria-label={`编辑 ${script.name}`}
-                        asChild
-                        size="icon-sm"
-                        variant="ghost"
-                      >
-                        <Link to={`/scripts/${script.id}`}>
-                          <Edit3 aria-hidden="true" />
-                        </Link>
-                      </Button>
-                      <Button
-                        aria-label={`复制 ${script.name}`}
-                        onClick={() => copyMutation.mutate(script.id)}
-                        size="icon-sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        <Copy aria-hidden="true" />
-                      </Button>
-                      {confirmDeleteId === script.id ? (
-                        <Button
-                          aria-label={`确认删除 ${script.name}`}
-                          onClick={() => deleteMutation.mutate(script.id)}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          确认
-                        </Button>
-                      ) : (
-                        <Button
-                          aria-label={`删除 ${script.name}`}
-                          onClick={() => setConfirmDeleteId(script.id)}
-                          size="icon-sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          <Trash2 aria-hidden="true" />
-                        </Button>
-                      )}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </PagePanel>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </PagePanel >
   )
 }

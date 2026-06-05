@@ -32,67 +32,65 @@ export function ReportListPage() {
         subtitle="查看执行报告汇总"
       />
 
-      <div className="overflow-hidden rounded-lg border bg-background">
-        <Table aria-label="最近报告">
-          <TableHeader>
+      <Table aria-label="最近报告">
+        <TableHeader>
+          <TableRow>
+            <TableHead>脚本</TableHead>
+            <TableHead>状态</TableHead>
+            <TableHead>执行人</TableHead>
+            <TableHead>环境</TableHead>
+            <TableHead className="text-right">步骤</TableHead>
+            <TableHead className="text-right">耗时</TableHead>
+            <TableHead className="text-right">操作</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {reportsQuery.isPending ? (
             <TableRow>
-              <TableHead>脚本</TableHead>
-              <TableHead>状态</TableHead>
-              <TableHead>执行人</TableHead>
-              <TableHead>环境</TableHead>
-              <TableHead className="text-right">步骤</TableHead>
-              <TableHead className="text-right">耗时</TableHead>
-              <TableHead className="text-right">操作</TableHead>
+              <TableCell colSpan={7}>
+                <EmptyState title="正在加载报告" />
+              </TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {reportsQuery.isPending ? (
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <EmptyState title="正在加载报告" />
-                </TableCell>
-              </TableRow>
-            ) : reports.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7}>
-                  <EmptyState title="暂无报告" />
-                </TableCell>
-              </TableRow>
-            ) : (
-              reports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell className="max-w-[340px]">
-                    <div className="grid gap-1">
-                      <div className="font-medium">{report.script_name}</div>
-                      <div className="truncate text-xs text-muted-foreground">
-                        {report.id} · {report.executor}
-                      </div>
+          ) : reports.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={7}>
+                <EmptyState title="暂无报告" />
+              </TableCell>
+            </TableRow>
+          ) : (
+            reports.map((report) => (
+              <TableRow key={report.id}>
+                <TableCell className="max-w-[340px]">
+                  <div className="grid gap-1">
+                    <div className="font-medium">{report.script_name}</div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {report.id} · {report.executor}
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(report.status)}>
-                      {taskStatusLabel(report.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{report.executor}</TableCell>
-                  <TableCell>{report.environment}</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {report.passed_step_count}/{report.step_count}
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {report.duration_ms != null ? `${report.duration_ms} ms` : '-'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button asChild variant="outline" size="sm">
-                      <Link to={`/reports/${report.id}`}>查看报告</Link>
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Badge variant={statusVariant(report.status)}>
+                    {taskStatusLabel(report.status)}
+                  </Badge>
+                </TableCell>
+                <TableCell>{report.executor}</TableCell>
+                <TableCell>{report.environment}</TableCell>
+                <TableCell className="text-right font-medium">
+                  {report.passed_step_count}/{report.step_count}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {report.duration_ms != null ? `${report.duration_ms} ms` : '-'}
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button asChild variant="outline" size="sm">
+                    <Link to={`/reports/${report.id}`}>查看报告</Link>
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </PagePanel>
   )
 }
