@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.34.1",
   "scripts": {
     "dev:web": "pnpm --filter @testflow/web dev",
-    "dev:backend": "cd backend && uv run fastapi dev app/main.py --host 127.0.0.1 --port 8000",
+    "dev:backend": "cd backend && uv run python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
     "dev:desktop": "pnpm --filter @testflow/desktop dev",
     "check:web": "pnpm --filter @testflow/web check",
     "check:desktop": "pnpm --filter @testflow/desktop check",

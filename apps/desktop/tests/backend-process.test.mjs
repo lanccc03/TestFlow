@@ -22,7 +22,7 @@ test('starts backend process and reports running after health check passes', asy
   const statusChanges = []
   const manager = new BackendProcessManager({
     command: 'uv',
-    args: ['run', 'fastapi'],
+    args: ['run', 'python', '-m', 'uvicorn'],
     cwd: '/repo/backend',
     healthUrl: 'http://127.0.0.1:8000/health',
     spawnProcess: () => child,
@@ -42,7 +42,7 @@ test('reuses an already healthy backend without spawning another process', async
   let spawnCount = 0
   const manager = new BackendProcessManager({
     command: 'uv',
-    args: ['run', 'fastapi'],
+    args: ['run', 'python', '-m', 'uvicorn'],
     cwd: '/repo/backend',
     healthUrl: 'http://127.0.0.1:8000/health',
     spawnProcess: () => {
@@ -64,7 +64,7 @@ test('reports failed when backend process exits before becoming healthy', async 
   const child = new FakeChildProcess()
   const manager = new BackendProcessManager({
     command: 'uv',
-    args: ['run', 'fastapi'],
+    args: ['run', 'python', '-m', 'uvicorn'],
     cwd: '/repo/backend',
     healthUrl: 'http://127.0.0.1:8000/health',
     spawnProcess: () => {
@@ -85,7 +85,7 @@ test('stop terminates a running backend process and reports stopped', async () =
   const healthChecks = [false, true]
   const manager = new BackendProcessManager({
     command: 'uv',
-    args: ['run', 'fastapi'],
+    args: ['run', 'python', '-m', 'uvicorn'],
     cwd: '/repo/backend',
     healthUrl: 'http://127.0.0.1:8000/health',
     spawnProcess: () => child,

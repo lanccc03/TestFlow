@@ -54,9 +54,11 @@ function createBackendManager(): BackendProcessManager {
     ? process.env.TESTFLOW_BACKEND_ARGS.split(" ")
     : [
         "run",
-        "fastapi",
-        "dev",
-        "app/main.py",
+        "python",
+        "-m",
+        "uvicorn",
+        "app.main:app",
+        "--reload",
         "--host",
         BACKEND_HOST,
         "--port",
@@ -67,7 +69,7 @@ function createBackendManager(): BackendProcessManager {
     args,
     command,
     cwd: backendCwd,
-    env: { PYTHONUTF8: "1" },
+    env: { PYTHONIOENCODING: "utf-8", PYTHONUTF8: "1" },
     healthUrl: BACKEND_HEALTH_URL,
   });
 }
