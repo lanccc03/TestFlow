@@ -1,9 +1,9 @@
 import { Copy, Edit3, Play, Trash2 } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { ListRow } from '@/components/layout/list'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import type { ScriptSummary } from '@/lib/api'
 
 const runButtonClassName =
@@ -34,10 +34,7 @@ export function ScriptListItem({
   script: ScriptSummary
 }) {
   return (
-    <Card
-      size="sm"
-      className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 p-3 max-sm:grid-cols-1"
-    >
+    <ListRow className="grid-cols-[minmax(0,1.3fr)_minmax(180px,0.5fr)_auto] max-lg:grid-cols-[minmax(0,1fr)_auto] max-sm:grid-cols-1">
       <div>
         <div className="mb-1 flex flex-wrap items-center gap-2">
           <h3 className="m-0 text-base font-semibold">{script.name}</h3>
@@ -63,18 +60,16 @@ export function ScriptListItem({
           ))}
         </div>
       </div>
-      <dl className="flex gap-2">
-        <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+      <dl className="grid grid-cols-2 gap-3 text-sm max-lg:hidden">
+        <div>
           <dt className="text-xs text-muted-foreground">步骤</dt>
-          <dd className="m-0 text-sm font-semibold text-foreground">
+          <dd className="m-0 font-semibold text-foreground">
             {script.enabled_step_count}/{script.step_count}
           </dd>
         </div>
-        <div className="min-w-16 rounded-lg bg-muted px-2 py-1.5">
+        <div>
           <dt className="text-xs text-muted-foreground">版本</dt>
-          <dd className="m-0 text-sm font-semibold text-foreground">
-            v{script.revision}
-          </dd>
+          <dd className="m-0 font-semibold text-foreground">v{script.revision}</dd>
         </div>
       </dl>
       <div className="flex flex-wrap justify-end gap-1.5">
@@ -133,6 +128,6 @@ export function ScriptListItem({
           </Button>
         )}
       </div>
-    </Card>
+    </ListRow>
   )
 }

@@ -1,15 +1,10 @@
 import { FilePlus2 } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { ListSurface } from '@/components/layout/list'
+import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 
 import { ScriptFilters } from '../components/ScriptFilters'
 import { ScriptListItem } from '../components/ScriptListItem'
@@ -64,34 +59,38 @@ export function ScriptListPage() {
         tags={tags}
       />
 
-      <Card className="gap-3">
-        <CardHeader>
-          <CardTitle>脚本列表</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-2.5">
-          {scriptsQuery.isPending ? (
+      <ListSurface
+        description={`${filteredScripts.length} 个匹配脚本`}
+        title="脚本列表"
+      >
+        {scriptsQuery.isPending ? (
+          <div className="p-3">
             <EmptyState title="正在加载" />
-          ) : scriptsQuery.isError ? (
+          </div>
+        ) : scriptsQuery.isError ? (
+          <div className="p-3">
             <Alert variant="destructive">
               <AlertDescription>后端脚本数据不可用</AlertDescription>
             </Alert>
-          ) : filteredScripts.length === 0 ? (
+          </div>
+        ) : filteredScripts.length === 0 ? (
+          <div className="p-3">
             <EmptyState title="没有匹配的脚本" />
-          ) : (
-            filteredScripts.map((script) => (
-              <ScriptListItem
-                confirmDeleteId={confirmDeleteId}
-                key={script.id}
-                onCopy={() => copyMutation.mutate(script.id)}
-                onDelete={() => deleteMutation.mutate(script.id)}
-                onPrepareDelete={() => setConfirmDeleteId(script.id)}
-                onRun={() => executeMutation.mutate(script.id)}
-                script={script}
-              />
-            ))
-          )}
-        </CardContent>
-      </Card>
+          </div>
+        ) : (
+          filteredScripts.map((script) => (
+            <ScriptListItem
+              confirmDeleteId={confirmDeleteId}
+              key={script.id}
+              onCopy={() => copyMutation.mutate(script.id)}
+              onDelete={() => deleteMutation.mutate(script.id)}
+              onPrepareDelete={() => setConfirmDeleteId(script.id)}
+              onRun={() => executeMutation.mutate(script.id)}
+              script={script}
+            />
+          ))
+        )}
+      </ListSurface>
     </PagePanel>
   )
 }

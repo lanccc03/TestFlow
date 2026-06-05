@@ -94,6 +94,9 @@ describe('script run navigation', () => {
   it('navigates from script list run action to tasks with taskId', async () => {
     renderWithQuery(<ScriptListPage />, ['/scripts'])
 
+    expect(await screen.findByRole('group', { name: '脚本筛选' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '脚本列表' })).toBeInTheDocument()
+
     fireEvent.click(await screen.findByRole('button', { name: '运行 座舱冒烟测试' }))
 
     await waitFor(() =>
