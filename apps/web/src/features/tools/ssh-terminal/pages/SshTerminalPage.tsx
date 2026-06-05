@@ -1,15 +1,9 @@
 import '@xterm/xterm/css/xterm.css'
 
-import type { FitAddon as XtermFitAddon } from '@xterm/addon-fit'
-import type { Terminal as XtermTerminal } from '@xterm/xterm'
 import {
   Plug,
   SquareTerminal,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef } from 'react'
-import {
-  useQuery,
-} from '@tanstack/react-query'
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -23,117 +17,22 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import { api } from '@/app/backend'
-import type { CommandTemplate } from '@/lib/api'
-import { sshWebSocketUrl, useSshTerminalStore } from '../store'
-import { filterCommandSuggestions } from '../utils/commandSuggestions'
+import { sshWebSocketUrl } from '../store'
+import { useSshTerminalPage } from '../hooks/useSshTerminalPage'
 import { sshStatusLabel } from '../utils/sshStatus'
 
 export function SshTerminalPage() {
-  const terminalContainerRef = useRef<HTMLDivElement | null>(null)
-  const terminalRef = useRef<XtermTerminal | null>(null)
-  const fitAddonRef = useRef<XtermFitAddon | null>(null)
-  const currentLine = useSshTerminalStore((state) => state.currentLine)
-  const errorMessage = useSshTerminalStore((state) => state.errorMessage)
-  const form = useSshTerminalStore((state) => state.form)
-  const status = useSshTerminalStore((state) => state.status)
-  const applyStoredSuggestion = useSshTerminalStore(
-    (state) => state.applySuggestion,
-  )
-  const attachTerminal = useSshTerminalStore((state) => state.attachTerminal)
-  const connectSsh = useSshTerminalStore((state) => state.connect)
-  const disconnectSsh = useSshTerminalStore((state) => state.disconnect)
-  const sendInput = useSshTerminalStore((state) => state.sendInput)
-  const sendResize = useSshTerminalStore((state) => state.sendResize)
-  const updateForm = useSshTerminalStore((state) => state.updateForm)
-
-  const commandsQuery = useQuery({
-    queryKey: ['commands', ''],
-    queryFn: () => api.listCommands(''),
-  })
-  const suggestions = useMemo(
-    () => filterCommandSuggestions(commandsQuery.data?.items ?? [], currentLine),
-    [commandsQuery.data?.items, currentLine],
-  )
-
-  useEffect(() => {
-    if (!terminalContainerRef.current) {
-      return
-    }
-
-    let isDisposed = false
-    function handleResize() {
-      fitAddonRef.current?.fit()
-      sendTerminalSize()
-    }
-
-    let detachTerminal: (() => void) | undefined
-    void Promise.all([
-      import('@xterm/xterm'),
-      import('@xterm/addon-fit'),
-    ]).then(([xtermModule, fitModule]) => {
-      if (isDisposed || !terminalContainerRef.current) {
-        return
-      }
-
-      const terminal = new xtermModule.Terminal({
-        cursorBlink: true,
-        fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", monospace',
-        fontSize: 13,
-        theme: {
-          background: '#0b171b',
-          foreground: '#dce8eb',
-        },
-      })
-      const fitAddon = new fitModule.FitAddon()
-      terminal.loadAddon(fitAddon)
-      terminal.open(terminalContainerRef.current)
-      fitAddon.fit()
-      terminal.onData((data) => {
-        sendInput(data)
-      })
-      detachTerminal = attachTerminal((data) => terminal.write(data))
-      terminalRef.current = terminal
-      fitAddonRef.current = fitAddon
-    })
-
-    window.addEventListener('resize', handleResize)
-
-    return () => {
-      isDisposed = true
-      window.removeEventListener('resize', handleResize)
-      detachTerminal?.()
-      terminalRef.current?.dispose()
-      terminalRef.current = null
-      fitAddonRef.current = null
-    }
-  }, [attachTerminal, sendInput, sendResize])
-
-  function connect() {
-    connectSsh({
-      cols: terminalRef.current?.cols ?? 80,
-      rows: terminalRef.current?.rows ?? 24,
-    })
-  }
-
-  function disconnect() {
-    disconnectSsh()
-  }
-
-  function sendTerminalSize() {
-    if (!terminalRef.current) {
-      return
-    }
-
-    sendResize({
-      cols: terminalRef.current.cols,
-      rows: terminalRef.current.rows,
-    })
-  }
-
-  function applySuggestion(command: CommandTemplate) {
-    applyStoredSuggestion(command.command)
-  }
+  const {
+    applySuggestion,
+    connect,
+    disconnect,
+    errorMessage,
+    form,
+    status,
+    suggestions,
+    terminalContainerRef,
+    updateForm,
+  } = useSshTerminalPage()
 
   return (
     <PagePanel>
