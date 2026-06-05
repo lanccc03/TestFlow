@@ -24,18 +24,10 @@ export function ScriptListPage() {
     deleteMutation,
     executeMutation,
     filteredScripts,
-    groupFilter,
-    groups,
     search,
     scriptsQuery,
     setConfirmDeleteId,
-    setGroupFilter,
     setSearch,
-    setStatusFilter,
-    setTagFilter,
-    statusFilter,
-    tagFilter,
-    tags,
   } = useScriptListPage()
 
   return (
@@ -54,16 +46,8 @@ export function ScriptListPage() {
       />
 
       <ScriptFilters
-        groups={groups}
-        groupFilter={groupFilter}
-        onGroupFilterChange={setGroupFilter}
         onSearchChange={setSearch}
-        onStatusFilterChange={setStatusFilter}
-        onTagFilterChange={setTagFilter}
         search={search}
-        statusFilter={statusFilter}
-        tagFilter={tagFilter}
-        tags={tags}
       />
 
       <Table aria-label="脚本列表">

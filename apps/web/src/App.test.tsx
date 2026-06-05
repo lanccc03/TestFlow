@@ -221,6 +221,10 @@ describe('App', () => {
     renderApp()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
+    expect(screen.getByLabelText('搜索脚本')).toBeInTheDocument()
+    expect(screen.queryByLabelText('状态筛选')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('分组筛选')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('标签筛选')).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('搜索脚本'), {
       target: { value: '不存在' },
@@ -229,12 +233,6 @@ describe('App', () => {
 
     fireEvent.change(screen.getByLabelText('搜索脚本'), {
       target: { value: '座舱' },
-    })
-    fireEvent.change(screen.getByLabelText('状态筛选'), {
-      target: { value: 'published' },
-    })
-    fireEvent.change(screen.getByLabelText('分组筛选'), {
-      target: { value: 'stability' },
     })
     expect(screen.getByText('座舱冒烟测试')).toBeInTheDocument()
 

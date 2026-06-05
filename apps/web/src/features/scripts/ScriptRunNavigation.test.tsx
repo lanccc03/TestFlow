@@ -99,7 +99,7 @@ describe('script run navigation', () => {
     expect(screen.getByRole('columnheader', { name: '状态' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '操作' })).toBeInTheDocument()
 
-    expect(await screen.findByRole('group', { name: '脚本筛选' })).toBeInTheDocument()
+    expect(await screen.findByLabelText('搜索脚本')).toBeInTheDocument()
     expect(screen.getByRole('table', { name: '脚本列表' })).toBeInTheDocument()
 
     fireEvent.click(await screen.findByRole('button', { name: '运行 座舱冒烟测试' }))

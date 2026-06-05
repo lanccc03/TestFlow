@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type React from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -84,22 +84,21 @@ describe('HistoryPage', () => {
   it('filters execution history and links to report details', async () => {
     renderWithProviders(<HistoryPage />)
 
-    expect(await screen.findByRole('group', { name: '历史筛选' })).toBeInTheDocument()
+    expect(await screen.findByLabelText('搜索执行历史')).toBeInTheDocument()
     expect(screen.getByRole('table', { name: '任务记录' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '脚本' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '耗时' })).toBeInTheDocument()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('执行人'), {
+    fireEvent.change(screen.getByLabelText('搜索执行历史'), {
+      target: { value: 'bob' },
+    })
+    expect(screen.getByText('暂无执行记录')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('搜索执行历史'), {
       target: { value: 'alice' },
     })
-    fireEvent.click(screen.getByRole('button', { name: '查询历史' }))
-
-    await waitFor(() =>
-      expect(apiMock.listTasks).toHaveBeenLastCalledWith(
-        expect.objectContaining({ executor: 'alice' }),
-      ),
-    )
+    expect(screen.getByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看报告' })).toHaveAttribute(
       'href',
       '/reports/exec-1',
