@@ -1,4 +1,3 @@
-import { ListToolbar } from '@/components/layout/list'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -32,9 +31,10 @@ export function ScriptFilters({
   tags: string[]
 }) {
   return (
-    <ListToolbar
+    <div
       aria-label="脚本筛选"
-      className="grid-cols-4 max-sm:grid-cols-1"
+      className="grid grid-cols-4 gap-3 rounded-lg border bg-background/80 p-3 text-sm shadow-xs max-sm:grid-cols-1"
+      role="group"
     >
       <label className="grid gap-1.5">
         <span className="text-xs font-semibold text-muted-foreground">搜索脚本</span>
@@ -90,6 +90,6 @@ export function ScriptFilters({
           </SelectContent>
         </Select>
       </label>
-    </ListToolbar>
+    </div>
   )
 }
