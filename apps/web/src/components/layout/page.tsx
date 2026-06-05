@@ -16,7 +16,7 @@ export function PagePanel({
   return (
     <section
       className={cn(
-        'grid min-h-[360px] content-start gap-6 rounded-lg border bg-card p-6 text-card-foreground shadow-sm',
+        'grid min-h-[360px] content-start gap-5 text-foreground',
         className,
       )}
       {...props}
