@@ -194,7 +194,9 @@ describe('Report pages', () => {
   it('lists recent reports', async () => {
     renderWithProviders(<ReportListPage />)
 
-    expect(await screen.findByRole('region', { name: '最近报告' })).toBeInTheDocument()
+    expect(await screen.findByRole('table', { name: '最近报告' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: '脚本' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: '操作' })).toBeInTheDocument()
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看报告' })).toHaveAttribute(
       'href',

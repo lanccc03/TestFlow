@@ -1,10 +1,21 @@
+import { Link } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
 
-import { ListSurface } from '@/components/layout/list'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+
 import { api } from '@/app/backend'
 
-import { ExecutionSummaryRow } from '../components/ExecutionSummaryRow'
+import { statusVariant, taskStatusLabel } from '../utils/taskFormatters'
 
 export function ReportListPage() {
   const reportsQuery = useQuery({
@@ -21,28 +32,67 @@ export function ReportListPage() {
         subtitle="查看执行报告汇总"
       />
 
-      <ListSurface
-        description={`${reports.length} 个报告`}
-        title="最近报告"
-      >
-        {reportsQuery.isPending ? (
-          <div className="p-3">
-            <EmptyState title="正在加载报告" />
-          </div>
-        ) : reports.length === 0 ? (
-          <div className="p-3">
-            <EmptyState title="暂无报告" />
-          </div>
-        ) : (
-          reports.map((report) => (
-            <ExecutionSummaryRow
-              actionLabel="查看报告"
-              key={report.id}
-              task={report}
-            />
-          ))
-        )}
-      </ListSurface>
+      <div className="overflow-hidden rounded-lg border bg-background">
+        <Table aria-label="最近报告">
+          <TableHeader>
+            <TableRow>
+              <TableHead>脚本</TableHead>
+              <TableHead>状态</TableHead>
+              <TableHead>执行人</TableHead>
+              <TableHead>环境</TableHead>
+              <TableHead className="text-right">步骤</TableHead>
+              <TableHead className="text-right">耗时</TableHead>
+              <TableHead className="text-right">操作</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {reportsQuery.isPending ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <EmptyState title="正在加载报告" />
+                </TableCell>
+              </TableRow>
+            ) : reports.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <EmptyState title="暂无报告" />
+                </TableCell>
+              </TableRow>
+            ) : (
+              reports.map((report) => (
+                <TableRow key={report.id}>
+                  <TableCell className="max-w-[340px]">
+                    <div className="grid gap-1">
+                      <div className="font-medium">{report.script_name}</div>
+                      <div className="truncate text-xs text-muted-foreground">
+                        {report.id} · {report.executor}
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={statusVariant(report.status)}>
+                      {taskStatusLabel(report.status)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{report.executor}</TableCell>
+                  <TableCell>{report.environment}</TableCell>
+                  <TableCell className="text-right font-medium">
+                    {report.passed_step_count}/{report.step_count}
+                  </TableCell>
+                  <TableCell className="text-right font-medium">
+                    {report.duration_ms != null ? `${report.duration_ms} ms` : '-'}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button asChild variant="outline" size="sm">
+                      <Link to={`/reports/${report.id}`}>查看报告</Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </PagePanel>
   )
 }
