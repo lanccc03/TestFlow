@@ -85,7 +85,9 @@ describe('HistoryPage', () => {
     renderWithProviders(<HistoryPage />)
 
     expect(await screen.findByRole('group', { name: '历史筛选' })).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: '任务记录' })).toBeInTheDocument()
+    expect(screen.getByRole('table', { name: '任务记录' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: '脚本' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: '耗时' })).toBeInTheDocument()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('执行人'), {
