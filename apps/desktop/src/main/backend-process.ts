@@ -43,14 +43,21 @@ type BackendProcessOptions = {
       stdio: "pipe";
     },
   ) => BackendProcess;
+  terminateProcessTree?: (process: BackendProcess) => Promise<void>;
 };
 
 export class BackendProcessManager {
   private readonly events = new EventEmitter();
   private readonly options: Required<
-    Omit<BackendProcessOptions, "env" | "fetchHealth" | "spawnProcess">
+    Omit<
+      BackendProcessOptions,
+      "env" | "fetchHealth" | "spawnProcess" | "terminateProcessTree"
+    >
   > &
     Pick<BackendProcessOptions, "env" | "fetchHealth" | "spawnProcess">;
+  private readonly terminateProcessTree: (
+    process: BackendProcess,
+  ) => Promise<void>;
   private process: BackendProcess | undefined;
   private status: BackendStatus;
   private healthTimer: NodeJS.Timeout | undefined;
@@ -62,6 +69,10 @@ export class BackendProcessManager {
       startupTimeoutMs: 30000,
       ...options,
     };
+    this.terminateProcessTree =
+      options.terminateProcessTree ??
+      ((processToTerminate) =>
+        this.defaultTerminateProcessTree(processToTerminate));
     this.status = {
       state: "stopped",
       healthUrl: options.healthUrl,
@@ -158,17 +169,20 @@ export class BackendProcessManager {
     this.stopping = true;
     this.clearHealthTimer();
 
-    const child = this.process;
-    if (child && !child.killed) {
-      child.kill("SIGTERM");
-    }
+    try {
+      const child = this.process;
+      if (child && !child.killed) {
+        await this.terminateProcessTree(child);
+      }
 
-    this.process = undefined;
-    this.stopping = false;
-    this.setStatus({
-      state: "stopped",
-      healthUrl: this.options.healthUrl,
-    });
+      this.process = undefined;
+      this.setStatus({
+        state: "stopped",
+        healthUrl: this.options.healthUrl,
+      });
+    } finally {
+      this.stopping = false;
+    }
   }
 
   private async waitForHealthy(): Promise<void> {
@@ -258,5 +272,45 @@ export class BackendProcessManager {
     },
   ): BackendProcess {
     return spawn(command, args, options);
+  }
+
+  private async defaultTerminateProcessTree(
+    child: BackendProcess,
+  ): Promise<void> {
+    if (process.platform === "win32" && child.pid) {
+      await new Promise<void>((resolve) => {
+        const killer = spawn(
+          "taskkill",
+          ["/pid", String(child.pid), "/t", "/f"],
+          { stdio: "ignore" },
+        );
+        killer.once("error", () => {
+          child.kill("SIGTERM");
+          resolve();
+        });
+        killer.once("exit", (code) => {
+          if (code !== 0 && !child.killed) {
+            child.kill("SIGTERM");
+          }
+          resolve();
+        });
+      });
+      return;
+    }
+
+    const exited = this.waitForExit(child, 5000);
+    child.kill("SIGTERM");
+    await exited;
+  }
+
+  private waitForExit(child: BackendProcess, timeoutMs: number): Promise<void> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(resolve, timeoutMs);
+      timeout.unref();
+      child.once("exit", () => {
+        clearTimeout(timeout);
+        resolve();
+      });
+    });
   }
 }

@@ -102,6 +102,40 @@ test('stop terminates a running backend process and reports stopped', async () =
 }
 )
 
+test('stop waits for the backend process tree to terminate before reporting stopped', async () => {
+  const child = new FakeChildProcess()
+  const healthChecks = [false, true]
+  let resolveTermination
+  const termination = new Promise((resolve) => {
+    resolveTermination = resolve
+  })
+  const manager = new BackendProcessManager({
+    command: 'uv',
+    args: ['run', 'python', '-m', 'uvicorn'],
+    cwd: '/repo/backend',
+    healthUrl: 'http://127.0.0.1:8000/health',
+    spawnProcess: () => child,
+    fetchHealth: async () => ({ ok: healthChecks.shift() ?? true }),
+    terminateProcessTree: async (process) => {
+      assert.equal(process.pid, 4242)
+      await termination
+      process.kill('SIGTERM')
+    },
+    pollIntervalMs: 5,
+  })
+
+  await manager.start()
+  const stopPromise = manager.stop()
+  await new Promise((resolve) => setImmediate(resolve))
+
+  assert.equal(manager.getStatus().state, 'running')
+  resolveTermination()
+  await stopPromise
+
+  assert.equal(child.killed, true)
+  assert.equal(manager.getStatus().state, 'stopped')
+})
+
 test('desktop backend defaults to single-process uvicorn without reload', () => {
   const options = createBackendProcessOptions({
     appPath: '/repo/apps/desktop',

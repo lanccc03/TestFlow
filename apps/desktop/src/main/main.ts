@@ -7,6 +7,7 @@ import { BackendProcessManager } from "./backend-process.js";
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
 
 let backendManager: BackendProcessManager | undefined;
+let isQuittingAfterBackendStop = false;
 
 function createMainWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -98,8 +99,16 @@ app.whenReady().then(() => {
   });
 });
 
-app.on("before-quit", () => {
-  void backendManager?.stop();
+app.on("before-quit", (event) => {
+  if (isQuittingAfterBackendStop || !backendManager) {
+    return;
+  }
+
+  event.preventDefault();
+  void backendManager.stop().finally(() => {
+    isQuittingAfterBackendStop = true;
+    app.quit();
+  });
 });
 
 app.on("window-all-closed", () => {
