@@ -8,6 +8,7 @@ describe('appRoutes', () => {
       '/scripts',
       '/scripts/new',
       '/scripts/:scriptId',
+      '/framework-config',
       '/tasks',
       '/history',
       '/reports',
@@ -16,5 +17,14 @@ describe('appRoutes', () => {
       '/scp',
       '/commands',
     ])
+  })
+
+  it('places framework config in the scripts navigation group', () => {
+    expect(
+      appRoutes.find((route) => route.path === '/framework-config'),
+    ).toMatchObject({
+      label: '框架配置',
+      navGroup: 'scripts',
+    })
   })
 })

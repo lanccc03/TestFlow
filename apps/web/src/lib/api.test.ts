@@ -6,6 +6,7 @@ import type {
   ExecutionEventMessage,
   ExecutionTask,
   ExecutionTaskCreate,
+  JsonValue,
 } from './api'
 
 describe('createApiClient', () => {
@@ -196,6 +197,40 @@ describe('createApiClient', () => {
       tags: ['logs'],
     })
     expect(httpClient.delete).toHaveBeenCalledWith('/api/commands/command-1')
+  })
+
+  it('exposes framework config read and replace endpoints', async () => {
+    const config = {
+      environment: { name: 'dev', base_url: 'http://127.0.0.1' },
+      devices: [{ name: 'bench-1', host: '192.168.1.10' }],
+      variables: { retries: 2, dry_run: false },
+    } satisfies JsonValue
+    const httpClient = {
+      get: vi.fn().mockResolvedValue({ data: config }),
+      put: vi.fn().mockResolvedValue({
+        data: {
+          ...config,
+          variables: { retries: 3, dry_run: false },
+        },
+      }),
+    } as unknown as AxiosInstance
+    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
+
+    await expect(api.getFrameworkConfig()).resolves.toEqual(config)
+    await expect(
+      api.updateFrameworkConfig({
+        ...config,
+        variables: { retries: 3, dry_run: false },
+      }),
+    ).resolves.toMatchObject({
+      variables: { retries: 3 },
+    })
+
+    expect(httpClient.get).toHaveBeenCalledWith('/api/framework/config')
+    expect(httpClient.put).toHaveBeenCalledWith('/api/framework/config', {
+      ...config,
+      variables: { retries: 3, dry_run: false },
+    })
   })
 
   it('exposes execution task endpoints', async () => {

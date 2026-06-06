@@ -8,6 +8,7 @@ import {
   Library,
   Network,
   SendToBack,
+  Settings2,
   SquareTerminal,
 } from 'lucide-react'
 import type React from 'react'
@@ -19,7 +20,11 @@ import {
   ReportListPage,
   TaskPage,
 } from '@/features/execution'
-import { ScriptEditorPage, ScriptListPage } from '@/features/scripts'
+import {
+  FrameworkConfigPage,
+  ScriptEditorPage,
+  ScriptListPage,
+} from '@/features/scripts'
 import { CommandLibraryPage, SshTerminalPage } from '@/features/tools'
 
 export type AppRoute = {
@@ -82,6 +87,14 @@ export const appRoutes: AppRoute[] = [
     icon: FileCode2,
     element: <ScriptEditorPage />,
     navHidden: true,
+  },
+  {
+    path: '/framework-config',
+    label: '框架配置',
+    description: '读取并替换自动化框架的完整 JSON 配置。',
+    navGroup: 'scripts',
+    icon: Settings2,
+    element: <FrameworkConfigPage />,
   },
   {
     path: '/tasks',

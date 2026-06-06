@@ -11,6 +11,14 @@ export type ItemList<T = unknown> = {
   items: T[]
 }
 
+export type JsonValue =
+  | Record<string, unknown>
+  | unknown[]
+  | string
+  | number
+  | boolean
+  | null
+
 export type KeywordParameter = {
   name: string
   description: string
@@ -319,6 +327,10 @@ export function createApiClient({
 
   return {
     getHealth: () => request<HealthResponse>('/health'),
+    getFrameworkConfig: () =>
+      request<JsonValue>('/api/framework/config'),
+    updateFrameworkConfig: (config: JsonValue) =>
+      put<JsonValue, JsonValue>('/api/framework/config', config),
     listKeywords: () => request<ItemList<KeywordMetadata>>('/api/keywords'),
     listScripts: () => request<ItemList<ScriptSummary>>('/api/scripts'),
     getScript: (scriptId: string) =>
