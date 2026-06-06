@@ -217,7 +217,7 @@ describe('App', () => {
     )
   })
 
-  it('filters scripts and deletes a listed script', async () => {
+  it('searches scripts and deletes a listed script without advanced filters', async () => {
     renderApp()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()

@@ -5,6 +5,7 @@ import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -14,7 +15,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-import { ScriptFilters } from '../components/ScriptFilters'
 import { useScriptListPage } from '../hooks/useScriptListPage'
 
 export function ScriptListPage() {
@@ -34,7 +34,7 @@ export function ScriptListPage() {
     <PagePanel>
       <PageHeader
         title="脚本管理"
-        subtitle="管理 YAML 测试脚本、筛选分组标签，并进入可视化编辑。"
+        subtitle="管理 YAML 测试脚本，并进入可视化编辑。"
         actions={
           <Button asChild>
             <Link to="/scripts/new">
@@ -45,9 +45,11 @@ export function ScriptListPage() {
         }
       />
 
-      <ScriptFilters
-        onSearchChange={setSearch}
-        search={search}
+      <Input
+        aria-label="搜索脚本"
+        onChange={(event) => setSearch(event.target.value)}
+        placeholder="搜索脚本"
+        value={search}
       />
 
       <Table aria-label="脚本列表">
@@ -79,7 +81,7 @@ export function ScriptListPage() {
           ) : filteredScripts.length === 0 ? (
             <TableRow>
               <TableCell colSpan={6}>
-                <EmptyState title="没有匹配的脚本" />
+                <EmptyState title={search.trim() ? '没有匹配的脚本' : '没有脚本'} />
               </TableCell>
             </TableRow>
           ) : (

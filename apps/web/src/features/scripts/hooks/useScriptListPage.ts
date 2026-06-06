@@ -4,15 +4,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { api } from '@/app/backend'
 
-import { filterScripts, uniqueValues } from '../utils/filters'
-
 export function useScriptListPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('all')
-  const [groupFilter, setGroupFilter] = useState('all')
-  const [tagFilter, setTagFilter] = useState('all')
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | undefined>()
 
   const scriptsQuery = useQuery({
@@ -51,35 +46,32 @@ export function useScriptListPage() {
   })
 
   const scripts = scriptsQuery.data?.items ?? []
-  const groups = uniqueValues(
-    scripts.map((script) => script.group).filter(Boolean),
-  )
-  const tags = uniqueValues(scripts.flatMap((script) => script.tags))
-  const filteredScripts = filterScripts({
-    scripts,
-    search,
-    statusFilter,
-    groupFilter,
-    tagFilter,
-  })
+  const query = search.trim().toLowerCase()
+  const filteredScripts = query
+    ? scripts.filter((script) =>
+        [
+          script.id,
+          script.name,
+          script.description,
+          script.group,
+          ...script.tags,
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(query),
+      )
+    : scripts
 
   return {
     confirmDeleteId,
     deleteMutation,
     executeMutation,
     filteredScripts,
-    groupFilter,
-    groups,
     copyMutation,
-    scriptsQuery,
     search,
+    scripts,
+    scriptsQuery,
     setConfirmDeleteId,
-    setGroupFilter,
     setSearch,
-    setStatusFilter,
-    setTagFilter,
-    statusFilter,
-    tagFilter,
-    tags,
   }
 }
