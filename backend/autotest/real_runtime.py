@@ -1,11 +1,31 @@
 from collections.abc import AsyncIterator
 
-from autotest.contracts import FrameworkEvent, FrameworkKeywordDef, FrameworkRunRequest
+from autotest.contracts import (
+    FrameworkConfigError,
+    FrameworkEvent,
+    FrameworkKeywordDef,
+    FrameworkRunRequest,
+    JsonValue,
+)
 
 
 class RealAutotestRuntime:
     def list_keywords(self) -> list[FrameworkKeywordDef]:
         raise NotImplementedError("Real autotest runtime is not implemented yet")
+
+    def read_config(self) -> JsonValue:
+        raise FrameworkConfigError(
+            code="framework_config_unavailable",
+            message="Real autotest runtime config is not implemented yet",
+            status_code=501,
+        )
+
+    def write_config(self, _config: JsonValue) -> JsonValue:
+        raise FrameworkConfigError(
+            code="framework_config_unavailable",
+            message="Real autotest runtime config is not implemented yet",
+            status_code=501,
+        )
 
     def run_script(
         self,

@@ -40,17 +40,19 @@ def test_api_route_groups_are_registered(tmp_path: Path) -> None:
             "/api/tasks",
             "/api/reports",
             "/api/commands",
+            "/api/framework/config",
         ]
         responses = [client.get(endpoint) for endpoint in endpoints]
 
     assert [response.status_code for response in responses] == [200] * len(endpoints)
     assert responses[0].json()["items"][0]["name"] == "wait"
     assert responses[1].json() == {"items": []}
-    assert [response.json() for response in responses[2:]] == [
+    assert [response.json() for response in responses[2:5]] == [
         {"items": []},
         {"items": []},
         {"items": []},
     ]
+    assert responses[5].json() == {}
 
 
 def test_websocket_route_is_registered(tmp_path: Path) -> None:
@@ -129,6 +131,7 @@ def test_api_route_modules_keep_expected_prefixes() -> None:
     from app.api.routes import (
         commands,
         executions,
+        framework,
         health,
         keywords,
         reports,
@@ -143,6 +146,7 @@ def test_api_route_modules_keep_expected_prefixes() -> None:
     assert scripts.router.prefix == ""
     assert executions.router.prefix == ""
     assert commands.router.prefix == ""
+    assert framework.router.prefix == ""
     assert websockets.router.prefix == ""
     assert terminal.router.prefix == ""
 

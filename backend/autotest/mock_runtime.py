@@ -9,6 +9,7 @@ from autotest.contracts import (
     FrameworkKeywordParam,
     FrameworkRunRequest,
     FrameworkStep,
+    JsonValue,
 )
 
 MAX_WAIT_SECONDS = 2.0
@@ -61,8 +62,18 @@ class MockRunCanceled(Exception):
 
 
 class MockAutotestRuntime:
+    def __init__(self) -> None:
+        self._config: JsonValue = {}
+
     def list_keywords(self) -> list[FrameworkKeywordDef]:
         return list(KEYWORD_DEFINITIONS)
+
+    def read_config(self) -> JsonValue:
+        return self._config
+
+    def write_config(self, config: JsonValue) -> JsonValue:
+        self._config = config
+        return self._config
 
     def run_script(
         self,

@@ -92,6 +92,101 @@ pnpm dev:backend
 Unknown autotest runtime: <value>
 ```
 
+## 框架配置适配
+
+TestFlow 提供框架配置读写接口，但不直接管理真实配置文件路径。配置仍然属于自动化
+框架，由 runtime 通过 `backend/autotest/entry.py` 暴露给上层：
+
+```text
+FastAPI routes
+  -> autotest.entry.read_config() / write_config(config)
+    -> autotest.registry.get_runtime()
+      -> runtime.read_config() / write_config(config)
+```
+
+公开 API：
+
+```text
+GET /api/framework/config
+PUT /api/framework/config
+```
+
+`GET` 返回当前框架配置的完整 JSON；`PUT` 接收整份 JSON 配置并完整替换，返回 runtime
+保存后的 JSON。请求体不要包一层 `config` 字段，例如：
+
+```json
+{
+  "environment": {
+    "name": "dev",
+    "base_url": "http://127.0.0.1"
+  },
+  "devices": [
+    {
+      "name": "bench-1",
+      "host": "192.168.1.10"
+    }
+  ],
+  "variables": {
+    "retries": 2,
+    "dry_run": false
+  }
+}
+```
+
+后端只要求请求体是合法 JSON，不理解、不裁剪、不补默认字段。JSON 根值可以是对象、
+数组、字符串、数字、布尔值或 `null`；真实框架是否接受这些形态由 runtime 决定。
+
+runtime 协议需要实现：
+
+```python
+from autotest.contracts import JsonValue
+
+
+class RealAutotestRuntime:
+    def read_config(self) -> JsonValue:
+        return load_real_framework_config()
+
+    def write_config(self, config: JsonValue) -> JsonValue:
+        return save_real_framework_config(config)
+```
+
+适配建议：
+
+- 在 `real_runtime.py` 内定位、读取和写入真实框架自己的 JSON 配置文件。
+- 如果框架配置不存在，可以按真实框架语义创建、返回默认值或抛出错误；TestFlow 不强制。
+- 如果配置不可读、不可写或 runtime 尚未实现，抛出 `FrameworkConfigError`，API 会转换为统一
+  error envelope。
+- 不要在 FastAPI route、`app.modules.*` 或前端里硬编码真实框架配置路径。
+- 不要让 TestFlow 维护一份与真实框架分离的设备、环境或变量配置副本。
+
+错误示例：
+
+```python
+from autotest.contracts import FrameworkConfigError
+
+
+raise FrameworkConfigError(
+    code="framework_config_unavailable",
+    message="Framework config is unavailable",
+    status_code=501,
+    details={"reason": "real runtime is not implemented"},
+)
+```
+
+API 响应：
+
+```json
+{
+  "error": {
+    "code": "framework_config_unavailable",
+    "message": "Framework config is unavailable",
+    "details": {
+      "reason": "real runtime is not implemented"
+    }
+  }
+}
+```
+
 ## 请求契约
 
 `FrameworkRunRequest` 是 TestFlow 传给自动化框架的标准输入。

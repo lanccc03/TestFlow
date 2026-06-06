@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.routes import (
     commands,
     executions,
+    framework,
     keywords,
     reports,
     scripts,
@@ -16,6 +17,7 @@ api_router.include_router(keywords.router, prefix="")
 api_router.include_router(scripts.router, prefix="")
 api_router.include_router(executions.router, prefix="")
 api_router.include_router(commands.router, prefix="")
+api_router.include_router(framework.router, prefix="")
 
 websocket_router = APIRouter()
 websocket_router.include_router(websockets.router)

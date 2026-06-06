@@ -3,6 +3,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
+type JsonValue = dict[str, Any] | list[Any] | str | int | float | bool | None
+
 FrameworkKeywordParamType = Literal[
     "string", "integer", "number", "boolean", "object", "array"
 ]
@@ -27,6 +29,22 @@ class CancellationToken:
 
     def cancel(self) -> None:
         self.is_canceled = True
+
+
+class FrameworkConfigError(RuntimeError):
+    def __init__(
+        self,
+        *,
+        code: str,
+        message: str,
+        status_code: int = 500,
+        details: dict[str, Any] | list[Any] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.status_code = status_code
+        self.details = details or {}
 
 
 @dataclass(frozen=True)
