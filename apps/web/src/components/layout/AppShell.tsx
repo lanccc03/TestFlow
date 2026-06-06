@@ -16,10 +16,10 @@ export function AppShell({
 }) {
   return (
     <>
-      <div className="grid min-h-screen grid-cols-[264px_minmax(0,1fr)] bg-background pb-10 text-foreground max-lg:grid-cols-1">
+      <div className="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-background pb-10 text-foreground max-lg:grid-cols-1">
         <Sidebar />
-        <div className="min-w-0">
-          <main className="grid gap-5 p-3 pb-8 max-sm:px-4">
+        <div className="min-w-0 bg-[linear-gradient(180deg,rgb(255_255_255_/_0.48),transparent_240px)]">
+          <main className="mx-auto grid w-full max-w-[1480px] gap-5 px-5 py-5 pb-8 max-sm:px-4">
             {children}
           </main>
         </div>

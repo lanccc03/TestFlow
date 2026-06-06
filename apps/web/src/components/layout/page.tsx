@@ -34,9 +34,9 @@ export function PageHeader({
   title: React.ReactNode
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 max-sm:flex-col">
+    <div className="flex min-h-14 items-start justify-between gap-4 border-b border-border/75 pb-4 max-sm:flex-col">
       <div className="grid gap-1.5">
-        <h1 className="m-0 text-3xl font-semibold leading-tight text-foreground">
+        <h1 className="m-0 text-[1.65rem] font-semibold leading-tight text-foreground">
           {title}
         </h1>
         {subtitle ? (
@@ -44,7 +44,7 @@ export function PageHeader({
         ) : null}
       </div>
       {actions ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2 pt-0.5">
           {actions}
         </div>
       ) : null}
@@ -62,7 +62,7 @@ export function EmptyState({
   title: React.ReactNode
 }) {
   return (
-    <Empty className="min-h-18 rounded-lg border border-dashed bg-muted/30">
+    <Empty className="min-h-18 rounded-lg border border-dashed border-border/80 bg-muted/25">
       <EmptyHeader>
         {icon ? <EmptyMedia variant="icon">{icon}</EmptyMedia> : null}
         <EmptyTitle>{title}</EmptyTitle>

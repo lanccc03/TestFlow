@@ -16,7 +16,7 @@ export function formatEventLog(event: ExecutionUpdateEvent) {
 }
 
 export function statusVariant(status: TaskStatus | StepStatus) {
-  if (status === 'passed') return 'default'
+  if (status === 'passed') return 'success'
   if (status === 'failed' || status === 'error') return 'destructive'
   return 'secondary'
 }

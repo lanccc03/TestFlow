@@ -5,7 +5,7 @@ import { statusVariant, taskStatusLabel } from '../utils/taskFormatters'
 
 export function TaskDetail({ task }: { task: ExecutionTask }) {
   return (
-    <div className="grid gap-3 rounded-lg border bg-card p-3.5">
+    <div className="grid gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="m-0 text-base font-semibold">{task.script_name}</h3>
         <Badge variant={statusVariant(task.status)}>

@@ -2,13 +2,6 @@ import { Square } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 
 import { TaskDetail } from '../components/TaskDetail'
@@ -42,11 +35,11 @@ export function TaskPage() {
       />
 
 
-      <div className="grid grid-cols-[minmax(300px,0.8fr)_minmax(0,1.2fr)] gap-4 max-xl:grid-cols-1">
-        <Card>
-          <CardHeader>
-            <CardTitle>当前任务</CardTitle>
-            <CardAction>
+      <div className="grid grid-cols-[minmax(300px,0.78fr)_minmax(0,1.22fr)] gap-4 max-xl:grid-cols-1">
+        <section className="overflow-hidden rounded-lg border border-border/80 bg-card/60">
+          <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border/75 bg-muted/25 px-4 py-2">
+            <h2 className="m-0 text-sm font-semibold">当前任务</h2>
+            <div>
               <Button
                 disabled={!canCancelTask(activeTask) || cancelMutationIsPending}
                 onClick={stopActiveTask}
@@ -57,29 +50,29 @@ export function TaskPage() {
                 <Square aria-hidden="true" data-icon="inline-start" />
                 停止
               </Button>
-            </CardAction>
-          </CardHeader>
-          <CardContent>
+            </div>
+          </div>
+          <div className="p-4">
             {activeTask ? (
               <TaskDetail task={activeTask} />
             ) : (
               <EmptyState title="启动执行后显示当前任务" />
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>实时日志</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <section className="overflow-hidden rounded-lg border border-border/80 bg-card/70">
+          <div className="flex min-h-12 items-center border-b border-border/75 bg-muted/25 px-4 py-2">
+            <h2 className="m-0 text-sm font-semibold">实时日志</h2>
+          </div>
+          <div className="p-4">
             {liveLogs.length === 0 ? (
               <EmptyState title="等待执行日志" />
             ) : (
-              <div className="grid max-h-[420px] content-start gap-2 overflow-auto" aria-label="实时日志">
+              <div className="grid max-h-[420px] content-start gap-1.5 overflow-auto rounded-md border border-slate-900/10 bg-slate-950 px-3 py-2" aria-label="实时日志">
                 {liveLogs.map((log, index) => (
                   <code
-                    className="block overflow-wrap-anywhere rounded-md bg-muted px-2 py-1.5 font-mono text-xs leading-relaxed text-muted-foreground"
+                    className="block overflow-wrap-anywhere border-b border-white/5 py-1.5 font-mono text-xs leading-relaxed text-slate-200 last:border-b-0"
                     key={`${log}-${index}`}
                   >
                     {log}
@@ -87,14 +80,14 @@ export function TaskPage() {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        <Card className="col-span-full">
-          <CardHeader>
-            <CardTitle>最近任务</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-2.5">
+        <section className="col-span-full overflow-hidden rounded-lg border border-border/80 bg-card/55">
+          <div className="flex min-h-12 items-center border-b border-border/75 bg-muted/25 px-4 py-2">
+            <h2 className="m-0 text-sm font-semibold">最近任务</h2>
+          </div>
+          <div className="grid gap-1 p-2">
             {tasksQuery.isPending ? (
               <EmptyState title="正在加载任务" />
             ) : recentTasks.length === 0 ? (
@@ -110,8 +103,8 @@ export function TaskPage() {
                 />
               ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
     </PagePanel>
   )

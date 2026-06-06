@@ -27,7 +27,7 @@ export function StatusBar({
   websocketStatus: WebSocketStatus
 }) {
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-50 flex h-8 items-center justify-between border-t border-sidebar-border bg-sidebar px-2 text-xs text-sidebar-foreground shadow-[0_-1px_2px_rgb(0_0_0_/_0.06)]">
+    <footer className="fixed inset-x-0 bottom-0 z-50 flex h-8 items-center justify-between border-t border-sidebar-border bg-sidebar/95 px-2 text-xs text-sidebar-foreground shadow-[0_-1px_2px_rgb(31_42_55_/_0.05)] backdrop-blur">
       <div className="flex min-w-0 items-center gap-1 px-1 text-[11px] text-sidebar-foreground/60 max-sm:hidden">
         <span className="font-medium text-sidebar-foreground/75">TestFlow</span>
         <span aria-hidden="true">/</span>

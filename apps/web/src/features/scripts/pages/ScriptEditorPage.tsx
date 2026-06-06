@@ -10,12 +10,6 @@ import {
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import {
@@ -118,105 +112,111 @@ export function ScriptEditorPage() {
       ) : null}
 
       <div className="grid gap-4">
-        <Card className="gap-3">
-          <CardHeader>
-            <CardTitle>基本信息</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
-              <label className="grid gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">脚本 ID</span>
-                <Input
-                  aria-label="脚本 ID"
-                  disabled={Boolean(scriptId)}
-                  value={script.id}
-                  onChange={(event) => updateScript({ id: event.target.value })}
-                />
-              </label>
-              <label className="grid gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">脚本名称</span>
-                <Input
-                  aria-label="脚本名称"
-                  value={script.name}
-                  onChange={(event) => updateScript({ name: event.target.value })}
-                />
-              </label>
-              <label className="grid gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">分组</span>
-                <Input
-                  aria-label="分组"
-                  value={script.group}
-                  onChange={(event) => updateScript({ group: event.target.value })}
-                />
-              </label>
-              <label className="grid gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">标签</span>
-                <Input
-                  aria-label="标签"
-                  value={tagText}
-                  onChange={(event) => setTagText(event.target.value)}
-                />
-              </label>
-              <label className="col-span-full grid gap-1.5">
-                <span className="text-xs font-semibold text-muted-foreground">描述</span>
-                <Textarea
-                  aria-label="描述"
-                  value={script.description}
-                  onChange={(event) =>
-                    updateScript({ description: event.target.value })
-                  }
-                />
-              </label>
-            </div>
-          </CardContent>
-        </Card>
+        <section className="grid gap-3 rounded-lg border border-border/80 bg-card/55 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="m-0 text-sm font-semibold text-foreground">基本信息</h2>
+            <span className="text-xs text-muted-foreground">
+              {scriptId ? '编辑已有脚本' : '创建新脚本'}
+            </span>
+          </div>
+          <div className="grid grid-cols-4 gap-3 max-sm:grid-cols-1">
+            <label className="grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">脚本 ID</span>
+              <Input
+                aria-label="脚本 ID"
+                disabled={Boolean(scriptId)}
+                value={script.id}
+                onChange={(event) => updateScript({ id: event.target.value })}
+              />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">脚本名称</span>
+              <Input
+                aria-label="脚本名称"
+                value={script.name}
+                onChange={(event) => updateScript({ name: event.target.value })}
+              />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">分组</span>
+              <Input
+                aria-label="分组"
+                value={script.group}
+                onChange={(event) => updateScript({ group: event.target.value })}
+              />
+            </label>
+            <label className="grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">标签</span>
+              <Input
+                aria-label="标签"
+                value={tagText}
+                onChange={(event) => setTagText(event.target.value)}
+              />
+            </label>
+            <label className="col-span-full grid gap-1.5">
+              <span className="text-xs font-semibold text-muted-foreground">描述</span>
+              <Textarea
+                aria-label="描述"
+                value={script.description}
+                onChange={(event) =>
+                  updateScript({ description: event.target.value })
+                }
+              />
+            </label>
+          </div>
+        </section>
 
-        <div className="grid grid-cols-[minmax(280px,0.8fr)_minmax(320px,1fr)] gap-4 max-xl:grid-cols-1">
-          <Card className="gap-3">
-            <CardHeader>
-              <div className="flex items-center justify-between gap-2">
-                <CardTitle>步骤列表</CardTitle>
-                <Button onClick={addStep} type="button" variant="secondary">
-                  <Plus aria-hidden="true" data-icon="inline-start" />
-                  添加步骤
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="grid gap-2">
+        <div className="grid grid-cols-[minmax(280px,0.72fr)_minmax(360px,1.28fr)] gap-4 max-xl:grid-cols-1">
+          <section className="overflow-hidden rounded-lg border border-border/80 bg-card/55">
+            <div className="flex min-h-12 items-center justify-between gap-2 border-b border-border/75 bg-muted/25 px-3 py-2">
+              <h2 className="m-0 text-sm font-semibold text-foreground">步骤列表</h2>
+              <Button onClick={addStep} type="button" variant="secondary">
+                <Plus aria-hidden="true" data-icon="inline-start" />
+                添加步骤
+              </Button>
+            </div>
+            <div className="grid gap-1 p-2">
               {script.steps.length === 0 ? (
                 <EmptyState title="暂无步骤" />
               ) : (
                 script.steps.map((step, index) => (
                   <button
                     className={cn(
-                      'grid gap-1 rounded-lg border bg-card p-2.5 text-left text-card-foreground transition-colors hover:bg-muted/60',
+                      'grid grid-cols-[2rem_minmax(0,1fr)] gap-2 rounded-md border border-transparent p-2.5 text-left text-card-foreground transition-colors hover:bg-muted/45',
                       step.id === selectedStep?.id &&
-                        'border-ring ring-2 ring-ring/20',
+                        'border-border bg-muted/55 shadow-[inset_3px_0_0_var(--primary)]',
                     )}
                     key={step.id}
                     onClick={() => setSelectedStepId(step.id)}
                     type="button"
                   >
-                    <span className="text-xs text-muted-foreground">
-                      步骤 {index + 1}
+                    <span className="flex size-7 items-center justify-center rounded-md bg-secondary text-xs font-semibold text-secondary-foreground">
+                      {index + 1}
                     </span>
-                    <strong className="text-sm font-semibold">
-                      {step.keyword || '未选择关键字'}
-                    </strong>
-                    <em className="text-xs not-italic text-muted-foreground">
-                      {step.enabled ? '启用' : '禁用'}
-                    </em>
+                    <span className="grid min-w-0 gap-1">
+                      <strong className="truncate text-sm font-semibold">
+                        {step.keyword || '未选择关键字'}
+                      </strong>
+                      <em className="text-xs not-italic text-muted-foreground">
+                        {step.enabled ? '启用' : '禁用'}
+                      </em>
+                    </span>
                   </button>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
 
-          <Card className="gap-3">
-            <CardHeader>
-              <CardTitle>步骤详情</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
+          <section className="overflow-hidden rounded-lg border border-border/80 bg-card/70">
+            <div className="flex min-h-12 items-center justify-between gap-3 border-b border-border/75 bg-muted/25 px-4 py-2">
+              <h2 className="m-0 text-sm font-semibold text-foreground">步骤详情</h2>
+              {selectedStep ? (
+                <span className="text-xs text-muted-foreground">
+                  {selectedStep.id}
+                </span>
+              ) : null}
+            </div>
+            <div className="grid gap-4 p-4">
               {selectedStep ? (
                 <>
                   <div className="flex flex-wrap gap-2">
@@ -335,8 +335,8 @@ export function ScriptEditorPage() {
               ) : (
                 <EmptyState title="请选择或添加步骤" />
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </div>
       </div>
     </PagePanel>

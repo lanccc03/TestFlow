@@ -1,5 +1,4 @@
 import { Badge } from '@/components/ui/badge'
-import { Card } from '@/components/ui/card'
 import type { ExecutionTaskSummary } from '@/lib/api'
 import { statusVariant, taskStatusLabel } from '../utils/taskFormatters'
 
@@ -46,27 +45,22 @@ export function TaskSummaryItem({
 
   if (onSelect) {
     return (
-      <Card
+      <button
         aria-label={`查看任务 ${task.id}`}
         aria-pressed={isSelected}
-        asChild
-        className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3 text-left transition-colors hover:bg-muted/60 data-[selected=true]:border-ring data-[selected=true]:ring-2 data-[selected=true]:ring-ring/20"
+        className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border border-transparent p-3 text-left transition-colors hover:bg-muted/45 data-[selected=true]:border-border data-[selected=true]:bg-muted/55 data-[selected=true]:shadow-[inset_3px_0_0_var(--primary)]"
         data-selected={isSelected}
-        size="sm"
+        onClick={onSelect}
+        type="button"
       >
-        <button onClick={onSelect} type="button">
-          {content}
-        </button>
-      </Card>
+        {content}
+      </button>
     )
   }
 
   return (
-    <Card
-      size="sm"
-      className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 p-3"
-    >
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-md border border-border/70 bg-card/55 p-3">
       {content}
-    </Card>
+    </div>
   )
 }

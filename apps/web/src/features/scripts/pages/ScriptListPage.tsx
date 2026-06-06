@@ -1,6 +1,7 @@
 import { Copy, Edit3, FilePlus2, Play, Trash2 } from 'lucide-react'
 import { Link } from 'react-router'
 
+import { ListToolbar } from '@/components/layout/list'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -35,22 +36,22 @@ export function ScriptListPage() {
       <PageHeader
         title="脚本管理"
         subtitle="管理 YAML 测试脚本，并进入可视化编辑。"
-        actions={
-          <Button asChild>
-            <Link to="/scripts/new">
-              <FilePlus2 aria-hidden="true" data-icon="inline-start" />
-              新建脚本
-            </Link>
-          </Button>
-        }
       />
 
-      <Input
-        aria-label="搜索脚本"
-        onChange={(event) => setSearch(event.target.value)}
-        placeholder="搜索脚本"
-        value={search}
-      />
+      <ListToolbar className="grid-cols-[minmax(280px,1fr)_auto] items-center max-sm:grid-cols-1">
+        <Input
+          aria-label="搜索脚本"
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="搜索脚本名称、描述、分组或标签"
+          value={search}
+        />
+        <Button asChild>
+          <Link to="/scripts/new">
+            <FilePlus2 aria-hidden="true" data-icon="inline-start" />
+            新建脚本
+          </Link>
+        </Button>
+      </ListToolbar>
 
       <Table aria-label="脚本列表">
         <TableHeader>
