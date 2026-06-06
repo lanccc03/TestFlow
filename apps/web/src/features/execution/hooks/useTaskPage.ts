@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'react-router'
 
 import { api, createExecutionSocket } from '@/app/backend'
 
 import { formatEventLog, formatLogEntry } from '../utils/taskFormatters'
-import { isExecutionEventMessage, shouldRefreshTasks } from '../utils/taskGuards'
+import { canCancelTask, isExecutionEventMessage, shouldRefreshTasks } from '../utils/taskGuards'
 
 export function useTaskPage() {
   const queryClient = useQueryClient()
@@ -28,6 +28,14 @@ export function useTaskPage() {
   }).data ?? null
 
   const recentTasks = tasksQuery.data?.items ?? []
+
+  const cancelMutation = useMutation({
+    mutationFn: (taskId: string) => api.cancelTask(taskId),
+    onSuccess: async (task) => {
+      queryClient.setQueryData(['task', task.id], task)
+      await queryClient.invalidateQueries({ queryKey: ['tasks'] })
+    },
+  })
 
   useEffect(() => {
     const taskId = searchParams.get('taskId') ?? ''
@@ -90,12 +98,22 @@ export function useTaskPage() {
     setSearchParams({ taskId })
   }
 
+  function stopActiveTask() {
+    if (!canCancelTask(activeTask) || cancelMutation.isPending) {
+      return
+    }
+
+    cancelMutation.mutate(activeTask.id)
+  }
+
   return {
     activeTask,
+    cancelMutationIsPending: cancelMutation.isPending,
     liveLogs,
     recentTasks,
     selectTask,
     selectedTaskId,
+    stopActiveTask,
     tasksQuery,
   }
 }

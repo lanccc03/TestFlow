@@ -86,6 +86,13 @@ const passedTask = {
   ],
 }
 
+const canceledTask = {
+  ...runningTask,
+  status: 'canceled',
+  finished_at: '2026-06-01T00:00:10+00:00',
+  duration_ms: 9000,
+}
+
 const taskSummaries = [
   {
     id: 'task-running',
@@ -163,7 +170,7 @@ describe('TaskPage', () => {
 
     expect(screen.queryByLabelText('选择脚本')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '开始执行' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '取消' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '停止' })).toBeDisabled()
     expect(await screen.findByText('启动执行后显示当前任务')).toBeInTheDocument()
   })
 
@@ -202,6 +209,34 @@ describe('TaskPage', () => {
 
     await waitFor(() => expect(apiMock.getTask).toHaveBeenLastCalledWith('task-passed'))
     expect(await screen.findByText(/Task passed/)).toBeInTheDocument()
+  })
+
+  it('stops a running task and updates the selected task status', async () => {
+    apiMock.listTasks.mockResolvedValue({ items: taskSummaries })
+    apiMock.getTask.mockResolvedValue(runningTask)
+    apiMock.cancelTask.mockResolvedValue(canceledTask)
+
+    renderWithQuery(<TaskPage />)
+
+    await screen.findByText('task-running')
+    fireEvent.click(screen.getByRole('button', { name: '停止' }))
+
+    await waitFor(() => expect(apiMock.cancelTask).toHaveBeenCalledWith('task-running'))
+    expect(await screen.findAllByText('已取消')).not.toHaveLength(0)
+  })
+
+  it('does not stop a finished task', async () => {
+    apiMock.listTasks.mockResolvedValue({ items: taskSummaries })
+    apiMock.getTask.mockResolvedValue(passedTask)
+
+    renderWithQuery(<TaskPage />, ['/tasks?taskId=task-passed'])
+
+    await screen.findByText('task-passed')
+    const stopButton = screen.getByRole('button', { name: '停止' })
+
+    expect(stopButton).toBeDisabled()
+    fireEvent.click(stopButton)
+    expect(apiMock.cancelTask).not.toHaveBeenCalled()
   })
 
   it('appends matching websocket log events to realtime logs', async () => {

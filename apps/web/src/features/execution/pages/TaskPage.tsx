@@ -1,6 +1,10 @@
+import { Square } from 'lucide-react'
+
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -10,15 +14,18 @@ import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import { TaskDetail } from '../components/TaskDetail'
 import { TaskSummaryItem } from '../components/TaskSummaryItem'
 import { useTaskPage } from '../hooks/useTaskPage'
+import { canCancelTask } from '../utils/taskGuards'
 import { statusVariant, taskStatusLabel } from '../utils/taskFormatters'
 
 export function TaskPage() {
   const {
     activeTask,
+    cancelMutationIsPending,
     liveLogs,
     recentTasks,
     selectTask,
     selectedTaskId,
+    stopActiveTask,
     tasksQuery,
   } = useTaskPage()
 
@@ -39,6 +46,18 @@ export function TaskPage() {
         <Card>
           <CardHeader>
             <CardTitle>当前任务</CardTitle>
+            <CardAction>
+              <Button
+                disabled={!canCancelTask(activeTask) || cancelMutationIsPending}
+                onClick={stopActiveTask}
+                size="sm"
+                type="button"
+                variant="destructive"
+              >
+                <Square aria-hidden="true" data-icon="inline-start" />
+                停止
+              </Button>
+            </CardAction>
           </CardHeader>
           <CardContent>
             {activeTask ? (
