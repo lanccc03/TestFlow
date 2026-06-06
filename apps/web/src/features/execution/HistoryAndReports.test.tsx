@@ -88,6 +88,8 @@ describe('HistoryPage', () => {
     expect(screen.getByRole('table', { name: '任务记录' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '脚本' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '耗时' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: '执行人' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: '环境' })).not.toBeInTheDocument()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('搜索执行历史'), {
@@ -96,7 +98,7 @@ describe('HistoryPage', () => {
     expect(screen.getByText('暂无执行记录')).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('搜索执行历史'), {
-      target: { value: 'alice' },
+      target: { value: '座舱' },
     })
     expect(screen.getByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看报告' })).toHaveAttribute(
@@ -195,6 +197,8 @@ describe('Report pages', () => {
 
     expect(await screen.findByRole('table', { name: '最近报告' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '脚本' })).toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: '执行人' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: '环境' })).not.toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '操作' })).toBeInTheDocument()
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看报告' })).toHaveAttribute(
@@ -221,6 +225,8 @@ describe('Report pages', () => {
     )
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
+    expect(screen.queryByText('目标设备:')).not.toBeInTheDocument()
+    expect(screen.queryByText('执行人:')).not.toBeInTheDocument()
     expect(screen.getByText('wait.seconds must be greater than or equal to 0')).toBeInTheDocument()
     expect(screen.getByText('failure.txt')).toBeInTheDocument()
   })

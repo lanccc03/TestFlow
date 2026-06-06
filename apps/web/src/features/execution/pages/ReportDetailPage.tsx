@@ -130,14 +130,6 @@ function StructuredReportDetail({
               </Badge>
             </div>
             <div>
-              <span className="text-muted-foreground">目标设备: </span>
-              {task.target_device}
-            </div>
-            <div>
-              <span className="text-muted-foreground">执行人: </span>
-              {task.executor}
-            </div>
-            <div>
               <span className="text-muted-foreground">耗时: </span>
               {task.duration_ms != null ? `${task.duration_ms} ms` : '-'}
             </div>

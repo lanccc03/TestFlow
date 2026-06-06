@@ -25,9 +25,6 @@ export function useHistoryPage() {
         task.script_id,
         task.script_name,
         task.status,
-        task.executor,
-        task.environment,
-        task.target_device,
       ]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword)),

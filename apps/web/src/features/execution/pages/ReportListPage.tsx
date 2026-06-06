@@ -37,8 +37,6 @@ export function ReportListPage() {
           <TableRow>
             <TableHead>脚本</TableHead>
             <TableHead>状态</TableHead>
-            <TableHead>执行人</TableHead>
-            <TableHead>环境</TableHead>
             <TableHead className="text-right">步骤</TableHead>
             <TableHead className="text-right">耗时</TableHead>
             <TableHead className="text-right">操作</TableHead>
@@ -47,13 +45,13 @@ export function ReportListPage() {
         <TableBody>
           {reportsQuery.isPending ? (
             <TableRow>
-              <TableCell colSpan={7}>
+              <TableCell colSpan={5}>
                 <EmptyState title="正在加载报告" />
               </TableCell>
             </TableRow>
           ) : reports.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7}>
+              <TableCell colSpan={5}>
                 <EmptyState title="暂无报告" />
               </TableCell>
             </TableRow>
@@ -64,7 +62,7 @@ export function ReportListPage() {
                   <div className="grid gap-1">
                     <div className="font-medium">{report.script_name}</div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {report.id} · {report.executor}
+                      {report.id}
                     </div>
                   </div>
                 </TableCell>
@@ -73,8 +71,6 @@ export function ReportListPage() {
                     {taskStatusLabel(report.status)}
                   </Badge>
                 </TableCell>
-                <TableCell>{report.executor}</TableCell>
-                <TableCell>{report.environment}</TableCell>
                 <TableCell className="text-right font-medium">
                   {report.passed_step_count}/{report.step_count}
                 </TableCell>

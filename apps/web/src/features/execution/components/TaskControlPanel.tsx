@@ -8,7 +8,6 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EmptyState } from '@/components/layout/page'
 import type { ExecutionTask, ScriptSummary } from '@/lib/api'
@@ -18,10 +17,6 @@ import { SelectedScriptSummary } from './SelectedScriptSummary'
 export interface TaskControlPanelProps {
   selectedScriptId: string
   onSelectedScriptIdChange: (value: string) => void
-  environment: string
-  onEnvironmentChange: (value: string) => void
-  targetDevice: string
-  onTargetDeviceChange: (value: string) => void
   publishedScripts: ScriptSummary[]
   selectedScript: ScriptSummary | undefined
   activeTask: ExecutionTask | null
@@ -36,10 +31,6 @@ export interface TaskControlPanelProps {
 export function TaskControlPanel({
   selectedScriptId,
   onSelectedScriptIdChange,
-  environment,
-  onEnvironmentChange,
-  targetDevice,
-  onTargetDeviceChange,
   publishedScripts,
   selectedScript,
   activeTask,
@@ -56,7 +47,7 @@ export function TaskControlPanel({
         <CardTitle>任务控制</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="grid grid-cols-[minmax(240px,1.2fr)_minmax(160px,0.6fr)_minmax(180px,0.8fr)] gap-3 max-sm:grid-cols-1">
+        <div className="grid gap-3">
           <label className="grid gap-1.5">
             <span className="text-xs font-semibold text-muted-foreground">选择脚本</span>
             <Select value={selectedScriptId} onValueChange={onSelectedScriptIdChange}>
@@ -71,28 +62,6 @@ export function TaskControlPanel({
                 ))}
               </SelectContent>
             </Select>
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-xs font-semibold text-muted-foreground">执行环境</span>
-            <Select value={environment} onValueChange={onEnvironmentChange}>
-              <SelectTrigger aria-label="执行环境">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="local">local</SelectItem>
-                <SelectItem value="lab">lab</SelectItem>
-                <SelectItem value="ci">ci</SelectItem>
-              </SelectContent>
-            </Select>
-          </label>
-          <label className="grid gap-1.5">
-            <span className="text-xs font-semibold text-muted-foreground">目标设备</span>
-            <Input
-              aria-label="目标设备"
-              value={targetDevice}
-              onChange={(event) => onTargetDeviceChange(event.target.value)}
-              placeholder="bench-1"
-            />
           </label>
         </div>
         <div className="flex flex-wrap gap-2">

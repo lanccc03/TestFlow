@@ -27,16 +27,12 @@ export function TaskSummaryItem({
           <p className="m-0 text-sm text-muted-foreground">{task.id}</p>
         ) : null}
       </div>
-      <dl className="grid grid-cols-3 gap-2 text-sm">
+      <dl className="grid grid-cols-2 gap-2 text-sm">
         <div>
           <dt className="text-muted-foreground">步骤</dt>
           <dd className="m-0 font-semibold text-foreground">
             {task.passed_step_count}/{task.step_count}
           </dd>
-        </div>
-        <div>
-          <dt className="text-muted-foreground">环境</dt>
-          <dd className="m-0 font-semibold text-foreground">{task.environment}</dd>
         </div>
         <div>
           <dt className="text-muted-foreground">耗时</dt>

@@ -43,8 +43,6 @@ export function HistoryPage() {
           <TableRow>
             <TableHead>脚本</TableHead>
             <TableHead>状态</TableHead>
-            <TableHead>执行人</TableHead>
-            <TableHead>环境</TableHead>
             <TableHead className="text-right">步骤</TableHead>
             <TableHead className="text-right">耗时</TableHead>
             <TableHead className="text-right">操作</TableHead>
@@ -53,13 +51,13 @@ export function HistoryPage() {
         <TableBody>
           {tasksQuery.isPending ? (
             <TableRow>
-              <TableCell colSpan={7}>
+              <TableCell colSpan={5}>
                 <EmptyState title="正在加载任务" />
               </TableCell>
             </TableRow>
           ) : tasks.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7}>
+              <TableCell colSpan={5}>
                 <EmptyState title="暂无执行记录" />
               </TableCell>
             </TableRow>
@@ -79,8 +77,6 @@ export function HistoryPage() {
                     {taskStatusLabel(task.status)}
                   </Badge>
                 </TableCell>
-                <TableCell>{task.executor}</TableCell>
-                <TableCell>{task.environment}</TableCell>
                 <TableCell className="text-right font-medium">
                   {task.passed_step_count}/{task.step_count}
                 </TableCell>
