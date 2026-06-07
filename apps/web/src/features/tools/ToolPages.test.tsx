@@ -284,6 +284,40 @@ describe('SshTerminalPage', () => {
     expect(socket.sentJson()).toContainEqual({ type: 'disconnect' })
   })
 
+  it('transitions the connect button through SSH connection states', async () => {
+    renderWithQuery(<SshTerminalPage />)
+
+    await waitFor(() =>
+      expect(terminalMock.terminalInstances).toHaveLength(1),
+    )
+
+    fireEvent.change(screen.getByLabelText('主机'), {
+      target: { value: '127.0.0.1' },
+    })
+    fireEvent.change(screen.getByLabelText('账号'), {
+      target: { value: 'tester' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: '连接' }))
+
+    const connectingButton = screen.getByRole('button', { name: '连接中' })
+    expect(connectingButton).toBeDisabled()
+    expect(FakeWebSocket.instances).toHaveLength(1)
+
+    const socket = FakeWebSocket.instances[0]
+    socket.open()
+    socket.message({ type: 'status', status: 'connected' })
+
+    const connectedButton = await screen.findByRole('button', {
+      name: '已连接',
+    })
+    expect(connectedButton).toBeDisabled()
+    expect(FakeWebSocket.instances).toHaveLength(1)
+
+    fireEvent.click(screen.getByRole('button', { name: '断开' }))
+    expect(screen.getByRole('button', { name: '连接' })).toBeEnabled()
+  })
+
   it('keeps the active SSH websocket when the page unmounts and remounts', async () => {
     const view = renderWithQuery(<SshTerminalPage />)
 
@@ -303,7 +337,11 @@ describe('SshTerminalPage', () => {
     socket.open()
     socket.message({ type: 'status', status: 'connected' })
 
-    await waitFor(() => expect(screen.getByText('已连接')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: '已连接' }),
+      ).toBeInTheDocument(),
+    )
 
     view.unmount()
 
@@ -314,7 +352,7 @@ describe('SshTerminalPage', () => {
     await waitFor(() =>
       expect(terminalMock.terminalInstances).toHaveLength(2),
     )
-    expect(screen.getByText('已连接')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '已连接' })).toBeInTheDocument()
 
     socket.message({ type: 'output', data: 'still alive\r\n' })
     expect(terminalMock.terminalInstances[1].write).toHaveBeenCalledWith(

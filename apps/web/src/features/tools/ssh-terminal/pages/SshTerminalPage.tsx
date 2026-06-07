@@ -32,6 +32,15 @@ export function SshTerminalPage() {
     terminalContainerRef,
     updateForm,
   } = useSshTerminalPage()
+  const connectButtonLabel =
+    status === 'connecting' || status === 'connected'
+      ? sshStatusLabel(status)
+      : '连接'
+  const connectDisabled =
+    !form.host.trim() ||
+    !form.username.trim() ||
+    status === 'connecting' ||
+    status === 'connected'
 
   return (
     <PagePanel>
@@ -103,12 +112,12 @@ export function SshTerminalPage() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
-                disabled={!form.host.trim() || !form.username.trim()}
+                disabled={connectDisabled}
                 onClick={connect}
                 type="button"
               >
                 <Plug aria-hidden="true" data-icon="inline-start" />
-                连接
+                {connectButtonLabel}
               </Button>
               <Button onClick={disconnect} type="button" variant="secondary">
                 断开
