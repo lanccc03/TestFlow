@@ -49,14 +49,14 @@ class ScpService:
         session = self._require_session(session_id)
         async with session.connection.start_sftp_client() as sftp:
             try:
-                names = await sftp.listdir(path)
+                entries = await sftp.readdir(path)
             except SFTPNoSuchFile as exc:
                 raise ScpRemotePathNotFoundError("远程路径不存在") from exc
             items = []
-            for name in sorted(names, key=str.lower):
+            for entry in sorted(entries, key=lambda item: str(item.filename).lower()):
+                name = entry.filename
                 child_path = posix_join(path.rstrip("/") or "/", name)
-                attrs = await sftp.stat(child_path)
-                items.append(_remote_node(name, child_path, attrs))
+                items.append(_remote_node(name, child_path, entry.attrs))
         return ScpFileTree(path=path, items=items)
 
     def list_transfers(self) -> list[ScpTransferTaskSchema]:

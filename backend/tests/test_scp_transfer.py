@@ -48,11 +48,29 @@ async def test_remote_tree_uses_registered_ssh_sftp_session() -> None:
     tree = await service.list_remote_tree(session_id, "/home/tester")
 
     assert connection.sftp.entered is True
-    assert connection.sftp.listdir_paths == ["/home/tester"]
+    assert connection.sftp.readdir_paths == ["/home/tester"]
     assert [(node.name, node.path, node.type, node.size) for node in tree.items] == [
         ("logs", "/home/tester/logs", "directory", None),
         ("report.txt", "/home/tester/report.txt", "file", 12),
     ]
+
+
+@pytest.mark.anyio
+async def test_remote_tree_reads_directory_entries_without_per_file_stat() -> None:
+    registry = SshSessionRegistry()
+    connection = FakeConnection()
+    session_id = registry.register(
+        connection=connection,
+        host="127.0.0.1",
+        username="tester",
+        secrets=["secret-password"],
+    )
+    service = ScpService(registry)
+
+    await service.list_remote_tree(session_id, "/home/tester")
+
+    assert connection.sftp.readdir_paths == ["/home/tester"]
+    assert connection.sftp.stat_paths == []
 
 
 @pytest.mark.anyio
@@ -189,6 +207,8 @@ class FakeSftp:
         self.error: Exception | None = None
         self.listdir_error: Exception | None = None
         self.listdir_paths: list[str] = []
+        self.readdir_paths: list[str] = []
+        self.stat_paths: list[str] = []
         self.get_calls: list[tuple[str, str]] = []
         self.put_calls: list[tuple[str, str]] = []
 
@@ -198,7 +218,17 @@ class FakeSftp:
             raise self.listdir_error
         return ["logs", "report.txt"]
 
+    async def readdir(self, path: str) -> list[Any]:
+        self.readdir_paths.append(path)
+        if self.listdir_error:
+            raise self.listdir_error
+        return [
+            fake_sftp_name("logs", size=None, permissions=0o040755),
+            fake_sftp_name("report.txt", size=12, permissions=0o100644),
+        ]
+
     async def stat(self, path: str) -> Any:
+        self.stat_paths.append(path)
         attrs = type("FakeAttrs", (), {})()
         attrs.size = None if path.endswith("/logs") else 12
         attrs.permissions = 0o040755 if path.endswith("/logs") else 0o100644
@@ -214,3 +244,14 @@ class FakeSftp:
         if self.error:
             raise self.error
         self.get_calls.append((remote_path, local_path))
+
+
+def fake_sftp_name(name: str, *, size: int | None, permissions: int) -> Any:
+    attrs = type("FakeAttrs", (), {})()
+    attrs.size = size
+    attrs.permissions = permissions
+    attrs.mtime = 1_787_817_600
+    entry = type("FakeSftpName", (), {})()
+    entry.filename = name
+    entry.attrs = attrs
+    return entry
