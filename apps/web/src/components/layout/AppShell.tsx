@@ -20,9 +20,9 @@ export function AppShell({
 
   return (
     <>
-      <div className="grid min-h-screen grid-cols-[248px_minmax(0,1fr)] bg-background pb-9 text-foreground max-lg:grid-cols-1">
+      <div className="grid h-screen grid-cols-[248px_minmax(0,1fr)] overflow-hidden bg-background pb-9 text-foreground max-lg:grid-cols-1">
         <Sidebar />
-        <div className="min-w-0 bg-[linear-gradient(90deg,rgb(23_32_29_/_0.045)_1px,transparent_1px),linear-gradient(180deg,rgb(255_255_255_/_0.72),transparent_260px)] bg-[length:24px_24px,100%_100%]">
+        <div className="min-h-0 min-w-0 overflow-y-auto bg-[linear-gradient(90deg,rgb(23_32_29_/_0.045)_1px,transparent_1px),linear-gradient(180deg,rgb(255_255_255_/_0.72),transparent_260px)] bg-[length:24px_24px,100%_100%]">
           <AnimatePresence mode="wait" initial={false}>
             <motion.main
               animate={{ opacity: 1, y: 0 }}
