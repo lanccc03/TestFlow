@@ -369,19 +369,23 @@
 
 ### 任务
 
-- [ ] 实现 SCP 上传任务创建 API，并通过 WebSocket 推送进度。
-- [ ] 实现 SCP 下载任务创建 API，并通过 WebSocket 推送进度。
-- [ ] 实现传输任务状态：
+- [x] 实现 SCP 上传任务创建 API，并通过 WebSocket 推送进度。
+- [x] 实现 SCP 下载任务创建 API，并通过 WebSocket 推送进度。
+- [x] 实现传输任务状态：
   - pending。
   - running。
   - completed。
   - failed。
   - canceled。
-- [ ] 实现传输进度推送。
-- [ ] 实现失败原因展示。
-- [ ] 实现前端文件选择、远端路径输入和传输状态展示。
-- [ ] 实现基础重试。
-- [ ] 确保账号密码默认不持久化。
+- [x] 实现传输进度推送。
+- [x] 实现失败原因展示。
+- [x] 实现前端文件选择、远端路径输入和传输状态展示。
+- [x] 实现基础重试。
+- [x] 确保账号密码默认不持久化。
+
+### 完成记录
+
+已完成基于 SSH 终端连接复用的 SCP/SFTP 双文件树传输：SSH 终端连接成功后返回 `session_id`，SCP 页面仅在该会话已连接时可用；前端左侧展示本地文件树，右侧展示远程文件树，并支持文件级上传、下载、进度/状态展示、失败原因、取消和失败重试。验证命令：`pnpm --filter @testflow/web test`、`pnpm check:web`、`cd backend && uv run pytest`、`cd backend && uv run ruff check .`。
 
 ### 验收标准
 

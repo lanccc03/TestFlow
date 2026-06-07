@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type React from 'react'
+import { MemoryRouter } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const httpDelete = vi.hoisted(() => vi.fn())
@@ -79,8 +80,11 @@ vi.mock('@xterm/addon-fit', () => ({
 
 vi.mock('@xterm/xterm/css/xterm.css', () => ({}))
 
-import { CommandLibraryPage, SshTerminalPage } from '@/features/tools'
-import { resetSshTerminalStore } from '@/features/tools/ssh-terminal/store'
+import { CommandLibraryPage, ScpTransferPage, SshTerminalPage } from '@/features/tools'
+import {
+  resetSshTerminalStore,
+  useSshTerminalStore,
+} from '@/features/tools/ssh-terminal/store'
 
 const command = {
   id: 'command-1',
@@ -101,7 +105,9 @@ function renderWithQuery(ui: React.ReactElement) {
   })
 
   return render(
-    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 
@@ -346,6 +352,170 @@ describe('SshTerminalPage', () => {
     )
     expect(terminalMock.terminalInstances[1].write).toHaveBeenCalledWith(
       'ready\r\nbackground\r\n',
+    )
+  })
+})
+
+describe('ScpTransferPage', () => {
+  beforeEach(() => {
+    FakeWebSocket.instances.length = 0
+    resetSshTerminalStore()
+    httpGet.mockImplementation((path: string, config?: unknown) => {
+      if (path === '/api/scp/local/tree') {
+        return Promise.resolve({
+          data: {
+            path: '/local',
+            items: [
+              {
+                name: 'app.zip',
+                path: '/local/app.zip',
+                type: 'file',
+                size: 128,
+              },
+              {
+                name: 'downloads',
+                path: '/local/downloads',
+                type: 'directory',
+              },
+            ],
+          },
+        })
+      }
+
+      if (path === '/api/scp/remote/tree') {
+        expect(config).toEqual({
+          params: { session_id: 'session-1', path: '/remote' },
+        })
+        return Promise.resolve({
+          data: {
+            path: '/remote',
+            items: [
+              {
+                name: 'home',
+                path: '/remote/home',
+                type: 'directory',
+              },
+              {
+                name: 'report.log',
+                path: '/remote/report.log',
+                type: 'file',
+                size: 64,
+              },
+            ],
+          },
+        })
+      }
+
+      if (path === '/api/scp/transfers') {
+        return Promise.resolve({ data: { items: [] } })
+      }
+
+      return Promise.reject(new Error(`Unexpected path: ${path}`))
+    })
+    httpPost.mockImplementation((path: string, payload: unknown) =>
+      Promise.resolve({
+        data: {
+          id: path.includes('download') ? 'download-1' : 'upload-1',
+          direction: path.includes('download') ? 'download' : 'upload',
+          source_path: (payload as { source_path: string }).source_path,
+          target_path: (payload as { target_path: string }).target_path,
+          status: 'completed',
+          progress: 100,
+        },
+      }),
+    )
+    vi.stubGlobal('WebSocket', FakeWebSocket)
+  })
+
+  afterEach(() => {
+    cleanup()
+    resetSshTerminalStore()
+    httpGet.mockReset()
+    httpPost.mockReset()
+    vi.unstubAllGlobals()
+  })
+
+  it('requires an active SSH terminal session before enabling SCP', () => {
+    renderWithQuery(<ScpTransferPage />)
+
+    expect(screen.getByText('请先连接 SSH 终端')).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: '前往 SSH 终端' }),
+    ).toHaveAttribute('href', '/ssh')
+    expect(httpGet).not.toHaveBeenCalledWith('/api/scp/remote/tree', expect.anything())
+  })
+
+  it('loads both file trees and creates upload and download transfers', async () => {
+    useSshTerminalStore.setState({
+      connectionSummary: 'tester@127.0.0.1:22',
+      sessionId: 'session-1',
+      status: 'connected',
+    })
+
+    renderWithQuery(<ScpTransferPage />)
+
+    expect(await screen.findByText('app.zip')).toBeInTheDocument()
+    expect(await screen.findByText('report.log')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '选择本地 app.zip' }))
+    fireEvent.click(screen.getByRole('button', { name: '选择远程 home' }))
+    fireEvent.click(screen.getByRole('button', { name: '上传' }))
+
+    await waitFor(() =>
+      expect(httpPost).toHaveBeenCalledWith('/api/scp/transfers/upload', {
+        session_id: 'session-1',
+        source_path: '/local/app.zip',
+        target_path: '/remote/home',
+      }),
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '选择远程 report.log' }))
+    fireEvent.click(screen.getByRole('button', { name: '选择本地 downloads' }))
+    fireEvent.click(screen.getByRole('button', { name: '下载' }))
+
+    await waitFor(() =>
+      expect(httpPost).toHaveBeenCalledWith('/api/scp/transfers/download', {
+        session_id: 'session-1',
+        source_path: '/remote/report.log',
+        target_path: '/local/downloads',
+      }),
+    )
+  })
+
+  it('updates the transfer queue from websocket events and allows retry', async () => {
+    useSshTerminalStore.setState({
+      connectionSummary: 'tester@127.0.0.1:22',
+      sessionId: 'session-1',
+      status: 'connected',
+    })
+
+    renderWithQuery(<ScpTransferPage />)
+
+    const socket = FakeWebSocket.instances.find((item) =>
+      item.url.includes('/ws/scp/transfers'),
+    )
+    expect(socket).toBeDefined()
+    socket?.message({
+      type: 'transfer_update',
+      task: {
+        id: 'transfer-1',
+        direction: 'upload',
+        source_path: '/local/app.zip',
+        target_path: '/remote/home',
+        status: 'failed',
+        progress: 0,
+        error_message: 'permission denied',
+      },
+    })
+
+    expect(await screen.findByText('permission denied')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '重试 transfer-1' }))
+
+    await waitFor(() =>
+      expect(httpPost).toHaveBeenCalledWith(
+        '/api/scp/transfers/transfer-1/retry',
+        {},
+      ),
     )
   })
 })

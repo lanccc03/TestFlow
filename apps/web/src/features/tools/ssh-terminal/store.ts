@@ -14,7 +14,7 @@ export type SshConnectionForm = {
 
 type SshServerMessage =
   | { type: 'output'; data: string }
-  | { type: 'status'; status: string; message?: string }
+  | { type: 'status'; status: string; message?: string; session_id?: string }
   | { type: 'error'; message: string }
 
 type ConnectOptions = {
@@ -23,10 +23,12 @@ type ConnectOptions = {
 }
 
 type SshTerminalState = {
+  connectionSummary: string
   currentLine: string
   errorMessage: string
   form: SshConnectionForm
   outputBuffer: string
+  sessionId: string
   status: string
   applySuggestion: (command: string) => void
   attachTerminal: (writer: (data: string) => void) => () => void
@@ -51,10 +53,12 @@ let socket: WebSocket | null = null
 let terminalWriter: ((data: string) => void) | null = null
 
 export const useSshTerminalStore = create<SshTerminalState>((set, get) => ({
+  connectionSummary: '',
   currentLine: '',
   errorMessage: '',
   form: emptyConnectionForm,
   outputBuffer: '',
+  sessionId: '',
   status: 'disconnected',
   applySuggestion(command) {
     const currentLine = get().currentLine
@@ -109,8 +113,17 @@ export const useSshTerminalStore = create<SshTerminalState>((set, get) => ({
         }))
         terminalWriter?.(message.data)
       } else if (message.type === 'status') {
+        const { form } = get()
         set({
+          connectionSummary:
+            message.status === 'connected'
+              ? `${form.username}@${form.host}:${form.port}`
+              : get().connectionSummary,
           errorMessage: message.message ?? get().errorMessage,
+          sessionId:
+            message.status === 'connected'
+              ? message.session_id ?? ''
+              : get().sessionId,
           status: message.status,
         })
       } else if (message.type === 'error') {
@@ -125,7 +138,7 @@ export const useSshTerminalStore = create<SshTerminalState>((set, get) => ({
     nextSocket.onclose = () => {
       if (socket === nextSocket) {
         socket = null
-        set({ status: 'disconnected' })
+        set({ connectionSummary: '', sessionId: '', status: 'disconnected' })
       }
     }
   },
@@ -133,7 +146,7 @@ export const useSshTerminalStore = create<SshTerminalState>((set, get) => ({
     sendSocketMessage({ type: 'disconnect' })
     socket?.close()
     socket = null
-    set({ status: 'disconnected' })
+    set({ connectionSummary: '', sessionId: '', status: 'disconnected' })
   },
   sendInput(data) {
     set({ currentLine: applyTerminalInput(get().currentLine, data) })
@@ -152,10 +165,12 @@ export function resetSshTerminalStore() {
   socket = null
   terminalWriter = null
   useSshTerminalStore.setState({
+    connectionSummary: '',
     currentLine: '',
     errorMessage: '',
     form: emptyConnectionForm,
     outputBuffer: '',
+    sessionId: '',
     status: 'disconnected',
   })
 }

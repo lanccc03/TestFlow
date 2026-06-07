@@ -11,6 +11,7 @@ import { createFrameworkApi } from './framework'
 import { createHealthApi } from './health'
 import { createKeywordsApi } from './keywords'
 import { createReportsApi } from './reports'
+import { createScpApi } from './scp'
 import { createScriptsApi } from './scripts'
 import type { ItemList } from './types'
 
@@ -33,6 +34,7 @@ export function createApiClient({
     ...createCommandsApi(client),
     ...createExecutionsApi(client),
     ...createReportsApi(client),
+    ...createScpApi(client),
     listItems: <T = unknown>(path: string) => client.get<ItemList<T>>(path),
   }
 }
@@ -57,6 +59,13 @@ export type {
 export type { HealthResponse } from './health'
 export type { KeywordMetadata, KeywordParameter } from './keywords'
 export type { ExecutionReport, ExecutionReportAttachment } from './reports'
+export type {
+  ScpFileNode,
+  ScpFileTree,
+  ScpTransferEvent,
+  ScpTransferPayload,
+  ScpTransferTask,
+} from './scp'
 export type {
   ScriptStep,
   ScriptSummary,

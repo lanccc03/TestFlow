@@ -30,6 +30,15 @@ def register_exception_handlers(app: FastAPI) -> None:
     async def handle_http_exception(
         _request: Request, exc: StarletteHTTPException
     ) -> JSONResponse:
+        if isinstance(exc.detail, dict):
+            detail = exc.detail
+            return error_response(
+                status_code=exc.status_code,
+                code=str(detail.get("code", "http_error")),
+                message=str(detail.get("message", "HTTP error")),
+                details=detail.get("details"),
+            )
+
         code = "not_found" if exc.status_code == 404 else "http_error"
         return error_response(
             status_code=exc.status_code,

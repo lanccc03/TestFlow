@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import type React from 'react'
 
-import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import {
   HistoryPage,
   ReportDetailPage,
@@ -25,7 +24,11 @@ import {
   ScriptEditorPage,
   ScriptListPage,
 } from '@/features/scripts'
-import { CommandLibraryPage, SshTerminalPage } from '@/features/tools'
+import {
+  CommandLibraryPage,
+  ScpTransferPage,
+  SshTerminalPage,
+} from '@/features/tools'
 
 export type AppRoute = {
   path: string
@@ -35,31 +38,6 @@ export type AppRoute = {
   icon: typeof FolderKanban
   element: React.ReactNode
   navHidden?: boolean
-}
-
-
-function PlaceholderPage({
-  action,
-  description,
-  title,
-}: {
-  action: string
-  description: string
-  title: string
-}) {
-  return (
-    <PagePanel>
-      <PageHeader
-        title={title}
-        subtitle={description}
-      />
-      <EmptyState
-        icon={<FileCode2 aria-hidden="true" />}
-        title={action}
-        description="阶段三先提供稳定路由、布局和状态框架；业务表单、执行器和报告数据会在后续阶段逐步接入。"
-      />
-    </PagePanel>
-  )
 }
 
 export const appRoutes: AppRoute[] = [
@@ -143,13 +121,7 @@ export const appRoutes: AppRoute[] = [
     description: '在本机和测试设备之间传输文件。',
     navGroup: 'tools',
     icon: SendToBack,
-    element: (
-      <PlaceholderPage
-        title="SCP 文件传输"
-        description="上传脚本依赖、下载日志和报告附件。"
-        action="文件传输将在阶段八接入"
-      />
-    ),
+    element: <ScpTransferPage />,
   },
   {
     path: '/commands',

@@ -4,6 +4,7 @@ from typing import Any
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
+from app.modules.terminal.sessions import SshSessionRegistry
 from app.modules.terminal.websocket import handle_ssh_terminal_websocket
 
 
@@ -11,6 +12,7 @@ from app.modules.terminal.websocket import handle_ssh_terminal_websocket
 async def test_ssh_websocket_forwards_terminal_messages_and_uses_known_hosts_by_default(
 ) -> None:
     connector = FakeSshConnector()
+    registry = SshSessionRegistry()
     websocket = FakeWebSocket(
         [
             {
@@ -29,7 +31,11 @@ async def test_ssh_websocket_forwards_terminal_messages_and_uses_known_hosts_by_
         ]
     )
 
-    await handle_ssh_terminal_websocket(websocket, connector=connector)
+    await handle_ssh_terminal_websocket(
+        websocket,
+        connector=connector,
+        session_registry=registry,
+    )
 
     assert websocket.accepted is True
     assert connector.calls[0] == {
@@ -45,9 +51,15 @@ async def test_ssh_websocket_forwards_terminal_messages_and_uses_known_hosts_by_
     assert connector.connection.process.closed is True
     assert connector.connection.closed is True
     assert {"type": "status", "status": "connecting"} in websocket.sent
-    assert {"type": "status", "status": "connected"} in websocket.sent
+    connected_message = next(
+        message
+        for message in websocket.sent
+        if message.get("type") == "status" and message.get("status") == "connected"
+    )
+    assert isinstance(connected_message["session_id"], str)
     assert {"type": "output", "data": "ready\r\n"} in websocket.sent
     assert {"type": "status", "status": "disconnected"} in websocket.sent
+    assert registry.get(connected_message["session_id"]) is None
 
 
 @pytest.mark.anyio

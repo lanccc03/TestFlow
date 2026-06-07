@@ -17,6 +17,7 @@ export const backendUrls = {
   health: `${httpBaseUrl}/health`,
   frameworkReport: (taskId: string) => frameworkReportUrl(httpBaseUrl, taskId),
   sshWebSocket: websocketUrl('/ws/ssh'),
+  scpTransfersWebSocket: websocketUrl('/ws/scp/transfers'),
 }
 
 export function createBackendStatusSocket() {

@@ -11,6 +11,8 @@ from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging
 from app.db.session import ensure_database
 from app.modules.executions.service import ExecutionService
+from app.modules.scp.service import ScpService
+from app.modules.terminal.sessions import SshSessionRegistry
 
 
 @asynccontextmanager
@@ -18,8 +20,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings: Settings = app.state.settings
     configure_logging(settings)
     ensure_database(settings)
+    ssh_session_registry = SshSessionRegistry()
     execution_service = ExecutionService(settings)
+    app.state.ssh_session_registry = ssh_session_registry
     app.state.execution_service = execution_service
+    app.state.scp_service = ScpService(
+        ssh_session_registry,
+        local_root=settings.data_dir,
+    )
     await execution_service.start()
     try:
         yield
