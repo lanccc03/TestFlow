@@ -55,16 +55,18 @@ export function PageHeader({
 }
 
 export function EmptyState({
+  className,
   description,
   icon,
   title,
 }: {
+  className?: string
   description?: React.ReactNode
   icon?: React.ReactNode
   title: React.ReactNode
 }) {
   return (
-    <Empty className="min-h-18 rounded-md border border-dashed border-border/80 bg-muted/20">
+    <Empty className={cn('min-h-18 rounded-md border border-dashed border-border/80 bg-muted/20', className)}>
       <EmptyHeader>
         {icon ? <EmptyMedia variant="icon">{icon}</EmptyMedia> : null}
         <EmptyTitle>{title}</EmptyTitle>
