@@ -34,13 +34,15 @@ export function PageHeader({
   title: React.ReactNode
 }) {
   return (
-    <div className="flex min-h-14 items-start justify-between gap-4 border-b border-border/75 pb-4 max-sm:flex-col">
+    <div className="flex min-h-14 items-start justify-between gap-4 border-b border-border/70 pb-4 max-sm:flex-col">
       <div className="grid gap-1.5">
-        <h1 className="m-0 text-[1.65rem] font-semibold leading-tight text-foreground">
+        <h1 className="m-0 text-[1.55rem] font-bold leading-tight tracking-normal text-foreground">
           {title}
         </h1>
         {subtitle ? (
-          <p className="m-0 text-sm text-muted-foreground">{subtitle}</p>
+          <p className="m-0 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            {subtitle}
+          </p>
         ) : null}
       </div>
       {actions ? (
@@ -62,7 +64,7 @@ export function EmptyState({
   title: React.ReactNode
 }) {
   return (
-    <Empty className="min-h-18 rounded-lg border border-dashed border-border/80 bg-muted/25">
+    <Empty className="min-h-18 rounded-md border border-dashed border-border/80 bg-muted/20">
       <EmptyHeader>
         {icon ? <EmptyMedia variant="icon">{icon}</EmptyMedia> : null}
         <EmptyTitle>{title}</EmptyTitle>

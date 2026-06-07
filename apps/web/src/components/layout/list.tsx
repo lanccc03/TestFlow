@@ -12,7 +12,7 @@ export function ListToolbar({
   return (
     <div
       className={cn(
-        'grid gap-3 rounded-lg border border-border/80 bg-card/55 p-3 text-sm',
+        'grid gap-3 rounded-md border border-border/75 bg-card/72 p-3 text-sm shadow-[0_14px_40px_rgb(23_32_29_/_0.06)]',
         className,
       )}
       role={role}
@@ -39,12 +39,12 @@ export function ListSurface({
     <section
       aria-labelledby={titleId}
       className={cn(
-        'overflow-hidden rounded-lg border border-border/80 bg-card/65 text-foreground',
+        'overflow-hidden rounded-md border border-border/75 bg-card/72 text-foreground shadow-[0_14px_40px_rgb(23_32_29_/_0.06)]',
         className,
       )}
       {...props}
     >
-      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border/75 bg-muted/28 px-3 py-2">
+      <div className="flex min-h-11 items-center justify-between gap-3 border-b border-border/70 bg-muted/22 px-3 py-2">
         <div className="grid gap-0.5">
           <h2 id={titleId} className="m-0 text-sm font-semibold">
             {title}
@@ -57,7 +57,7 @@ export function ListSurface({
           <div className="flex shrink-0 items-center gap-2">{actions}</div>
         ) : null}
       </div>
-      <div className="divide-y divide-border/75">{children}</div>
+      <div className="divide-y divide-border/65">{children}</div>
     </section>
   )
 }
@@ -72,7 +72,7 @@ export function ListRow({
   return (
     <Comp
       className={cn(
-        'grid min-w-0 items-center gap-3 px-3 py-3 text-sm transition-colors hover:bg-muted/35 data-[selected=true]:bg-muted/55 data-[selected=true]:shadow-[inset_3px_0_0_var(--primary)]',
+        'grid min-w-0 items-center gap-3 px-3 py-3 text-sm transition-colors hover:bg-muted/30 data-[selected=true]:bg-accent/55 data-[selected=true]:shadow-[inset_3px_0_0_var(--sidebar-primary)]',
         className,
       )}
       {...props}
