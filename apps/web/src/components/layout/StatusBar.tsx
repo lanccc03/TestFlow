@@ -27,14 +27,14 @@ export function StatusBar({
   websocketStatus: WebSocketStatus
 }) {
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-50 flex h-8 items-center justify-between border-t border-sidebar-border bg-sidebar/95 px-2 text-xs text-sidebar-foreground shadow-[0_-1px_2px_rgb(31_42_55_/_0.05)] backdrop-blur">
-      <div className="flex min-w-0 items-center gap-1 px-1 text-[11px] text-sidebar-foreground/60 max-sm:hidden">
-        <span className="font-medium text-sidebar-foreground/75">TestFlow</span>
+    <footer className="fixed inset-x-0 bottom-0 z-50 flex h-8 items-center justify-between border-t border-sidebar-border/85 bg-sidebar/90 px-2 text-xs text-sidebar-foreground shadow-[0_-10px_28px_rgb(23_32_29_/_0.08)] backdrop-blur-md">
+      <div className="flex min-w-0 items-center gap-1 px-1 text-[11px] text-sidebar-foreground/58 max-sm:hidden">
+        <span className="font-semibold text-sidebar-foreground/78">TestFlow</span>
         <span aria-hidden="true">/</span>
-        <span>工作台就绪</span>
+        <span>Precision Lab</span>
       </div>
       <div
-        className="flex min-w-0 items-center divide-x divide-sidebar-border max-sm:ml-auto"
+        className="flex min-w-0 items-center divide-x divide-sidebar-border/80 max-sm:ml-auto"
         aria-label="系统状态"
       >
         <StatusPill
