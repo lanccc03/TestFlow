@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from asyncssh.sftp import SFTPNoSuchFile
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
@@ -52,6 +53,23 @@ async def test_remote_tree_uses_registered_ssh_sftp_session() -> None:
         ("logs", "/home/tester/logs", "directory", None),
         ("report.txt", "/home/tester/report.txt", "file", 12),
     ]
+
+
+@pytest.mark.anyio
+async def test_remote_tree_reports_missing_remote_path() -> None:
+    registry = SshSessionRegistry()
+    connection = FakeConnection()
+    connection.sftp.listdir_error = SFTPNoSuchFile("No such file")
+    session_id = registry.register(
+        connection=connection,
+        host="127.0.0.1",
+        username="tester",
+        secrets=["secret-password"],
+    )
+    service = ScpService(registry)
+
+    with pytest.raises(ValueError, match="远程路径不存在"):
+        await service.list_remote_tree(session_id, "/remote")
 
 
 @pytest.mark.anyio
@@ -122,6 +140,28 @@ def test_scp_api_requires_active_ssh_session_and_exposes_local_tree(
     assert remote_response.json()["error"]["code"] == "scp_session_unavailable"
 
 
+def test_scp_api_reports_missing_remote_path(tmp_path: Path) -> None:
+    settings = Settings(data_dir=tmp_path)
+
+    with TestClient(create_app(settings)) as client:
+        service = client.app.state.scp_service
+        connection = FakeConnection()
+        connection.sftp.listdir_error = SFTPNoSuchFile("No such file")
+        session_id = service.session_registry.register(
+            connection=connection,
+            host="127.0.0.1",
+            username="tester",
+            secrets=["secret-password"],
+        )
+        response = client.get(
+            "/api/scp/remote/tree",
+            params={"session_id": session_id, "path": "/remote"},
+        )
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "scp_remote_path_not_found"
+
+
 class FakeConnection:
     def __init__(self) -> None:
         self.sftp = FakeSftp()
@@ -147,12 +187,15 @@ class FakeSftp:
         self.entered = False
         self.exited = False
         self.error: Exception | None = None
+        self.listdir_error: Exception | None = None
         self.listdir_paths: list[str] = []
         self.get_calls: list[tuple[str, str]] = []
         self.put_calls: list[tuple[str, str]] = []
 
     async def listdir(self, path: str) -> list[str]:
         self.listdir_paths.append(path)
+        if self.listdir_error:
+            raise self.listdir_error
         return ["logs", "report.txt"]
 
     async def stat(self, path: str) -> Any:

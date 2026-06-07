@@ -3,6 +3,7 @@ from starlette.websockets import WebSocketDisconnect
 
 from app.modules.scp.schemas import ScpTransferCreate
 from app.modules.scp.service import (
+    ScpRemotePathNotFoundError,
     ScpService,
     ScpSessionUnavailableError,
     ScpTransferNotFoundError,
@@ -24,6 +25,14 @@ def local_tree(request: Request, path: str | None = None):
 async def remote_tree(request: Request, session_id: str, path: str = "."):
     try:
         return await _scp_service(request).list_remote_tree(session_id, path)
+    except ScpRemotePathNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "scp_remote_path_not_found",
+                "message": str(exc),
+            },
+        ) from exc
     except ScpSessionUnavailableError as exc:
         raise HTTPException(
             status_code=400,

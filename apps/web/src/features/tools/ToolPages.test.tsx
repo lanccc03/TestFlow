@@ -383,21 +383,23 @@ describe('ScpTransferPage', () => {
       }
 
       if (path === '/api/scp/remote/tree') {
-        expect(config).toEqual({
-          params: { session_id: 'session-1', path: '/remote' },
-        })
+        const params = (config as {
+          params: { session_id: string; path: string }
+        }).params
+        expect(params.session_id).toBe('session-1')
+        const remotePath = params.path
         return Promise.resolve({
           data: {
-            path: '/remote',
+            path: remotePath,
             items: [
               {
                 name: 'home',
-                path: '/remote/home',
+                path: remotePath === '.' ? './home' : `${remotePath}/home`,
                 type: 'directory',
               },
               {
                 name: 'report.log',
-                path: '/remote/report.log',
+                path: remotePath === '.' ? './report.log' : `${remotePath}/report.log`,
                 type: 'file',
                 size: 64,
               },
@@ -465,7 +467,7 @@ describe('ScpTransferPage', () => {
       expect(httpPost).toHaveBeenCalledWith('/api/scp/transfers/upload', {
         session_id: 'session-1',
         source_path: '/local/app.zip',
-        target_path: '/remote/home',
+        target_path: './home',
       }),
     )
 
@@ -476,8 +478,61 @@ describe('ScpTransferPage', () => {
     await waitFor(() =>
       expect(httpPost).toHaveBeenCalledWith('/api/scp/transfers/download', {
         session_id: 'session-1',
-        source_path: '/remote/report.log',
+        source_path: './report.log',
         target_path: '/local/downloads',
+      }),
+    )
+  })
+
+  it('uploads a selected local file to the current remote path', async () => {
+    useSshTerminalStore.setState({
+      connectionSummary: 'tester@127.0.0.1:22',
+      sessionId: 'session-1',
+      status: 'connected',
+    })
+
+    renderWithQuery(<ScpTransferPage />)
+
+    fireEvent.click(await screen.findByRole('button', { name: '选择本地 app.zip' }))
+    fireEvent.click(screen.getByRole('button', { name: '上传' }))
+
+    await waitFor(() =>
+      expect(httpPost).toHaveBeenCalledWith('/api/scp/transfers/upload', {
+        session_id: 'session-1',
+        source_path: '/local/app.zip',
+        target_path: '.',
+      }),
+    )
+  })
+
+  it('waits for Enter before loading a typed remote path', async () => {
+    useSshTerminalStore.setState({
+      connectionSummary: 'tester@127.0.0.1:22',
+      sessionId: 'session-1',
+      status: 'connected',
+    })
+
+    renderWithQuery(<ScpTransferPage />)
+
+    expect(await screen.findByText('report.log')).toBeInTheDocument()
+    httpGet.mockClear()
+
+    fireEvent.change(screen.getByLabelText('远程路径'), {
+      target: { value: '/tmp' },
+    })
+
+    expect(httpGet).not.toHaveBeenCalledWith(
+      '/api/scp/remote/tree',
+      expect.objectContaining({
+        params: { session_id: 'session-1', path: '/tmp' },
+      }),
+    )
+
+    fireEvent.keyDown(screen.getByLabelText('远程路径'), { key: 'Enter' })
+
+    await waitFor(() =>
+      expect(httpGet).toHaveBeenCalledWith('/api/scp/remote/tree', {
+        params: { session_id: 'session-1', path: '/tmp' },
       }),
     )
   })
@@ -501,7 +556,7 @@ describe('ScpTransferPage', () => {
         id: 'transfer-1',
         direction: 'upload',
         source_path: '/local/app.zip',
-        target_path: '/remote/home',
+        target_path: './home',
         status: 'failed',
         progress: 0,
         error_message: 'permission denied',

@@ -39,7 +39,7 @@ export function ScpTransferPage() {
   const sshStatus = useSshTerminalStore((state) => state.status)
   const isConnected = sshStatus === 'connected' && Boolean(sessionId)
   const [localPath, setLocalPath] = useState('')
-  const [remotePath, setRemotePath] = useState('/remote')
+  const [remotePath, setRemotePath] = useState('.')
   const [selectedLocal, setSelectedLocal] = useState<ScpFileNode | null>(null)
   const [selectedRemote, setSelectedRemote] = useState<ScpFileNode | null>(null)
   const [transfers, setTransfers] = useState<ScpTransferTask[]>([])
@@ -115,7 +115,8 @@ export function ScpTransferPage() {
   })
 
   const canUpload = Boolean(
-    selectedLocal?.type === 'file' && selectedRemote?.type === 'directory',
+    selectedLocal?.type === 'file' &&
+      (selectedRemote?.type === 'directory' || remotePath.trim()),
   )
   const canDownload = Boolean(
     selectedRemote?.type === 'file' &&
@@ -247,6 +248,16 @@ function FileTreePanel({
   setPath: (path: string) => void
   title: string
 }) {
+  const [draftPath, setDraftPath] = useState(path)
+
+  useEffect(() => {
+    setDraftPath(path)
+  }, [path])
+
+  const submitDraftPath = () => {
+    setPath(draftPath)
+  }
+
   return (
     <Card className="min-w-0">
       <CardHeader>
@@ -259,8 +270,13 @@ function FileTreePanel({
         <div className="flex gap-2">
           <Input
             aria-label={pathLabel}
-            value={path}
-            onChange={(event) => setPath(event.target.value)}
+            value={draftPath}
+            onChange={(event) => setDraftPath(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                submitDraftPath()
+              }
+            }}
           />
           <Button
             aria-label={`刷新${title}`}

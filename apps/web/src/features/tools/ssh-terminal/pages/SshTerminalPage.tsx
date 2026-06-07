@@ -17,7 +17,6 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
-import { sshWebSocketUrl } from '../store'
 import { useSshTerminalPage } from '../hooks/useSshTerminalPage'
 import { sshStatusLabel } from '../utils/sshStatus'
 
@@ -126,7 +125,6 @@ export function SshTerminalPage() {
         <section className="grid min-w-0 grid-rows-[auto_minmax(360px,58vh)] overflow-hidden rounded-lg border bg-gray-950">
           <div className="flex min-h-9 items-center gap-2 border-b border-gray-800 bg-gray-900 px-3 text-xs text-gray-300">
             <SquareTerminal aria-hidden="true" size={16} />
-            <span>{sshWebSocketUrl}</span>
           </div>
           <div className="min-h-0 p-2.5" ref={terminalContainerRef} />
         </section>

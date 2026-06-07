@@ -7,6 +7,8 @@ from posixpath import join as posix_join
 from typing import Any
 from uuid import uuid4
 
+from asyncssh.sftp import SFTPNoSuchFile
+
 from app.modules.scp.events import ScpTransferEventBus
 from app.modules.scp.schemas import ScpFileNode, ScpFileTree, ScpTransferEvent
 from app.modules.scp.schemas import ScpTransferTask as ScpTransferTaskSchema
@@ -46,7 +48,10 @@ class ScpService:
     async def list_remote_tree(self, session_id: str, path: str = ".") -> ScpFileTree:
         session = self._require_session(session_id)
         async with session.connection.start_sftp_client() as sftp:
-            names = await sftp.listdir(path)
+            try:
+                names = await sftp.listdir(path)
+            except SFTPNoSuchFile as exc:
+                raise ScpRemotePathNotFoundError("远程路径不存在") from exc
             items = []
             for name in sorted(names, key=str.lower):
                 child_path = posix_join(path.rstrip("/") or "/", name)
@@ -177,6 +182,10 @@ class ScpSessionUnavailableError(ValueError):
 
 
 class ScpTransferNotFoundError(ValueError):
+    pass
+
+
+class ScpRemotePathNotFoundError(ValueError):
     pass
 
 
