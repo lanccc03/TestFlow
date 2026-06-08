@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from "electron";
 import path from "node:path";
 
 import { createBackendProcessOptions } from "./backend-config.js";
@@ -11,6 +11,7 @@ let isQuittingAfterBackendStop = false;
 
 function createMainWindow(): void {
   const mainWindow = new BrowserWindow({
+    autoHideMenuBar: true,
     height: 800,
     minHeight: 640,
     minWidth: 960,
@@ -82,6 +83,7 @@ function registerIpcHandlers(): void {
 }
 
 app.whenReady().then(() => {
+  Menu.setApplicationMenu(null);
   backendManager = createBackendManager();
   backendManager.onStatusChange(broadcastBackendStatus);
   registerIpcHandlers();
