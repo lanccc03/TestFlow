@@ -10,12 +10,43 @@ from app.modules.scripts.repository import (
     write_script_file,
 )
 from app.modules.scripts.schemas import (
+    FrameworkCaseSummary,
     ScriptSummary,
     ScriptValidationError,
     ScriptVersion,
     TestScript,
 )
 from app.modules.scripts.validators import validate_script
+from autotest.entry import get_case, list_cases
+
+# ---------------------------------------------------------------------------
+# New API — delegates to the autotest runtime
+# ---------------------------------------------------------------------------
+
+
+def list_framework_cases() -> list[FrameworkCaseSummary]:
+    return [
+        _case_to_schema(case)
+        for case in sorted(list_cases(), key=lambda item: item.name)
+    ]
+
+
+def read_framework_case(case_id: str) -> FrameworkCaseSummary:
+    return _case_to_schema(get_case(case_id))
+
+
+def _case_to_schema(case) -> FrameworkCaseSummary:
+    return FrameworkCaseSummary(
+        id=case.id,
+        name=case.name,
+        description=case.description,
+        steps=list(case.steps),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Legacy functions — kept for backward compatibility with the executions module
+# ---------------------------------------------------------------------------
 
 
 def list_scripts(settings: Settings) -> list[ScriptSummary]:

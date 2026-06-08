@@ -46,7 +46,16 @@ def test_api_route_groups_are_registered(tmp_path: Path) -> None:
 
     assert [response.status_code for response in responses] == [200] * len(endpoints)
     assert responses[0].json()["items"][0]["name"] == "wait"
-    assert responses[1].json() == {"items": []}
+    assert responses[1].json() == {
+        "items": [
+            {
+                "id": "case.smoke_cockpit",
+                "name": "座舱冒烟测试",
+                "description": "基础稳定性巡检",
+                "steps": ["启动系统", "确认首页加载", "检查关键状态正常"],
+            }
+        ]
+    }
     assert [response.json() for response in responses[2:5]] == [
         {"items": []},
         {"items": []},

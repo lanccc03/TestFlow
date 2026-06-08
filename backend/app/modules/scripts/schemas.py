@@ -2,7 +2,20 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.modules.keywords.schemas import ParameterType
+
+class FrameworkCaseSummary(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    description: str = ""
+    steps: list[str] = []
+
+
+# ---------------------------------------------------------------------------
+# Legacy schemas — kept for backward compatibility with the executions module.
+# These will be migrated in a follow-up task.
+# ---------------------------------------------------------------------------
 
 ScriptStatus = Literal["draft", "published"]
 
@@ -10,7 +23,7 @@ ScriptStatus = Literal["draft", "published"]
 class ScriptVariable(BaseModel):
     name: str
     description: str = ""
-    type: ParameterType = "string"
+    type: str = "string"
     default: Any = None
     required: bool = False
 
