@@ -4,7 +4,6 @@ import { createCommandsApi } from './commands'
 import { createExecutionsApi } from './executions'
 import { createFrameworkApi } from './framework'
 import { createHealthApi } from './health'
-import { createKeywordsApi } from './keywords'
 import { createReportsApi } from './reports'
 import { createScriptsApi } from './scripts'
 import type { ApiRequestClient } from './client'
@@ -38,23 +37,19 @@ describe('api endpoint modules', () => {
     expect(client.put).toHaveBeenCalledWith('/api/framework/config', config)
   })
 
-  it('keeps script and keyword endpoints in focused modules', async () => {
+  it('keeps framework case endpoints in a focused module', async () => {
     const client = createClientMock()
-    const keywordsApi = createKeywordsApi(client)
     const scriptsApi = createScriptsApi(client)
 
-    await keywordsApi.listKeywords()
     await scriptsApi.listScripts()
-    await scriptsApi.getScript('smoke-cockpit')
-    await scriptsApi.deleteScript('smoke-cockpit')
+    await scriptsApi.getScript('case.smoke_cockpit')
 
-    expect(client.get).toHaveBeenNthCalledWith(1, '/api/keywords')
-    expect(client.get).toHaveBeenNthCalledWith(2, '/api/scripts')
+    expect(client.get).toHaveBeenNthCalledWith(1, '/api/scripts')
     expect(client.get).toHaveBeenNthCalledWith(
-      3,
-      '/api/scripts/smoke-cockpit',
+      2,
+      '/api/scripts/case.smoke_cockpit',
     )
-    expect(client.remove).toHaveBeenCalledWith('/api/scripts/smoke-cockpit')
+    expect(client.remove).not.toHaveBeenCalled()
   })
 
   it('keeps command endpoints in a focused module', async () => {

@@ -21,7 +21,6 @@ import {
 } from '@/features/execution'
 import {
   FrameworkConfigPage,
-  ScriptEditorPage,
   ScriptListPage,
 } from '@/features/scripts'
 import {
@@ -43,28 +42,11 @@ export type AppRoute = {
 export const appRoutes: AppRoute[] = [
   {
     path: '/scripts',
-    label: '脚本管理',
-    description: '管理 YAML 测试脚本列表、搜索和入口操作。',
+    label: '框架用例库',
+    description: '从测试框架读取用例名称、描述和测试步骤。',
     navGroup: 'scripts',
     icon: FolderKanban,
     element: <ScriptListPage />,
-  },
-  {
-    path: '/scripts/new',
-    label: '脚本编辑器',
-    description: '通过关键字和参数表单编辑测试脚本。',
-    navGroup: 'scripts',
-    icon: FileCode2,
-    element: <ScriptEditorPage />,
-  },
-  {
-    path: '/scripts/:scriptId',
-    label: '脚本详情',
-    description: '编辑已有 YAML 测试脚本。',
-    navGroup: 'scripts',
-    icon: FileCode2,
-    element: <ScriptEditorPage />,
-    navHidden: true,
   },
   {
     path: '/framework-config',

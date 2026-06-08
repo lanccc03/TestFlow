@@ -1,6 +1,6 @@
 /// <reference types="node" />
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
@@ -78,45 +78,12 @@ describe('App', () => {
           data: {
             items: [
               {
-                id: 'smoke-cockpit',
+                id: 'case.smoke_cockpit',
                 name: '座舱冒烟测试',
                 description: '基础稳定性巡检',
-                step_count: 1,
-                enabled_step_count: 1,
-                revision: 1,
-                updated_at: '2026-05-31T12:00:00+00:00',
-                status: 'published',
-                tags: ['smoke', 'cockpit'],
-                group: 'stability',
+                steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
               },
             ],
-          },
-        })
-      }
-
-      if (path === '/api/scripts/smoke-cockpit') {
-        return Promise.resolve({
-          data: {
-            id: 'smoke-cockpit',
-            name: '座舱冒烟测试',
-            description: '基础稳定性巡检',
-            status: 'published',
-            tags: ['smoke', 'cockpit'],
-            group: 'stability',
-            variables: [],
-            steps: [
-              {
-                id: 'step-1',
-                keyword: 'wait',
-                description: '等待系统稳定',
-                enabled: true,
-                params: { seconds: 3 },
-              },
-            ],
-            version: {
-              revision: 1,
-              updated_at: '2026-05-31T12:00:00+00:00',
-            },
           },
         })
       }
@@ -175,9 +142,9 @@ describe('App', () => {
     renderApp()
 
     expect(
-      screen.getByRole('heading', { name: '脚本管理' }),
+      screen.getByRole('heading', { name: '框架用例库' }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /脚本管理/ })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /框架用例库/ })).toBeInTheDocument()
     expect(screen.getByLabelText('系统状态')).toHaveTextContent('后端服务')
     expect(screen.getByLabelText('系统状态')).toHaveTextContent('WebSocket')
     expect(screen.queryByLabelText('运行状态')).not.toBeInTheDocument()
@@ -191,121 +158,14 @@ describe('App', () => {
     expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
   })
 
-  it('only marks the exact navigation route as current', async () => {
-    renderApp(['/scripts/new'])
-
-    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /脚本管理/ })).not.toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-    expect(screen.getByRole('link', { name: /脚本编辑器/ })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
-  })
-
-  it('does not render legacy navigation styling classes', async () => {
-    renderApp(['/scripts/new'])
-
-    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /脚本管理/ }).className).not.toContain(
-      'nav-link',
-    )
-    expect(screen.getByRole('link', { name: /脚本编辑器/ }).className).not.toContain(
-      'nav-link',
-    )
-  })
-
-  it('searches scripts and deletes a listed script without advanced filters', async () => {
+  it('renders framework case catalog without script maintenance controls', async () => {
     renderApp()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
-    expect(screen.getByLabelText('搜索脚本')).toBeInTheDocument()
-    expect(screen.queryByLabelText('状态筛选')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('分组筛选')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('标签筛选')).not.toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText('搜索脚本'), {
-      target: { value: '不存在' },
-    })
-    expect(screen.getByText('没有匹配的脚本')).toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText('搜索脚本'), {
-      target: { value: '座舱' },
-    })
-    expect(screen.getByText('座舱冒烟测试')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: '删除 座舱冒烟测试' }))
-    fireEvent.click(screen.getByRole('button', { name: '确认删除 座舱冒烟测试' }))
-
-    await waitFor(() =>
-      expect(httpDelete).toHaveBeenCalledWith('/api/scripts/smoke-cockpit'),
-    )
-  })
-
-  it('saves a draft script with a generated keyword step', async () => {
-    renderApp(['/scripts/new'])
-
-    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
-
-    fireEvent.change(screen.getByLabelText('脚本 ID'), {
-      target: { value: 'draft-smoke' },
-    })
-    fireEvent.change(screen.getByLabelText('脚本名称'), {
-      target: { value: '草稿冒烟测试' },
-    })
-    fireEvent.change(screen.getByLabelText('分组'), {
-      target: { value: 'stability' },
-    })
-    fireEvent.change(screen.getByLabelText('标签'), {
-      target: { value: 'smoke, cockpit' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '添加步骤' }))
-    fireEvent.change(screen.getByLabelText('关键字'), {
-      target: { value: 'wait' },
-    })
-    fireEvent.change(screen.getByLabelText('参数 seconds'), {
-      target: { value: '5' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '保存草稿' }))
-
-    await waitFor(() =>
-      expect(httpPost).toHaveBeenCalledWith('/api/scripts', {
-        id: 'draft-smoke',
-        name: '草稿冒烟测试',
-        description: '',
-        status: 'draft',
-        tags: ['smoke', 'cockpit'],
-        group: 'stability',
-        variables: [],
-        steps: [
-          expect.objectContaining({
-            keyword: 'wait',
-            params: { seconds: 5 },
-          }),
-        ],
-      }),
-    )
-  })
-
-  it('blocks publishing when required keyword parameters are missing', async () => {
-    renderApp(['/scripts/new'])
-
-    expect(await screen.findByRole('heading', { name: '脚本编辑器' })).toBeInTheDocument()
-    fireEvent.change(screen.getByLabelText('脚本 ID'), {
-      target: { value: 'missing-param' },
-    })
-    fireEvent.change(screen.getByLabelText('脚本名称'), {
-      target: { value: '缺少参数' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '添加步骤' }))
-    fireEvent.change(screen.getByLabelText('关键字'), {
-      target: { value: 'wait' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: '保存' }))
-
-    expect(await screen.findByText('步骤 1 参数 seconds：Missing required parameter')).toBeInTheDocument()
-    expect(httpPost).not.toHaveBeenCalled()
+    expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
+    expect(screen.getByText('启动系统')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /新建脚本/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /删除/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /复制/ })).not.toBeInTheDocument()
   })
 })

@@ -67,9 +67,7 @@ export type {
   ScpTransferTask,
 } from './scp'
 export type {
-  ScriptStep,
   ScriptSummary,
-  ScriptVariable,
   TestScript,
 } from './scripts'
 export type { ItemList, JsonValue } from './types'

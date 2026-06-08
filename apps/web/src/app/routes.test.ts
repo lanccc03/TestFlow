@@ -6,8 +6,6 @@ describe('appRoutes', () => {
   it('defines the MVP page routes through phase five', () => {
     expect(appRoutes.map((route) => route.path)).toEqual([
       '/scripts',
-      '/scripts/new',
-      '/scripts/:scriptId',
       '/framework-config',
       '/tasks',
       '/history',
