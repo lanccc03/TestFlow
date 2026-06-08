@@ -6,15 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter } from 'react-router'
 
 const httpGet = vi.hoisted(() => vi.fn())
-const httpPost = vi.hoisted(() => vi.fn())
-const httpDelete = vi.hoisted(() => vi.fn())
 
 vi.mock('axios', () => ({
   default: {
     create: () => ({
-      delete: httpDelete,
       get: httpGet,
-      post: httpPost,
     }),
     isAxiosError: (error: unknown) =>
       Boolean(
@@ -116,26 +112,12 @@ describe('App', () => {
 
       return Promise.reject(new Error(`Unexpected path: ${path}`))
     })
-    httpPost.mockImplementation((_path: string, payload: unknown) =>
-      Promise.resolve({
-        data: {
-          ...(payload as object),
-          version: {
-            revision: 1,
-            updated_at: '2026-05-31T12:00:00+00:00',
-          },
-        },
-      }),
-    )
-    httpDelete.mockResolvedValue({ data: undefined })
   })
 
   afterEach(() => {
     cleanup()
     vi.unstubAllGlobals()
     httpGet.mockReset()
-    httpPost.mockReset()
-    httpDelete.mockReset()
   })
 
   it('renders the phase three application shell', () => {

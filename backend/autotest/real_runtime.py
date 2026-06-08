@@ -15,7 +15,9 @@ class RealAutotestRuntime:
         raise NotImplementedError("Real autotest runtime is not implemented yet")
 
     def list_cases(self) -> list[FrameworkCaseSummary]:
-        raise NotImplementedError("Real autotest runtime case catalog is not implemented yet")
+        raise NotImplementedError(
+            "Real autotest runtime case catalog is not implemented yet"
+        )
 
     def get_case(self, case_id: str) -> FrameworkCaseSummary:
         raise NotImplementedError(

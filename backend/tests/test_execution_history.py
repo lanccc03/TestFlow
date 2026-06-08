@@ -23,7 +23,6 @@ from app.modules.executions.schemas import (
 )
 from app.modules.executions.service import ExecutionService
 from autotest import registry
-from autotest.contracts import FrameworkCaseSummary
 from tests.test_execution_service import CaseExecutionRuntime
 
 

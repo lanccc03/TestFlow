@@ -8,7 +8,6 @@ from app.api import execution_websocket_endpoint
 from app.core.config import Settings
 from app.main import create_app
 from app.modules.executions.events import ExecutionEventBus
-from app.modules.executions.runner import _framework_request
 from app.modules.executions.schemas import (
     ExecutionEventMessage,
     ExecutionTask,
@@ -21,7 +20,6 @@ from app.modules.executions.service import (
 )
 from autotest import registry
 from autotest.contracts import (
-    CancellationToken,
     FrameworkCaseSummary,
     FrameworkEvent,
 )
@@ -166,7 +164,9 @@ async def test_execution_service_finishes_framework_case_as_passed(tmp_path) -> 
 
     await service.start()
     try:
-        task = await service.create_task(ExecutionTaskCreate(script_id="case.smoke_cockpit"))
+        task = await service.create_task(
+            ExecutionTaskCreate(script_id="case.smoke_cockpit")
+        )
         final_task = await service.wait_for_task(task.id, timeout=2)
     finally:
         await service.stop()
@@ -184,7 +184,9 @@ async def test_execution_service_can_cancel_running_task(tmp_path) -> None:
 
     await service.start()
     try:
-        task = await service.create_task(ExecutionTaskCreate(script_id="case.long_wait"))
+        task = await service.create_task(
+            ExecutionTaskCreate(script_id="case.long_wait")
+        )
         await asyncio.sleep(0.01)
         await service.cancel_task(task.id)
         final_task = await service.wait_for_task(task.id, timeout=2)
@@ -241,9 +243,13 @@ def test_task_api_cancels_running_task(tmp_path) -> None:
         settings = Settings(data_dir=tmp_path)
 
         with TestClient(create_app(settings)) as client:
-            create_response = client.post("/api/tasks", json={"script_id": "case.long_wait"})
+            create_response = client.post(
+                "/api/tasks", json={"script_id": "case.long_wait"}
+            )
             created = create_response.json()
-            cancel_response = client.post(f"/api/tasks/{created['id']}/cancel")
+            cancel_response = client.post(
+                f"/api/tasks/{created['id']}/cancel"
+            )
 
         assert create_response.status_code == 201
         assert cancel_response.status_code == 200
@@ -305,7 +311,9 @@ async def test_execution_service_marks_running_task_canceled_on_stop(tmp_path) -
     service = ExecutionService(settings)
 
     await service.start()
-    task = await service.create_task(ExecutionTaskCreate(script_id="case.long_wait"))
+    task = await service.create_task(
+        ExecutionTaskCreate(script_id="case.long_wait")
+    )
     await asyncio.sleep(0.01)
     await service.stop()
     registry.reset_runtime_for_testing()
@@ -332,7 +340,9 @@ async def test_execution_service_cancel_task_errors_for_finished_task(tmp_path) 
 
     await service.start()
     try:
-        task = await service.create_task(ExecutionTaskCreate(script_id="case.smoke_cockpit"))
+        task = await service.create_task(
+            ExecutionTaskCreate(script_id="case.smoke_cockpit")
+        )
         final_task = await service.wait_for_task(task.id, timeout=2)
         with pytest.raises(TaskAlreadyFinishedError):
             await service.cancel_task(final_task.id)
@@ -349,7 +359,9 @@ async def test_execution_service_cancel_task_logs_request(tmp_path) -> None:
 
     await service.start()
     try:
-        task = await service.create_task(ExecutionTaskCreate(script_id="case.long_wait"))
+        task = await service.create_task(
+            ExecutionTaskCreate(script_id="case.long_wait")
+        )
         await service.cancel_task(task.id)
         final_task = await service.wait_for_task(task.id, timeout=2)
     finally:
@@ -400,7 +412,9 @@ async def test_execution_service_cooperatively_cancels_framework_case(
 
     await service.start()
     try:
-        task = await service.create_task(ExecutionTaskCreate(script_id="case.long_wait"))
+        task = await service.create_task(
+            ExecutionTaskCreate(script_id="case.long_wait")
+        )
         await asyncio.sleep(0.01)
         await service.cancel_task(task.id)
         final_task = await service.wait_for_task(task.id, timeout=2)
@@ -532,7 +546,7 @@ async def test_execution_service_records_framework_html_report_event(tmp_path) -
 
 
 @pytest.mark.anyio
-async def test_execution_service_runs_framework_case_without_yaml_script(tmp_path) -> None:
+async def test_execution_service_runs_framework_case_no_yaml(tmp_path) -> None:
     registry.set_runtime_for_testing(CaseExecutionRuntime())
     service = ExecutionService(Settings(data_dir=tmp_path))
 
@@ -566,6 +580,8 @@ async def test_execution_service_returns_missing_framework_case(tmp_path) -> Non
 
     try:
         with pytest.raises(FileNotFoundError):
-            await service.create_task(ExecutionTaskCreate(script_id="missing"))
+            await service.create_task(
+                ExecutionTaskCreate(script_id="missing")
+            )
     finally:
         registry.reset_runtime_for_testing()

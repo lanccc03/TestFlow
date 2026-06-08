@@ -20,6 +20,8 @@ FastAPI routes
 上层业务只允许依赖 `autotest.entry`：
 
 - `autotest.entry.list_keywords()`：返回可用关键字定义。
+- `autotest.entry.list_cases()`：返回测试框架可执行用例的只读目录。
+- `autotest.entry.get_case(case_id)`：按框架用例 ID/引用读取名称、描述和测试步骤。
 - `autotest.entry.run_script(request)`：执行脚本并流式返回框架事件。
 
 真实框架的 SDK、CLI、配置对象、结果对象和异常类型都应封装在
@@ -187,6 +189,30 @@ API 响应：
 }
 ```
 
+## 框架用例目录
+
+TestFlow 不再维护自己的 YAML 脚本。用例目录来自自动化框架 runtime：
+
+```text
+GET /api/scripts
+GET /api/scripts/{script_id}
+```
+
+runtime 需要返回 `FrameworkCaseSummary`：
+
+```python
+FrameworkCaseSummary(
+    id="case.smoke_cockpit",
+    name="座舱冒烟测试",
+    description="基础稳定性巡检",
+    steps=("启动系统", "确认首页加载", "检查关键状态正常"),
+)
+```
+
+真实框架如果在脚本注释中维护用例名称、描述和测试步骤，应在
+`RealAutotestRuntime.list_cases()` / `get_case()` 内解析注释。不要让
+`app.modules.*` 或前端解析框架脚本文件。
+
 ## 请求契约
 
 `FrameworkRunRequest` 是 TestFlow 传给自动化框架的标准输入。
@@ -199,7 +225,7 @@ API 响应：
 | `script_id` | 脚本 ID | 用于报告、日志和框架 trace |
 | `script_name` | 脚本名称 | 可映射为框架 suite/case 名称 |
 | `script_revision` | 脚本版本 | 写入框架报告或上下文 |
-| `steps` | 待执行步骤 | 按顺序映射为框架关键字调用 |
+| `steps` | TestFlow 自维护步骤；执行框架原生用例时可以为空 |
 | `variables` | 脚本变量 | 注入框架上下文 |
 | `environment` | 环境信息 | 连接环境、运行配置或 profile |
 | `target_device` | 目标设备 | 设备、浏览器、主机或被测对象信息 |
@@ -268,6 +294,9 @@ step_finished
 framework_report?
 run_finished
 ```
+
+执行框架原生用例时，最小事件流可以只有 `run_started`、`log*`、`framework_report?` 和
+`run_finished`。`step_started` / `step_finished` 仅在 runtime 能自然提供逐步骤状态时使用。
 
 失败步骤建议：
 

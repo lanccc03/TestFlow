@@ -64,22 +64,16 @@ describe('createApiClient', () => {
     expect(httpClient.get).toHaveBeenCalledWith('/api/keywords')
   })
 
-  it('returns script summaries from the backend', async () => {
+  it('returns framework cases from the backend', async () => {
     const httpClient = {
       get: vi.fn().mockResolvedValue({
         data: {
           items: [
             {
-              id: 'smoke-cockpit',
+              id: 'case.smoke_cockpit',
               name: '座舱冒烟测试',
               description: '基础稳定性巡检',
-              step_count: 1,
-              enabled_step_count: 1,
-              revision: 2,
-              updated_at: '2026-05-31T12:00:00+00:00',
-              status: 'published',
-              tags: ['smoke'],
-              group: 'stability',
+              steps: ['启动系统', '确认首页加载'],
             },
           ],
         },
@@ -87,50 +81,37 @@ describe('createApiClient', () => {
     } as unknown as AxiosInstance
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
-    await expect(api.listScripts()).resolves.toMatchObject({
+    await expect(api.listScripts()).resolves.toEqual({
       items: [
         {
-          id: 'smoke-cockpit',
+          id: 'case.smoke_cockpit',
           name: '座舱冒烟测试',
-          revision: 2,
+          description: '基础稳定性巡检',
+          steps: ['启动系统', '确认首页加载'],
         },
       ],
     })
     expect(httpClient.get).toHaveBeenCalledWith('/api/scripts')
   })
 
-  it('returns a script detail from the backend', async () => {
+  it('returns a framework case detail from the backend', async () => {
     const httpClient = {
       get: vi.fn().mockResolvedValue({
         data: {
-          id: 'smoke-cockpit',
+          id: 'case.smoke_cockpit',
           name: '座舱冒烟测试',
           description: '基础稳定性巡检',
-          status: 'draft',
-          tags: [],
-          group: '',
-          variables: [],
-          steps: [],
+          steps: ['启动系统', '确认首页加载'],
         },
       }),
     } as unknown as AxiosInstance
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
-    await expect(api.getScript('smoke-cockpit')).resolves.toMatchObject({
-      id: 'smoke-cockpit',
-      status: 'draft',
+    await expect(api.getScript('case.smoke_cockpit')).resolves.toMatchObject({
+      id: 'case.smoke_cockpit',
+      steps: ['启动系统', '确认首页加载'],
     })
-    expect(httpClient.get).toHaveBeenCalledWith('/api/scripts/smoke-cockpit')
-  })
-
-  it('deletes a script through the backend', async () => {
-    const httpClient = {
-      delete: vi.fn().mockResolvedValue({ data: undefined }),
-    } as unknown as AxiosInstance
-    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
-
-    await expect(api.deleteScript('smoke-cockpit')).resolves.toBeUndefined()
-    expect(httpClient.delete).toHaveBeenCalledWith('/api/scripts/smoke-cockpit')
+    expect(httpClient.get).toHaveBeenCalledWith('/api/scripts/case.smoke_cockpit')
   })
 
   it('exposes command template CRUD endpoints', async () => {
