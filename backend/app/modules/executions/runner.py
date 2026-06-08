@@ -21,9 +21,9 @@ from app.modules.executions.schemas import (
     TaskStatus,
     utc_now,
 )
-from app.modules.scripts import TestScript
 from autotest.contracts import (
     CancellationToken,
+    FrameworkCaseSummary,
     FrameworkEvent,
     FrameworkRunRequest,
     FrameworkStep,
@@ -279,29 +279,55 @@ class ExecutionRunner:
             self.tokens.pop(task.id, None)
 
 
-def task_from_script(
-    script: TestScript,
+def task_from_case(
+    case: FrameworkCaseSummary,
     payload: ExecutionTaskCreate,
     task_id: str,
     log_path: Path,
     report_dir: Path,
 ) -> ExecutionTask:
-    version = script.version
+    return ExecutionTask(
+        id=task_id,
+        script_id=case.id,
+        script_name=case.name,
+        script_revision=1,
+        environment=payload.environment,
+        target_device=payload.target_device,
+        variables=deepcopy(payload.variables),
+        executor=payload.executor,
+        log_path=str(log_path),
+        report_dir=str(report_dir),
+        steps=[],
+    )
+
+
+def task_from_script(
+    script: FrameworkCaseSummary,
+    payload: ExecutionTaskCreate,
+    task_id: str,
+    log_path: Path,
+    report_dir: Path,
+) -> ExecutionTask:
+    script_steps = getattr(script, "steps", [])
+    if isinstance(script_steps, tuple):
+        script_steps = list(script_steps)
+    script_id = getattr(script, "id", "")
+    script_name = getattr(script, "name", "")
     steps = [
         ExecutionStepResult(
-            id=step.id,
+            id=str(step) if not hasattr(step, "id") else step.id,
             index=index,
-            keyword=step.keyword,
-            description=step.description,
-            input=deepcopy(step.params),
+            keyword="",
+            description=str(step) if not hasattr(step, "description") else step.description,
+            input={},
         )
-        for index, step in enumerate(step for step in script.steps if step.enabled)
+        for index, step in enumerate(script_steps)
     ]
     return ExecutionTask(
         id=task_id,
-        script_id=script.id,
-        script_name=script.name,
-        script_revision=version.revision if version else 1,
+        script_id=script_id,
+        script_name=script_name,
+        script_revision=1,
         environment=payload.environment,
         target_device=payload.target_device,
         variables=deepcopy(payload.variables),

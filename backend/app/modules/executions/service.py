@@ -13,7 +13,7 @@ from app.modules.executions.runner import (
     TERMINAL_STATUSES,
     ExecutionRunner,
     _mark_task_canceled,
-    task_from_script,
+    task_from_case,
     task_summary,
 )
 from app.modules.executions.schemas import (
@@ -25,8 +25,8 @@ from app.modules.executions.schemas import (
     ExecutionTaskSummary,
     TaskStatus,
 )
-from app.modules.scripts import read_script
 from autotest.contracts import CancellationToken, FrameworkEvent
+from autotest.entry import get_case
 
 
 class TaskNotFoundError(Exception):
@@ -62,12 +62,12 @@ class ExecutionService:
         await self._runner.stop()
 
     async def create_task(self, payload: ExecutionTaskCreate) -> ExecutionTask:
-        script = read_script(self.settings, payload.script_id)
+        case = get_case(payload.script_id)
         task_id = f"exec-{uuid4().hex}"
         log_path = self.settings.logs_dir / "executions" / f"{task_id}.log"
         report_dir = self.settings.reports_dir / task_id
         report_dir.mkdir(parents=True, exist_ok=True)
-        task = task_from_script(script, payload, task_id, log_path, report_dir)
+        task = task_from_case(case, payload, task_id, log_path, report_dir)
 
         self._tasks[task.id] = task
         self._tokens[task.id] = CancellationToken()

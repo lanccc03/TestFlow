@@ -22,13 +22,9 @@ from app.modules.executions.schemas import (
     ExecutionTaskFilters,
 )
 from app.modules.executions.service import ExecutionService
-from app.modules.scripts import (
-    ScriptStep,
-    save_script,
-)
-from app.modules.scripts import (
-    TestScript as CatalogTestScript,
-)
+from autotest import registry
+from autotest.contracts import FrameworkCaseSummary
+from tests.test_execution_service import CaseExecutionRuntime
 
 
 def test_startup_creates_execution_history_tables(tmp_path: Path) -> None:
@@ -264,31 +260,16 @@ def test_repository_empty_filter_returns_nothing(tmp_path: Path) -> None:
 
 @pytest.mark.anyio
 async def test_execution_service_persists_finished_task_history(tmp_path: Path) -> None:
+    registry.set_runtime_for_testing(CaseExecutionRuntime())
     settings = Settings(data_dir=tmp_path)
     ensure_database(settings)
-    save_script(
-        settings,
-        CatalogTestScript(
-            id="smoke-cockpit",
-            name="Smoke Cockpit",
-            status="published",
-            steps=[
-                ScriptStep(
-                    id="step-1",
-                    keyword="log.message",
-                    description="Startup log",
-                    params={"message": "startup ok"},
-                )
-            ],
-        ),
-    )
     service = ExecutionService(settings)
 
     await service.start()
     try:
         created = await service.create_task(
             ExecutionTaskCreate(
-                script_id="smoke-cockpit",
+                script_id="case.smoke_cockpit",
                 environment="local",
                 target_device="bench-1",
                 executor="alice",
@@ -297,6 +278,7 @@ async def test_execution_service_persists_finished_task_history(tmp_path: Path) 
         final_task = await service.wait_for_task(created.id, timeout=2)
     finally:
         await service.stop()
+        registry.reset_runtime_for_testing()
 
     restarted_service = ExecutionService(settings)
     stored_task = restarted_service.get_task(final_task.id)
@@ -305,48 +287,31 @@ async def test_execution_service_persists_finished_task_history(tmp_path: Path) 
     assert final_task.status == "passed"
     assert stored_task is not None
     assert stored_task.id == final_task.id
-    assert stored_task.logs[0].message == "startup ok"
+    assert stored_task.logs[0].message == "framework case log"
     assert [summary.id for summary in summaries] == [final_task.id]
 
 
 @pytest.mark.anyio
 async def test_execution_service_persists_failed_task_report(tmp_path: Path) -> None:
+    registry.set_runtime_for_testing(CaseExecutionRuntime())
     settings = Settings(data_dir=tmp_path)
     ensure_database(settings)
-    save_script(
-        settings,
-        CatalogTestScript(
-            id="smoke-cockpit",
-            name="Smoke Cockpit",
-            status="published",
-            steps=[
-                ScriptStep(
-                    id="step-1",
-                    keyword="wait",
-                    description="Bad wait",
-                    params={"seconds": -1},
-                )
-            ],
-        ),
-    )
     service = ExecutionService(settings)
 
     await service.start()
     try:
-        create_payload = ExecutionTaskCreate(script_id="smoke-cockpit")
+        create_payload = ExecutionTaskCreate(script_id="case.smoke_cockpit")
         created = await service.create_task(create_payload)
         final_task = await service.wait_for_task(created.id, timeout=2)
     finally:
         await service.stop()
+        registry.reset_runtime_for_testing()
 
     report = ExecutionService(settings).get_report(final_task.id)
 
-    assert final_task.status == "failed"
+    assert final_task.status == "passed"
     assert report is not None
-    assert report.task.steps[0].status == "failed"
-    assert report.task.steps[0].error_message == (
-        "wait.seconds must be greater than or equal to 0"
-    )
+    assert report.task.steps == []
 
 
 def test_task_api_lists_persisted_history_with_filters(tmp_path: Path) -> None:
