@@ -84,32 +84,6 @@ describe('App', () => {
         })
       }
 
-      if (path === '/api/keywords') {
-        return Promise.resolve({
-          data: {
-            items: [
-              {
-                name: 'wait',
-                description: '等待指定秒数',
-                module: 'flow',
-                parameters: [
-                  {
-                    name: 'seconds',
-                    description: '等待时长，单位秒',
-                    type: 'integer',
-                    default: 1,
-                    required: true,
-                    example: 5,
-                  },
-                ],
-                example: { seconds: 5 },
-                enabled: true,
-              },
-            ],
-          },
-        })
-      }
-
       return Promise.reject(new Error(`Unexpected path: ${path}`))
     })
   })

@@ -42,7 +42,6 @@ class ExecutionLogEntry(BaseModel):
 class ExecutionStepResult(BaseModel):
     id: str
     index: int
-    keyword: str
     description: str = ""
     status: StepStatus = "pending"
     started_at: str | None = None

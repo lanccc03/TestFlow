@@ -26,7 +26,6 @@ from autotest.contracts import (
     FrameworkCaseSummary,
     FrameworkEvent,
     FrameworkRunRequest,
-    FrameworkStep,
 )
 from autotest.entry import run_script
 
@@ -332,17 +331,6 @@ def _framework_request(
         script_id=task.script_id,
         script_name=task.script_name,
         script_revision=task.script_revision,
-        steps=[
-            FrameworkStep(
-                id=step.id,
-                index=step.index,
-                keyword=step.keyword,
-                description=step.description,
-                enabled=True,
-                params=deepcopy(step.input),
-            )
-            for step in task.steps
-        ],
         variables=deepcopy(task.variables),
         environment={"name": task.environment} if task.environment else {},
         target_device={"id": task.target_device} if task.target_device else None,

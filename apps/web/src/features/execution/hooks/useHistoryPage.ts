@@ -13,9 +13,9 @@ export function useHistoryPage() {
 
   const tasks = useMemo(() => {
     const items = tasksQuery.data?.items ?? []
-    const keyword = search.trim().toLowerCase()
+    const term = search.trim().toLowerCase()
 
-    if (!keyword) {
+    if (!term) {
       return items
     }
 
@@ -27,7 +27,7 @@ export function useHistoryPage() {
         task.status,
       ]
         .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(keyword)),
+        .some((value) => String(value).toLowerCase().includes(term)),
     )
   }, [search, tasksQuery.data?.items])
 

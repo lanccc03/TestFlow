@@ -3,7 +3,6 @@ from collections.abc import AsyncIterator
 from autotest.contracts import (
     FrameworkCaseSummary,
     FrameworkEvent,
-    FrameworkKeywordDef,
     FrameworkRunRequest,
     JsonValue,
 )
@@ -16,10 +15,6 @@ def list_cases() -> list[FrameworkCaseSummary]:
 
 def get_case(case_id: str) -> FrameworkCaseSummary:
     return get_runtime().get_case(case_id)
-
-
-def list_keywords() -> list[FrameworkKeywordDef]:
-    return get_runtime().list_keywords()
 
 
 def read_config() -> JsonValue:

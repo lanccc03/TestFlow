@@ -4,17 +4,12 @@ from typing import Protocol
 from autotest.contracts import (
     FrameworkCaseSummary,
     FrameworkEvent,
-    FrameworkKeywordDef,
     FrameworkRunRequest,
     JsonValue,
 )
 
 
 class AutotestRuntime(Protocol):
-    def list_keywords(self) -> list[FrameworkKeywordDef]:
-        """Return keyword definitions supported by this runtime."""
-        ...
-
     def list_cases(self) -> list[FrameworkCaseSummary]:
         """Return framework test cases available to execute."""
         ...

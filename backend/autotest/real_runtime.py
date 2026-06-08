@@ -4,16 +4,12 @@ from autotest.contracts import (
     FrameworkCaseSummary,
     FrameworkConfigError,
     FrameworkEvent,
-    FrameworkKeywordDef,
     FrameworkRunRequest,
     JsonValue,
 )
 
 
 class RealAutotestRuntime:
-    def list_keywords(self) -> list[FrameworkKeywordDef]:
-        raise NotImplementedError("Real autotest runtime is not implemented yet")
-
     def list_cases(self) -> list[FrameworkCaseSummary]:
         raise NotImplementedError(
             "Real autotest runtime case catalog is not implemented yet"

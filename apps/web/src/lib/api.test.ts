@@ -30,40 +30,6 @@ describe('createApiClient', () => {
     expect(httpClient.get).toHaveBeenCalledWith('/health')
   })
 
-  it('returns keyword metadata from the backend', async () => {
-    const httpClient = {
-      get: vi.fn().mockResolvedValue({
-        data: {
-          items: [
-            {
-              name: 'wait',
-              description: '等待指定秒数',
-              module: 'flow',
-              parameters: [],
-              example: {},
-              enabled: true,
-            },
-          ],
-        },
-      }),
-    } as unknown as AxiosInstance
-    const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
-
-    await expect(api.listKeywords()).resolves.toEqual({
-      items: [
-        {
-          name: 'wait',
-          description: '等待指定秒数',
-          module: 'flow',
-          parameters: [],
-          example: {},
-          enabled: true,
-        },
-      ],
-    })
-    expect(httpClient.get).toHaveBeenCalledWith('/api/keywords')
-  })
-
   it('returns framework cases from the backend', async () => {
     const httpClient = {
       get: vi.fn().mockResolvedValue({
@@ -234,7 +200,6 @@ describe('createApiClient', () => {
       steps: [
         {
           id: 'step-1',
-          keyword: 'wait',
           description: '等待启动',
           status: 'passed',
           started_at: '2026-06-01T00:00:01+00:00',

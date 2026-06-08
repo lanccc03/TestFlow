@@ -5,9 +5,7 @@ import pytest
 
 from autotest.contracts import (
     FrameworkEvent,
-    FrameworkKeywordDef,
     FrameworkRunRequest,
-    FrameworkStep,
 )
 
 
@@ -25,16 +23,6 @@ def make_request() -> FrameworkRunRequest:
         script_id="script-1",
         script_name="Smoke Test",
         script_revision=1,
-        steps=[
-            FrameworkStep(
-                id="step-1",
-                index=0,
-                keyword="fake.keyword",
-                description="Fake step",
-                enabled=True,
-                params={},
-            )
-        ],
         variables={},
         environment={},
         target_device=None,
@@ -46,9 +34,6 @@ def make_request() -> FrameworkRunRequest:
 
 
 class FakeRuntime:
-    def list_keywords(self) -> list[FrameworkKeywordDef]:
-        return [FrameworkKeywordDef(name="fake.keyword", module="fake")]
-
     async def run_script(
         self,
         request: FrameworkRunRequest,
@@ -68,15 +53,6 @@ def reset_runtime_override():
     registry.reset_runtime_for_testing()
     yield
     registry.reset_runtime_for_testing()
-
-
-def test_entry_delegates_keyword_listing_to_configured_runtime() -> None:
-    from autotest import registry
-    from autotest.entry import list_keywords
-
-    registry.set_runtime_for_testing(FakeRuntime())
-
-    assert list_keywords() == [FrameworkKeywordDef(name="fake.keyword", module="fake")]
 
 
 def test_entry_delegates_script_execution_to_configured_runtime() -> None:

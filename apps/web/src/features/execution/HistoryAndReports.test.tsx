@@ -128,7 +128,6 @@ const reportTask = {
     {
       id: 'step-1',
       index: 0,
-      keyword: 'wait',
       description: 'Bad wait',
       status: 'failed',
       started_at: '2026-06-01T00:00:01+00:00',

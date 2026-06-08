@@ -175,7 +175,7 @@ function StructuredReportDetail({
                       {taskStatusLabel(step.status)}
                     </Badge>
                     <strong className="font-semibold">
-                      {step.keyword} / {step.description}
+                      {step.description || `步骤 ${index + 1}`}
                     </strong>
                   </div>
                   <div className="text-muted-foreground">

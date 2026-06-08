@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from autotest.contracts import FrameworkCaseSummary, FrameworkKeywordDef
+from autotest.contracts import FrameworkCaseSummary
 
 
 class CaseRuntime:
@@ -23,9 +23,6 @@ class CaseRuntime:
         if case_id != "case.smoke_cockpit":
             raise FileNotFoundError(case_id)
         return self.list_cases()[0]
-
-    def list_keywords(self) -> list[FrameworkKeywordDef]:
-        return []
 
     def read_config(self):
         return {}

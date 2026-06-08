@@ -8,7 +8,6 @@ from app.main import create_app
 from autotest.contracts import (
     FrameworkConfigError,
     FrameworkEvent,
-    FrameworkKeywordDef,
     FrameworkRunRequest,
     JsonValue,
 )
@@ -80,9 +79,6 @@ def test_framework_config_runtime_errors_use_common_error_response(
     tmp_path,
 ) -> None:
     class BrokenConfigRuntime:
-        def list_keywords(self) -> list[FrameworkKeywordDef]:
-            return []
-
         def run_script(
             self,
             _request: FrameworkRunRequest,

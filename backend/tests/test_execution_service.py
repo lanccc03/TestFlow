@@ -50,9 +50,6 @@ class CaseExecutionRuntime:
             )
         return self.list_cases()[0]
 
-    def list_keywords(self):
-        return []
-
     def read_config(self):
         return {}
 
@@ -457,7 +454,6 @@ async def test_execution_service_copies_framework_step_output(tmp_path) -> None:
             {
                 "id": "step-1",
                 "index": 0,
-                "keyword": "log.message",
                 "input": {},
             }
         ],

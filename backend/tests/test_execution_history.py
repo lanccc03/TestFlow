@@ -68,7 +68,6 @@ def test_repository_saves_and_reads_execution_report(tmp_path: Path) -> None:
                 ExecutionStepResult(
                     id="step-1",
                     index=0,
-                    keyword="wait",
                     description="Bad wait",
                     status="failed",
                     input={"seconds": -1},
@@ -164,7 +163,6 @@ def test_repository_filters_history_summaries(tmp_path: Path) -> None:
                 ExecutionStepResult(
                     id="step-1",
                     index=0,
-                    keyword="log.message",
                     status="passed",
                 )
             ],
@@ -182,7 +180,6 @@ def test_repository_filters_history_summaries(tmp_path: Path) -> None:
                 ExecutionStepResult(
                     id="step-1",
                     index=0,
-                    keyword="wait",
                     status="failed",
                 )
             ],
@@ -361,7 +358,6 @@ def test_report_api_reads_persisted_report_detail(tmp_path: Path) -> None:
                 ExecutionStepResult(
                     id="step-1",
                     index=0,
-                    keyword="wait",
                     status="failed",
                     error_message="wait.seconds must be greater than or equal to 0",
                 )

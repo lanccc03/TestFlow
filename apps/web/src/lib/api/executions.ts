@@ -36,7 +36,6 @@ export type ExecutionLogEntry = {
 export type ExecutionStepResult = {
   id: string
   index: number
-  keyword: string
   description: string
   status: StepStatus
   started_at: string | null
