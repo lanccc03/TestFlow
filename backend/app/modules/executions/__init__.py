@@ -4,7 +4,7 @@ from app.modules.executions.runner import (
     TERMINAL_STATUSES,
     _framework_request,
     _mark_task_canceled,
-    task_from_script,
+    task_from_case,
     task_summary,
 )
 from app.modules.executions.schemas import (
@@ -44,7 +44,7 @@ __all__ = [
     "TaskStatus",
     "_framework_request",
     "_mark_task_canceled",
-    "task_from_script",
+    "task_from_case",
     "task_summary",
     "utc_now",
 ]

@@ -301,42 +301,6 @@ def task_from_case(
     )
 
 
-def task_from_script(
-    script: FrameworkCaseSummary,
-    payload: ExecutionTaskCreate,
-    task_id: str,
-    log_path: Path,
-    report_dir: Path,
-) -> ExecutionTask:
-    script_steps = getattr(script, "steps", [])
-    if isinstance(script_steps, tuple):
-        script_steps = list(script_steps)
-    script_id = getattr(script, "id", "")
-    script_name = getattr(script, "name", "")
-    steps = [
-        ExecutionStepResult(
-            id=str(step) if not hasattr(step, "id") else step.id,
-            index=index,
-            keyword="",
-            description=str(step) if not hasattr(step, "description") else step.description,
-            input={},
-        )
-        for index, step in enumerate(script_steps)
-    ]
-    return ExecutionTask(
-        id=task_id,
-        script_id=script_id,
-        script_name=script_name,
-        script_revision=1,
-        environment=payload.environment,
-        target_device=payload.target_device,
-        variables=deepcopy(payload.variables),
-        executor=payload.executor,
-        log_path=str(log_path),
-        report_dir=str(report_dir),
-        steps=steps,
-    )
-
 
 def task_summary(task: ExecutionTask) -> ExecutionTaskSummary:
     return ExecutionTaskSummary(

@@ -41,7 +41,7 @@ class CaseExecutionRuntime:
         ]
 
     def get_case(self, case_id: str) -> FrameworkCaseSummary:
-        if case_id not in ("case.smoke_cockpit", "case.long_wait", "case.multi_step"):
+        if case_id not in ("case.smoke_cockpit", "case.long_wait"):
             raise FileNotFoundError(case_id)
         if case_id == "case.long_wait":
             return FrameworkCaseSummary(
@@ -49,13 +49,6 @@ class CaseExecutionRuntime:
                 name="Long Wait",
                 description="等待取消",
                 steps=("等待中",),
-            )
-        if case_id == "case.multi_step":
-            return FrameworkCaseSummary(
-                id="case.multi_step",
-                name="Multi Step",
-                description="多步骤",
-                steps=("步骤1", "步骤2"),
             )
         return self.list_cases()[0]
 
@@ -166,7 +159,7 @@ async def test_execution_service_runs_script_to_passed(tmp_path) -> None:
 
 
 @pytest.mark.anyio
-async def test_execution_service_marks_failed_step_as_failed(tmp_path) -> None:
+async def test_execution_service_finishes_framework_case_as_passed(tmp_path) -> None:
     registry.set_runtime_for_testing(CaseExecutionRuntime())
     settings = Settings(data_dir=tmp_path)
     service = ExecutionService(settings)
@@ -205,30 +198,31 @@ async def test_execution_service_can_cancel_running_task(tmp_path) -> None:
 
 def test_task_api_creates_and_reads_execution_task(tmp_path) -> None:
     registry.set_runtime_for_testing(CaseExecutionRuntime())
-    settings = Settings(data_dir=tmp_path)
+    try:
+        settings = Settings(data_dir=tmp_path)
 
-    with TestClient(create_app(settings)) as client:
-        create_response = client.post(
-            "/api/tasks",
-            json={
-                "script_id": "case.smoke_cockpit",
-                "environment": "local",
-                "target_device": "bench-1",
-            },
-        )
-        created = create_response.json()
+        with TestClient(create_app(settings)) as client:
+            create_response = client.post(
+                "/api/tasks",
+                json={
+                    "script_id": "case.smoke_cockpit",
+                    "environment": "local",
+                    "target_device": "bench-1",
+                },
+            )
+            created = create_response.json()
 
-        read_response = client.get(f"/api/tasks/{created['id']}")
-        list_response = client.get("/api/tasks")
+            read_response = client.get(f"/api/tasks/{created['id']}")
+            list_response = client.get("/api/tasks")
 
-    registry.reset_runtime_for_testing()
-
-    assert create_response.status_code == 201
-    assert created["script_id"] == "case.smoke_cockpit"
-    assert read_response.status_code == 200
-    assert read_response.json()["id"] == created["id"]
-    assert list_response.status_code == 200
-    assert created["id"] in [task["id"] for task in list_response.json()["items"]]
+        assert create_response.status_code == 201
+        assert created["script_id"] == "case.smoke_cockpit"
+        assert read_response.status_code == 200
+        assert read_response.json()["id"] == created["id"]
+        assert list_response.status_code == 200
+        assert created["id"] in [task["id"] for task in list_response.json()["items"]]
+    finally:
+        registry.reset_runtime_for_testing()
 
 
 def test_task_api_returns_404_for_missing_script(tmp_path) -> None:
@@ -243,18 +237,19 @@ def test_task_api_returns_404_for_missing_script(tmp_path) -> None:
 
 def test_task_api_cancels_running_task(tmp_path) -> None:
     registry.set_runtime_for_testing(CaseExecutionRuntime())
-    settings = Settings(data_dir=tmp_path)
+    try:
+        settings = Settings(data_dir=tmp_path)
 
-    with TestClient(create_app(settings)) as client:
-        create_response = client.post("/api/tasks", json={"script_id": "case.long_wait"})
-        created = create_response.json()
-        cancel_response = client.post(f"/api/tasks/{created['id']}/cancel")
+        with TestClient(create_app(settings)) as client:
+            create_response = client.post("/api/tasks", json={"script_id": "case.long_wait"})
+            created = create_response.json()
+            cancel_response = client.post(f"/api/tasks/{created['id']}/cancel")
 
-    registry.reset_runtime_for_testing()
-
-    assert create_response.status_code == 201
-    assert cancel_response.status_code == 200
-    assert cancel_response.json()["id"] == created["id"]
+        assert create_response.status_code == 201
+        assert cancel_response.status_code == 200
+        assert cancel_response.json()["id"] == created["id"]
+    finally:
+        registry.reset_runtime_for_testing()
 
 
 @pytest.mark.anyio
@@ -396,7 +391,7 @@ async def test_execution_service_cancel_task_marks_queued_task_canceled(
 
 
 @pytest.mark.anyio
-async def test_execution_service_cooperative_cancel_marks_unstarted_steps_canceled(
+async def test_execution_service_cooperatively_cancels_framework_case(
     tmp_path,
 ) -> None:
     registry.set_runtime_for_testing(CaseExecutionRuntime())

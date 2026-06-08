@@ -292,7 +292,7 @@ async def test_execution_service_persists_finished_task_history(tmp_path: Path) 
 
 
 @pytest.mark.anyio
-async def test_execution_service_persists_failed_task_report(tmp_path: Path) -> None:
+async def test_execution_service_persists_finished_task_report(tmp_path: Path) -> None:
     registry.set_runtime_for_testing(CaseExecutionRuntime())
     settings = Settings(data_dir=tmp_path)
     ensure_database(settings)
