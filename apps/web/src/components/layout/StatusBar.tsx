@@ -29,7 +29,7 @@ export function StatusBar({
   return (
     <footer className="fixed inset-x-0 bottom-0 z-50 flex h-8 items-center justify-between border-t border-sidebar-border/85 bg-sidebar/90 px-2 text-xs text-sidebar-foreground shadow-[0_-10px_28px_rgb(23_32_29_/_0.08)] backdrop-blur-md">
       <div className="flex min-w-0 items-center gap-1 px-1 text-[11px] text-sidebar-foreground/58 max-sm:hidden">
-        <span className="font-semibold text-sidebar-foreground/78">TestFlow</span>
+        <span className="font-semibold text-sidebar-foreground/78">ScriptDesk</span>
         <span aria-hidden="true">/</span>
         <span>Precision Lab</span>
       </div>

@@ -1,6 +1,6 @@
-# TestFlow Web
+# ScriptDesk Web
 
-React + TypeScript + Vite frontend for the TestFlow desktop shell.
+React + TypeScript + Vite frontend for the ScriptDesk desktop shell.
 
 ```bash
 pnpm --filter @testflow/web dev

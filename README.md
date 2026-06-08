@@ -1,6 +1,6 @@
-# TestFlow
+# ScriptDesk
 
-TestFlow is an Electron desktop app with a React/Vite frontend and a local FastAPI backend. The current skeleton includes the desktop shell, web app, Python service, API client, and live status checks.
+ScriptDesk is an Electron desktop app with a React/Vite frontend and a local FastAPI backend. The current skeleton includes the desktop shell, web app, Python service, API client, and live status checks.
 
 ## Prerequisites
 

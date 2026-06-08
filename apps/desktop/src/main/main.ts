@@ -5,6 +5,14 @@ import { createBackendProcessOptions } from "./backend-config.js";
 import { BackendProcessManager } from "./backend-process.js";
 
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL;
+const APP_NAME = "ScriptDesk";
+const APP_ID = "com.scriptdesk.app";
+const APP_ICON_PATH = path.join(
+  __dirname,
+  process.platform === "win32"
+    ? "../../assets/app/scriptdesk.ico"
+    : "../../assets/app/scriptdesk.png",
+);
 
 let backendManager: BackendProcessManager | undefined;
 let isQuittingAfterBackendStop = false;
@@ -13,10 +21,11 @@ function createMainWindow(): void {
   const mainWindow = new BrowserWindow({
     autoHideMenuBar: true,
     height: 800,
+    icon: APP_ICON_PATH,
     minHeight: 640,
     minWidth: 960,
     show: false,
-    title: "TestFlow",
+    title: APP_NAME,
     width: 1200,
     webPreferences: {
       contextIsolation: true,
@@ -82,6 +91,9 @@ function registerIpcHandlers(): void {
   ipcMain.handle("backend:start", async () => backendManager?.start());
 }
 
+app.setName(APP_NAME);
+app.setAppUserModelId(APP_ID);
+
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null);
   backendManager = createBackendManager();
@@ -91,7 +103,7 @@ app.whenReady().then(() => {
 
   void backendManager.start().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
-    dialog.showErrorBox("TestFlow backend failed to start", message);
+    dialog.showErrorBox(`${APP_NAME} backend failed to start`, message);
     broadcastBackendStatus();
   });
 
