@@ -1,6 +1,7 @@
 from collections.abc import AsyncIterator
 
 from autotest.contracts import (
+    FrameworkCaseSummary,
     FrameworkConfigError,
     FrameworkEvent,
     FrameworkKeywordDef,
@@ -12,6 +13,14 @@ from autotest.contracts import (
 class RealAutotestRuntime:
     def list_keywords(self) -> list[FrameworkKeywordDef]:
         raise NotImplementedError("Real autotest runtime is not implemented yet")
+
+    def list_cases(self) -> list[FrameworkCaseSummary]:
+        raise NotImplementedError("Real autotest runtime case catalog is not implemented yet")
+
+    def get_case(self, case_id: str) -> FrameworkCaseSummary:
+        raise NotImplementedError(
+            f"Real autotest runtime case catalog is not implemented yet: {case_id}"
+        )
 
     def read_config(self) -> JsonValue:
         raise FrameworkConfigError(

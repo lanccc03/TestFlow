@@ -58,6 +58,14 @@ class FrameworkStep:
 
 
 @dataclass(frozen=True)
+class FrameworkCaseSummary:
+    id: str
+    name: str
+    description: str = ""
+    steps: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class FrameworkRunRequest:
     task_id: str
     script_id: str

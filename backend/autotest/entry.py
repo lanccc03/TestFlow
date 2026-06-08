@@ -1,12 +1,21 @@
 from collections.abc import AsyncIterator
 
 from autotest.contracts import (
+    FrameworkCaseSummary,
     FrameworkEvent,
     FrameworkKeywordDef,
     FrameworkRunRequest,
     JsonValue,
 )
 from autotest.registry import get_runtime
+
+
+def list_cases() -> list[FrameworkCaseSummary]:
+    return get_runtime().list_cases()
+
+
+def get_case(case_id: str) -> FrameworkCaseSummary:
+    return get_runtime().get_case(case_id)
 
 
 def list_keywords() -> list[FrameworkKeywordDef]:

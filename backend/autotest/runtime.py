@@ -2,6 +2,7 @@ from collections.abc import AsyncIterator
 from typing import Protocol
 
 from autotest.contracts import (
+    FrameworkCaseSummary,
     FrameworkEvent,
     FrameworkKeywordDef,
     FrameworkRunRequest,
@@ -12,6 +13,14 @@ from autotest.contracts import (
 class AutotestRuntime(Protocol):
     def list_keywords(self) -> list[FrameworkKeywordDef]:
         """Return keyword definitions supported by this runtime."""
+        ...
+
+    def list_cases(self) -> list[FrameworkCaseSummary]:
+        """Return framework test cases available to execute."""
+        ...
+
+    def get_case(self, case_id: str) -> FrameworkCaseSummary:
+        """Return one framework test case by stable ID."""
         ...
 
     def read_config(self) -> JsonValue:

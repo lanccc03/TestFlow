@@ -103,3 +103,52 @@ def test_registry_rejects_unknown_runtime(monkeypatch) -> None:
 
     get_settings.cache_clear()
     get_runtime.cache_clear()
+
+
+def test_entry_delegates_case_listing_to_configured_runtime() -> None:
+    from autotest import registry
+    from autotest.contracts import FrameworkCaseSummary
+    from autotest.entry import list_cases
+
+    class CaseRuntime(FakeRuntime):
+        def list_cases(self) -> list[FrameworkCaseSummary]:
+            return [
+                FrameworkCaseSummary(
+                    id="case.smoke_cockpit",
+                    name="座舱冒烟测试",
+                    description="基础稳定性巡检",
+                    steps=("启动系统", "确认首页加载"),
+                )
+            ]
+
+    registry.set_runtime_for_testing(CaseRuntime())
+
+    assert list_cases() == [
+        FrameworkCaseSummary(
+            id="case.smoke_cockpit",
+            name="座舱冒烟测试",
+            description="基础稳定性巡检",
+            steps=("启动系统", "确认首页加载"),
+        )
+    ]
+
+
+def test_entry_delegates_case_detail_to_configured_runtime() -> None:
+    from autotest import registry
+    from autotest.contracts import FrameworkCaseSummary
+    from autotest.entry import get_case
+
+    class CaseRuntime(FakeRuntime):
+        def get_case(self, case_id: str) -> FrameworkCaseSummary:
+            if case_id != "case.smoke_cockpit":
+                raise FileNotFoundError(case_id)
+            return FrameworkCaseSummary(
+                id=case_id,
+                name="座舱冒烟测试",
+                description="基础稳定性巡检",
+                steps=("启动系统", "确认首页加载"),
+            )
+
+    registry.set_runtime_for_testing(CaseRuntime())
+
+    assert get_case("case.smoke_cockpit").name == "座舱冒烟测试"
