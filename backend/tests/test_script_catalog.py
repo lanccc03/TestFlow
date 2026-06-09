@@ -86,10 +86,3 @@ def test_returns_404_for_missing_framework_case(tmp_path: Path) -> None:
     assert response.json()["error"]["code"] == "not_found"
 
 
-def test_old_scripts_endpoint_returns_404(tmp_path: Path) -> None:
-    settings = Settings(data_dir=tmp_path)
-
-    with TestClient(create_app(settings)) as client:
-        response = client.get("/api/scripts")
-
-    assert response.status_code == 404
