@@ -31,7 +31,6 @@ export type ExecutionTask = {
   id: string
   case_id: string
   case_name: string
-  case_revision: number
   status: TaskStatus
   created_at: string
   started_at: string | null
@@ -48,7 +47,6 @@ export type ExecutionTaskSummary = {
   id: string
   case_id: string
   case_name: string
-  case_revision: number
   status: TaskStatus
   created_at: string
   started_at: string | null
