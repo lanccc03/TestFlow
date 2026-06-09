@@ -39,6 +39,30 @@ test('starts backend process and reports running after health check passes', asy
   assert.deepEqual(statusChanges, ['starting', 'running'])
 })
 
+test('does not keep polling health after a spawned backend is running', async () => {
+  const child = new FakeChildProcess()
+  let healthCheckCount = 0
+  const manager = new BackendProcessManager({
+    command: 'uv',
+    args: ['run', 'python', '-m', 'uvicorn'],
+    cwd: '/repo/backend',
+    healthUrl: 'http://127.0.0.1:8000/health',
+    spawnProcess: () => child,
+    fetchHealth: async () => {
+      healthCheckCount += 1
+      return { ok: healthCheckCount >= 2 }
+    },
+    pollIntervalMs: 5,
+  })
+
+  await manager.start()
+  assert.equal(healthCheckCount, 2)
+
+  await new Promise((resolve) => setTimeout(resolve, 25))
+
+  assert.equal(healthCheckCount, 2)
+})
+
 test('reuses an already healthy backend without spawning another process', async () => {
   let spawnCount = 0
   const manager = new BackendProcessManager({
@@ -60,6 +84,29 @@ test('reuses an already healthy backend without spawning another process', async
   assert.equal(manager.getStatus().state, 'running')
 }
 )
+
+test('does not keep polling health after reusing an existing backend', async () => {
+  let healthCheckCount = 0
+  const manager = new BackendProcessManager({
+    command: 'uv',
+    args: ['run', 'python', '-m', 'uvicorn'],
+    cwd: '/repo/backend',
+    healthUrl: 'http://127.0.0.1:8000/health',
+    spawnProcess: () => new FakeChildProcess(),
+    fetchHealth: async () => {
+      healthCheckCount += 1
+      return { ok: true }
+    },
+    pollIntervalMs: 5,
+  })
+
+  await manager.start()
+  assert.equal(healthCheckCount, 1)
+
+  await new Promise((resolve) => setTimeout(resolve, 25))
+
+  assert.equal(healthCheckCount, 1)
+})
 
 test('reports failed when backend process exits before becoming healthy', async () => {
   const child = new FakeChildProcess()

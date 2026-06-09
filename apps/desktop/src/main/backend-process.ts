@@ -60,7 +60,6 @@ export class BackendProcessManager {
   ) => Promise<void>;
   private process: BackendProcess | undefined;
   private status: BackendStatus;
-  private healthTimer: NodeJS.Timeout | undefined;
   private stopping = false;
 
   constructor(options: BackendProcessOptions) {
@@ -101,7 +100,6 @@ export class BackendProcessManager {
         healthUrl: this.options.healthUrl,
         message: "Using existing backend process",
       });
-      this.startHealthPolling();
       return this.getStatus();
     }
 
@@ -151,7 +149,6 @@ export class BackendProcessManager {
         this.status.state === "starting"
           ? `Backend exited before becoming healthy (${exitDetail})`
           : `Backend process exited with ${exitDetail}`;
-      this.clearHealthTimer();
       this.setStatus({
         state: this.status.state === "starting" ? "failed" : "exited",
         healthUrl: this.options.healthUrl,
@@ -161,13 +158,11 @@ export class BackendProcessManager {
     });
 
     await this.waitForHealthy();
-    this.startHealthPolling();
     return this.getStatus();
   }
 
   async stop(): Promise<void> {
     this.stopping = true;
-    this.clearHealthTimer();
 
     try {
       const child = this.process;
@@ -216,23 +211,6 @@ export class BackendProcessManager {
     throw new Error("Backend startup timed out");
   }
 
-  private startHealthPolling(): void {
-    this.clearHealthTimer();
-    this.healthTimer = setInterval(() => {
-      void this.checkHealth().then((isHealthy) => {
-        if (!isHealthy && this.status.state === "running") {
-          this.setStatus({
-            state: "failed",
-            healthUrl: this.options.healthUrl,
-            message: "Backend health check failed",
-            pid: this.process?.pid,
-          });
-        }
-      });
-    }, this.options.pollIntervalMs);
-    this.healthTimer.unref();
-  }
-
   private async checkHealth(): Promise<boolean> {
     try {
       const response = this.options.fetchHealth
@@ -241,13 +219,6 @@ export class BackendProcessManager {
       return response.ok;
     } catch {
       return false;
-    }
-  }
-
-  private clearHealthTimer(): void {
-    if (this.healthTimer) {
-      clearInterval(this.healthTimer);
-      this.healthTimer = undefined;
     }
   }
 
