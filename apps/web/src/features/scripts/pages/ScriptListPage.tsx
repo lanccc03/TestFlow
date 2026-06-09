@@ -46,7 +46,13 @@ export function ScriptListPage() {
         />
       </ListToolbar>
 
-      <Table aria-label="用例列表">
+      <Table aria-label="用例列表" className="table-fixed">
+        <colgroup>
+          <col className="w-[27%]" />
+          <col className="w-[20%]" />
+          <col className="w-[46%]" />
+          <col className="w-[7%]" />
+        </colgroup>
         <TableHeader>
           <TableRow>
             <TableHead>用例</TableHead>
@@ -100,7 +106,7 @@ export function ScriptListPage() {
                   ) : (
                     <div className="grid min-w-0 gap-2">
                       {expandedCaseId === caseItem.id ? (
-                        <ol className="m-0 grid gap-1 pl-5 text-sm leading-relaxed">
+                        <ol className="m-0 grid list-none gap-1 p-0 text-sm leading-relaxed">
                           {caseItem.test_steps.map((step, index) => (
                             <li className="break-words" key={`${caseItem.id}-${index}`}>
                               {step}
@@ -109,7 +115,6 @@ export function ScriptListPage() {
                         </ol>
                       ) : (
                         <div className="min-w-0 text-sm leading-relaxed">
-                          <span className="font-medium text-muted-foreground">1. </span>
                           <span className="break-words">{caseItem.test_steps[0]}</span>
                         </div>
                       )}

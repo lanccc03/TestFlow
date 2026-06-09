@@ -102,4 +102,19 @@ describe('script run navigation', () => {
     expect(screen.getByText('采集运行状态')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '收起 座舱冒烟测试 的测试步骤' })).toBeInTheDocument()
   })
+
+  it('keeps the framework case columns stable when test steps expand', async () => {
+    renderWithQuery(<ScriptListPage />, ['/scripts'])
+
+    const table = await screen.findByRole('table', { name: '用例列表' })
+    expect(table).toHaveClass('table-fixed')
+    expect(table.querySelectorAll('col')).toHaveLength(4)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: '查看 座舱冒烟测试 的全部测试步骤' }),
+    )
+
+    expect(table).toHaveClass('table-fixed')
+    expect(table.querySelectorAll('col')[2]).toHaveClass('w-[46%]')
+  })
 })
