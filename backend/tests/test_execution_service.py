@@ -56,10 +56,8 @@ class CaseExecutionRuntime:
     def write_config(self, config):
         return config
 
-    async def run_script(self, request):
-        yield FrameworkEvent(type="run_started", task_id=request.task_id)
-
-        if request.script_id == "case.long_wait":
+    async def run_case(self, request):
+        if request.case_id == "case.long_wait":
             while not request.cancellation_token.is_canceled:
                 await asyncio.sleep(0.01)
             yield FrameworkEvent(
@@ -103,9 +101,8 @@ async def test_execution_event_bus_snapshots_nested_task_messages() -> None:
     bus = ExecutionEventBus()
     task = ExecutionTask(
         id="task-1",
-        script_id="script-1",
-        script_name="Smoke Test",
-        script_revision=1,
+        case_id="case.smoke_cockpit",
+        case_name="Smoke Test",
         status="pending",
     )
     message = ExecutionEventMessage(
@@ -134,11 +131,7 @@ async def test_execution_service_runs_script_to_passed(tmp_path) -> None:
     await service.start()
     try:
         task = await service.create_task(
-            ExecutionTaskCreate(
-                script_id="case.smoke_cockpit",
-                environment="local",
-                target_device="bench-1",
-            )
+            ExecutionTaskCreate(case_id="case.smoke_cockpit")
         )
         final_task = await service.wait_for_task(task.id, timeout=2)
     finally:
@@ -146,7 +139,6 @@ async def test_execution_service_runs_script_to_passed(tmp_path) -> None:
         registry.reset_runtime_for_testing()
 
     assert final_task.status == "passed"
-    assert final_task.steps == []
     assert final_task.log_path
     log_path = tmp_path / "logs" / "executions" / f"{task.id}.log"
     assert log_path.is_file()
@@ -162,7 +154,7 @@ async def test_execution_service_finishes_framework_case_as_passed(tmp_path) -> 
     await service.start()
     try:
         task = await service.create_task(
-            ExecutionTaskCreate(script_id="case.smoke_cockpit")
+            ExecutionTaskCreate(case_id="case.smoke_cockpit")
         )
         final_task = await service.wait_for_task(task.id, timeout=2)
     finally:
@@ -170,7 +162,6 @@ async def test_execution_service_finishes_framework_case_as_passed(tmp_path) -> 
         registry.reset_runtime_for_testing()
 
     assert final_task.status == "passed"
-    assert final_task.steps == []
 
 
 @pytest.mark.anyio
@@ -182,7 +173,7 @@ async def test_execution_service_can_cancel_running_task(tmp_path) -> None:
     await service.start()
     try:
         task = await service.create_task(
-            ExecutionTaskCreate(script_id="case.long_wait")
+            ExecutionTaskCreate(case_id="case.long_wait")
         )
         await asyncio.sleep(0.01)
         await service.cancel_task(task.id)
@@ -192,7 +183,6 @@ async def test_execution_service_can_cancel_running_task(tmp_path) -> None:
         registry.reset_runtime_for_testing()
 
     assert final_task.status == "canceled"
-    assert final_task.steps == []
 
 
 def test_task_api_creates_and_reads_execution_task(tmp_path) -> None:
@@ -203,11 +193,7 @@ def test_task_api_creates_and_reads_execution_task(tmp_path) -> None:
         with TestClient(create_app(settings)) as client:
             create_response = client.post(
                 "/api/tasks",
-                json={
-                    "script_id": "case.smoke_cockpit",
-                    "environment": "local",
-                    "target_device": "bench-1",
-                },
+                json={"case_id": "case.smoke_cockpit"},
             )
             created = create_response.json()
 
@@ -215,7 +201,7 @@ def test_task_api_creates_and_reads_execution_task(tmp_path) -> None:
             list_response = client.get("/api/tasks")
 
         assert create_response.status_code == 201
-        assert created["script_id"] == "case.smoke_cockpit"
+        assert created["case_id"] == "case.smoke_cockpit"
         assert read_response.status_code == 200
         assert read_response.json()["id"] == created["id"]
         assert list_response.status_code == 200
@@ -224,14 +210,69 @@ def test_task_api_creates_and_reads_execution_task(tmp_path) -> None:
         registry.reset_runtime_for_testing()
 
 
-def test_task_api_returns_404_for_missing_script(tmp_path) -> None:
+def test_task_api_returns_404_for_missing_case(tmp_path) -> None:
     settings = Settings(data_dir=tmp_path)
 
     with TestClient(create_app(settings)) as client:
-        response = client.post("/api/tasks", json={"script_id": "missing"})
+        response = client.post("/api/tasks", json={"case_id": "missing"})
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "not_found"
+
+
+def test_task_api_rejects_script_id_field(tmp_path) -> None:
+    settings = Settings(data_dir=tmp_path)
+
+    with TestClient(create_app(settings)) as client:
+        response = client.post("/api/tasks", json={"script_id": "case.smoke_cockpit"})
+
+    assert response.status_code == 422
+
+
+def test_task_json_has_case_fields_and_not_old_fields(tmp_path) -> None:
+    registry.set_runtime_for_testing(CaseExecutionRuntime())
+    try:
+        settings = Settings(data_dir=tmp_path)
+
+        with TestClient(create_app(settings)) as client:
+            create_response = client.post(
+                "/api/tasks", json={"case_id": "case.smoke_cockpit"}
+            )
+            created = create_response.json()
+
+        assert create_response.status_code == 201
+        assert created["case_id"] == "case.smoke_cockpit"
+        assert created["case_name"] == "座舱冒烟测试"
+
+        for removed in [
+            "script_id", "script_name", "script_revision",
+            "environment", "target_device", "variables", "executor", "steps",
+        ]:
+            assert removed not in created, (
+                f"Field '{removed}' should not be in task JSON"
+            )
+    finally:
+        registry.reset_runtime_for_testing()
+
+
+def test_task_summary_has_no_step_counts(tmp_path) -> None:
+    registry.set_runtime_for_testing(CaseExecutionRuntime())
+    try:
+        settings = Settings(data_dir=tmp_path)
+
+        with TestClient(create_app(settings)) as client:
+            client.post("/api/tasks", json={"case_id": "case.smoke_cockpit"})  # noqa: F841
+            list_response = client.get("/api/tasks")
+            items = list_response.json()["items"]
+
+        assert len(items) > 0
+        summary = items[0]
+        for removed in ["step_count", "passed_step_count", "failed_step_count"]:
+            assert removed not in summary, (
+                f"Field '{removed}' should not be in summary JSON"
+            )
+    finally:
+        registry.reset_runtime_for_testing()
 
 
 def test_task_api_cancels_running_task(tmp_path) -> None:
@@ -241,7 +282,7 @@ def test_task_api_cancels_running_task(tmp_path) -> None:
 
         with TestClient(create_app(settings)) as client:
             create_response = client.post(
-                "/api/tasks", json={"script_id": "case.long_wait"}
+                "/api/tasks", json={"case_id": "case.long_wait"}
             )
             created = create_response.json()
             cancel_response = client.post(
@@ -309,7 +350,7 @@ async def test_execution_service_marks_running_task_canceled_on_stop(tmp_path) -
 
     await service.start()
     task = await service.create_task(
-        ExecutionTaskCreate(script_id="case.long_wait")
+        ExecutionTaskCreate(case_id="case.long_wait")
     )
     await asyncio.sleep(0.01)
     await service.stop()
@@ -318,7 +359,6 @@ async def test_execution_service_marks_running_task_canceled_on_stop(tmp_path) -
     stopped_task = service.get_task(task.id)
     assert stopped_task is not None
     assert stopped_task.status == "canceled"
-    assert stopped_task.steps == []
 
 
 @pytest.mark.anyio
@@ -338,7 +378,7 @@ async def test_execution_service_cancel_task_errors_for_finished_task(tmp_path) 
     await service.start()
     try:
         task = await service.create_task(
-            ExecutionTaskCreate(script_id="case.smoke_cockpit")
+            ExecutionTaskCreate(case_id="case.smoke_cockpit")
         )
         final_task = await service.wait_for_task(task.id, timeout=2)
         with pytest.raises(TaskAlreadyFinishedError):
@@ -357,7 +397,7 @@ async def test_execution_service_cancel_task_logs_request(tmp_path) -> None:
     await service.start()
     try:
         task = await service.create_task(
-            ExecutionTaskCreate(script_id="case.long_wait")
+            ExecutionTaskCreate(case_id="case.long_wait")
         )
         await service.cancel_task(task.id)
         final_task = await service.wait_for_task(task.id, timeout=2)
@@ -380,10 +420,10 @@ async def test_execution_service_cancel_task_marks_queued_task_canceled(
     await service.start()
     try:
         running_task = await service.create_task(
-            ExecutionTaskCreate(script_id="case.long_wait")
+            ExecutionTaskCreate(case_id="case.long_wait")
         )
         queued_task = await service.create_task(
-            ExecutionTaskCreate(script_id="case.smoke_cockpit")
+            ExecutionTaskCreate(case_id="case.smoke_cockpit")
         )
         await asyncio.sleep(0.01)
 
@@ -396,7 +436,6 @@ async def test_execution_service_cancel_task_marks_queued_task_canceled(
 
     assert canceled_task.status == "canceled"
     assert final_queued_task.status == "canceled"
-    assert final_queued_task.steps == []
 
 
 @pytest.mark.anyio
@@ -410,7 +449,7 @@ async def test_execution_service_cooperatively_cancels_framework_case(
     await service.start()
     try:
         task = await service.create_task(
-            ExecutionTaskCreate(script_id="case.long_wait")
+            ExecutionTaskCreate(case_id="case.long_wait")
         )
         await asyncio.sleep(0.01)
         await service.cancel_task(task.id)
@@ -420,60 +459,6 @@ async def test_execution_service_cooperatively_cancels_framework_case(
         registry.reset_runtime_for_testing()
 
     assert final_task.status == "canceled"
-    assert final_task.steps == []
-
-
-@pytest.mark.anyio
-async def test_execution_service_copies_mutable_inputs(tmp_path) -> None:
-    registry.set_runtime_for_testing(CaseExecutionRuntime())
-    settings = Settings(data_dir=tmp_path)
-    payload = ExecutionTaskCreate(
-        script_id="case.smoke_cockpit",
-        variables={"device": {"name": "bench-1"}},
-    )
-    service = ExecutionService(settings)
-
-    task = await service.create_task(payload)
-    payload.variables["device"]["name"] = "mutated"
-
-    stored_task = service.get_task(task.id)
-    assert stored_task is not None
-    assert stored_task.variables == {"device": {"name": "bench-1"}}
-    assert stored_task.steps == []
-    registry.reset_runtime_for_testing()
-
-
-@pytest.mark.anyio
-async def test_execution_service_copies_framework_step_output(tmp_path) -> None:
-    task = ExecutionTask(
-        id="task-1",
-        script_id="script-1",
-        script_name="Smoke Test",
-        script_revision=1,
-        steps=[
-            {
-                "id": "step-1",
-                "index": 0,
-                "input": {},
-            }
-        ],
-    )
-    service = ExecutionService(Settings(data_dir=tmp_path))
-    output = {"nested": {"value": "original"}}
-
-    await service._handle_framework_event(
-        task,
-        FrameworkEvent(
-            type="step_finished",
-            task_id=task.id,
-            step_id="step-1",
-            status="passed",
-            output=output,
-        ),
-    )
-    output["nested"]["value"] = "mutated"
-
-    assert task.steps[0].output == {"nested": {"value": "original"}}
 
 
 @pytest.mark.anyio
@@ -482,9 +467,8 @@ async def test_execution_service_run_error_not_overwritten_by_run_finished(
 ) -> None:
     task = ExecutionTask(
         id="task-1",
-        script_id="script-1",
-        script_name="Smoke Test",
-        script_revision=1,
+        case_id="case.smoke_cockpit",
+        case_name="Smoke Test",
         log_path=str(tmp_path / "task-1.log"),
     )
     service = ExecutionService(Settings(data_dir=tmp_path))
@@ -508,37 +492,25 @@ async def test_execution_service_run_error_not_overwritten_by_run_finished(
 
 
 @pytest.mark.anyio
-async def test_execution_service_records_framework_html_report_event(tmp_path) -> None:
+async def test_execution_service_handles_framework_report_event(tmp_path) -> None:
     task = ExecutionTask(
         id="task-1",
-        script_id="script-1",
-        script_name="Smoke Test",
-        script_revision=1,
+        case_id="case.smoke_cockpit",
+        case_name="Smoke Test",
         log_path=str(tmp_path / "task-1.log"),
     )
     service = ExecutionService(Settings(data_dir=tmp_path))
-    framework_root = tmp_path / "framework-output"
-    framework_entry = framework_root / "index.html"
 
     await service._handle_framework_event(
         task,
         FrameworkEvent(
             type="framework_report",
             task_id=task.id,
-            report_kind="html",
-            report_source="file",
-            report_root_dir=framework_root,
-            report_entry=framework_entry,
-            report_title="自动化框架报告",
+            message="Framework report generated",
         ),
     )
 
-    assert task.framework_report is not None
-    assert task.framework_report.kind == "html"
-    assert task.framework_report.source == "file"
-    assert task.framework_report.root_dir == str(framework_root)
-    assert task.framework_report.entry == str(framework_entry)
-    assert task.framework_report.title == "自动化框架报告"
+    assert any(log.message == "Framework report generated" for log in task.logs)
 
 
 @pytest.mark.anyio
@@ -549,11 +521,7 @@ async def test_execution_service_runs_framework_case_no_yaml(tmp_path) -> None:
     await service.start()
     try:
         task = await service.create_task(
-            ExecutionTaskCreate(
-                script_id="case.smoke_cockpit",
-                environment="local",
-                target_device="bench-1",
-            )
+            ExecutionTaskCreate(case_id="case.smoke_cockpit")
         )
         final_task = await service.wait_for_task(task.id, timeout=2)
     finally:
@@ -561,10 +529,8 @@ async def test_execution_service_runs_framework_case_no_yaml(tmp_path) -> None:
         registry.reset_runtime_for_testing()
 
     assert final_task.status == "passed"
-    assert final_task.script_id == "case.smoke_cockpit"
-    assert final_task.script_name == "座舱冒烟测试"
-    assert final_task.script_revision == 1
-    assert final_task.steps == []
+    assert final_task.case_id == "case.smoke_cockpit"
+    assert final_task.case_name == "座舱冒烟测试"
     assert any(log.message == "framework case log" for log in final_task.logs)
     assert not (tmp_path / "scripts" / "case.smoke_cockpit.yaml").exists()
 
@@ -577,7 +543,7 @@ async def test_execution_service_returns_missing_framework_case(tmp_path) -> Non
     try:
         with pytest.raises(FileNotFoundError):
             await service.create_task(
-                ExecutionTaskCreate(script_id="missing")
+                ExecutionTaskCreate(case_id="missing")
             )
     finally:
         registry.reset_runtime_for_testing()

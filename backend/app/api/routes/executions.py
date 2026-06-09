@@ -23,19 +23,17 @@ websocket_router = APIRouter()
 @router.get("/tasks")
 def list_execution_tasks(
     request: Request,
-    script_id: str | None = None,
+    case_id: str | None = None,
     status: TaskStatus | None = None,
     created_from: str | None = None,
     created_to: str | None = None,
-    executor: str | None = None,
 ) -> dict[str, list[dict[str, object]]]:
     service = execution_service(request)
     filters = ExecutionTaskFilters(
-        script_id=script_id,
+        case_id=case_id,
         status=status,
         created_from=created_from,
         created_to=created_to,
-        executor=executor,
     )
     return {
         "items": [
@@ -57,7 +55,7 @@ async def create_execution_task(
         return error_response(
             status_code=404,
             code="not_found",
-            message="Script not found",
+            message="Case not found",
         )
 
     response.status_code = 201

@@ -18,7 +18,6 @@ from app.modules.executions.runner import (
 )
 from app.modules.executions.schemas import (
     ExecutionEventMessage,
-    ExecutionReport,
     ExecutionTask,
     ExecutionTaskCreate,
     ExecutionTaskFilters,
@@ -62,12 +61,12 @@ class ExecutionService:
         await self._runner.stop()
 
     async def create_task(self, payload: ExecutionTaskCreate) -> ExecutionTask:
-        case = get_case(payload.script_id)
+        case = get_case(payload.case_id)
         task_id = f"exec-{uuid4().hex}"
         log_path = self.settings.logs_dir / "executions" / f"{task_id}.log"
         report_dir = self.settings.reports_dir / task_id
         report_dir.mkdir(parents=True, exist_ok=True)
-        task = task_from_case(case, payload, task_id, log_path, report_dir)
+        task = task_from_case(case, task_id, log_path, report_dir)
 
         self._tasks[task.id] = task
         self._tokens[task.id] = CancellationToken()
@@ -106,13 +105,13 @@ class ExecutionService:
             return task.model_copy(deep=True)
         return get_execution_task(self.settings, task_id)
 
-    def get_report(self, task_id: str) -> ExecutionReport | None:
+    def get_report(self, task_id: str) -> ExecutionTask | None:
         stored = get_execution_report(self.settings, task_id)
         if stored is not None:
             return stored
         task = self._tasks.get(task_id)
         if task is not None:
-            return ExecutionReport(task=task.model_copy(deep=True))
+            return task.model_copy(deep=True)
         return None
 
     async def cancel_task(self, task_id: str) -> ExecutionTask:
@@ -161,14 +160,12 @@ def _task_matches_filters(
     task: ExecutionTask,
     filters: ExecutionTaskFilters,
 ) -> bool:
-    if filters.script_id and task.script_id != filters.script_id:
+    if filters.case_id and task.case_id != filters.case_id:
         return False
     if filters.status and task.status != filters.status:
         return False
     if filters.created_from and task.created_at < filters.created_from:
         return False
     if filters.created_to and task.created_at > filters.created_to:
-        return False
-    if filters.executor and task.executor != filters.executor:
         return False
     return True

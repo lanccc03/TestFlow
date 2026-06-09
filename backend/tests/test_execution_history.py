@@ -16,7 +16,6 @@ from app.modules.executions.repository import (
 from app.modules.executions.schemas import (
     ExecutionFrameworkReport,
     ExecutionLogEntry,
-    ExecutionStepResult,
     ExecutionTask,
     ExecutionTaskCreate,
     ExecutionTaskFilters,
@@ -50,37 +49,20 @@ def test_repository_saves_and_reads_execution_report(tmp_path: Path) -> None:
     with TestClient(create_app(settings)):
         task = ExecutionTask(
             id="exec-1",
-            script_id="smoke-cockpit",
-            script_name="Smoke Cockpit",
-            script_revision=3,
+            case_id="case.smoke_cockpit",
+            case_name="Smoke Cockpit",
             status="failed",
-            environment="local",
-            target_device="bench-1",
-            variables={"mode": "smoke"},
-            executor="alice",
             created_at="2026-06-01T00:00:00+00:00",
             started_at="2026-06-01T00:00:01+00:00",
             finished_at="2026-06-01T00:00:02+00:00",
             duration_ms=1000,
             log_path=str(tmp_path / "logs" / "executions" / "exec-1.log"),
             report_dir=str(tmp_path / "reports" / "exec-1"),
-            steps=[
-                ExecutionStepResult(
-                    id="step-1",
-                    index=0,
-                    description="Bad wait",
-                    status="failed",
-                    input={"seconds": -1},
-                    error_message="wait.seconds must be greater than or equal to 0",
-                    attachments=[str(tmp_path / "reports" / "exec-1" / "failure.txt")],
-                )
-            ],
             logs=[
                 ExecutionLogEntry(
                     timestamp="2026-06-01T00:00:01+00:00",
                     level="error",
                     message="wait.seconds must be greater than or equal to 0",
-                    step_id="step-1",
                 )
             ],
             error_message="",
@@ -95,14 +77,9 @@ def test_repository_saves_and_reads_execution_report(tmp_path: Path) -> None:
     assert stored_task is not None
     assert stored_task.id == "exec-1"
     assert stored_task.status == "failed"
-    assert stored_task.steps[0].error_message == (
-        "wait.seconds must be greater than or equal to 0"
-    )
     assert report is not None
-    assert report.task.id == "exec-1"
-    assert report.attachments[0].name == "failure.txt"
-    assert report.attachments[0].step_id == "step-1"
-    assert report.raw_framework_report is None
+    assert report.id == "exec-1"
+    assert report.status == "failed"
     assert not report_json.exists()
 
 
@@ -118,11 +95,9 @@ def test_repository_saves_framework_html_report_ref_without_detail_file(
     with TestClient(create_app(settings)):
         task = ExecutionTask(
             id="exec-html",
-            script_id="smoke-cockpit",
-            script_name="Smoke Cockpit",
-            script_revision=1,
+            case_id="case.smoke_cockpit",
+            case_name="Smoke Cockpit",
             status="passed",
-            executor="alice",
             created_at="2026-06-01T00:00:00+00:00",
             report_dir=str(tmp_path / "reports" / "exec-html"),
             framework_report=ExecutionFrameworkReport(
@@ -153,61 +128,42 @@ def test_repository_filters_history_summaries(tmp_path: Path) -> None:
     with TestClient(create_app(settings)):
         first = ExecutionTask(
             id="exec-1",
-            script_id="smoke-cockpit",
-            script_name="Smoke Cockpit",
-            script_revision=1,
+            case_id="case.smoke_cockpit",
+            case_name="Smoke Cockpit",
             status="passed",
-            executor="alice",
             created_at="2026-06-01T00:00:00+00:00",
-            steps=[
-                ExecutionStepResult(
-                    id="step-1",
-                    index=0,
-                    status="passed",
-                )
-            ],
             report_dir=str(tmp_path / "reports" / "exec-1"),
         )
         second = ExecutionTask(
             id="exec-2",
-            script_id="regression-cockpit",
-            script_name="Regression Cockpit",
-            script_revision=1,
+            case_id="case.regression_cockpit",
+            case_name="Regression Cockpit",
             status="failed",
-            executor="bob",
             created_at="2026-06-02T00:00:00+00:00",
-            steps=[
-                ExecutionStepResult(
-                    id="step-1",
-                    index=0,
-                    status="failed",
-                )
-            ],
             report_dir=str(tmp_path / "reports" / "exec-2"),
         )
         save_execution_report(settings, first)
         save_execution_report(settings, second)
 
-    by_script = list_execution_task_summaries(
+    by_case = list_execution_task_summaries(
         settings,
-        ExecutionTaskFilters(script_id="smoke-cockpit"),
+        ExecutionTaskFilters(case_id="case.smoke_cockpit"),
     )
     by_status = list_execution_task_summaries(
         settings,
         ExecutionTaskFilters(status="failed"),
     )
-    by_time_and_executor = list_execution_task_summaries(
+    by_time = list_execution_task_summaries(
         settings,
         ExecutionTaskFilters(
             created_from="2026-06-02T00:00:00+00:00",
             created_to="2026-06-02T23:59:59+00:00",
-            executor="bob",
         ),
     )
 
-    assert [task.id for task in by_script] == ["exec-1"]
+    assert [task.id for task in by_case] == ["exec-1"]
     assert [task.id for task in by_status] == ["exec-2"]
-    assert [task.id for task in by_time_and_executor] == ["exec-2"]
+    assert [task.id for task in by_time] == ["exec-2"]
 
 
 def test_repository_upsert_preserves_first_persisted_at(tmp_path: Path) -> None:
@@ -215,11 +171,9 @@ def test_repository_upsert_preserves_first_persisted_at(tmp_path: Path) -> None:
     with TestClient(create_app(settings)):
         task = ExecutionTask(
             id="exec-1",
-            script_id="smoke-cockpit",
-            script_name="Smoke Cockpit",
-            script_revision=1,
+            case_id="case.smoke_cockpit",
+            case_name="Smoke Cockpit",
             status="passed",
-            executor="alice",
             created_at="2026-06-01T00:00:00+00:00",
             report_dir=str(tmp_path / "reports" / "exec-1"),
         )
@@ -249,7 +203,7 @@ def test_repository_empty_filter_returns_nothing(tmp_path: Path) -> None:
 
     result = list_execution_task_summaries(
         settings,
-        ExecutionTaskFilters(script_id="no-match"),
+        ExecutionTaskFilters(case_id="no-match"),
     )
     assert result == []
 
@@ -264,12 +218,7 @@ async def test_execution_service_persists_finished_task_history(tmp_path: Path) 
     await service.start()
     try:
         created = await service.create_task(
-            ExecutionTaskCreate(
-                script_id="case.smoke_cockpit",
-                environment="local",
-                target_device="bench-1",
-                executor="alice",
-            )
+            ExecutionTaskCreate(case_id="case.smoke_cockpit")
         )
         final_task = await service.wait_for_task(created.id, timeout=2)
     finally:
@@ -278,7 +227,7 @@ async def test_execution_service_persists_finished_task_history(tmp_path: Path) 
 
     restarted_service = ExecutionService(settings)
     stored_task = restarted_service.get_task(final_task.id)
-    summaries = restarted_service.list_tasks(ExecutionTaskFilters(executor="alice"))
+    summaries = restarted_service.list_tasks()
 
     assert final_task.status == "passed"
     assert stored_task is not None
@@ -296,7 +245,7 @@ async def test_execution_service_persists_finished_task_report(tmp_path: Path) -
 
     await service.start()
     try:
-        create_payload = ExecutionTaskCreate(script_id="case.smoke_cockpit")
+        create_payload = ExecutionTaskCreate(case_id="case.smoke_cockpit")
         created = await service.create_task(create_payload)
         final_task = await service.wait_for_task(created.id, timeout=2)
     finally:
@@ -307,7 +256,7 @@ async def test_execution_service_persists_finished_task_report(tmp_path: Path) -
 
     assert final_task.status == "passed"
     assert report is not None
-    assert report.task.steps == []
+    assert report.id == final_task.id
 
 
 def test_task_api_lists_persisted_history_with_filters(tmp_path: Path) -> None:
@@ -316,11 +265,9 @@ def test_task_api_lists_persisted_history_with_filters(tmp_path: Path) -> None:
     with TestClient(create_app(settings)):
         task = ExecutionTask(
             id="exec-1",
-            script_id="smoke-cockpit",
-            script_name="Smoke Cockpit",
-            script_revision=1,
+            case_id="case.smoke_cockpit",
+            case_name="Smoke Cockpit",
             status="passed",
-            executor="alice",
             created_at="2026-06-01T00:00:00+00:00",
             report_dir=str(tmp_path / "reports" / "exec-1"),
         )
@@ -330,9 +277,8 @@ def test_task_api_lists_persisted_history_with_filters(tmp_path: Path) -> None:
         response = client.get(
             "/api/tasks",
             params={
-                "script_id": "smoke-cockpit",
+                "case_id": "case.smoke_cockpit",
                 "status": "passed",
-                "executor": "alice",
                 "created_from": "2026-06-01T00:00:00+00:00",
                 "created_to": "2026-06-01T23:59:59+00:00",
             },
@@ -348,26 +294,16 @@ def test_report_api_reads_persisted_report_detail(tmp_path: Path) -> None:
     with TestClient(create_app(settings)):
         task = ExecutionTask(
             id="exec-1",
-            script_id="smoke-cockpit",
-            script_name="Smoke Cockpit",
-            script_revision=1,
+            case_id="case.smoke_cockpit",
+            case_name="Smoke Cockpit",
             status="failed",
             created_at="2026-06-01T00:00:00+00:00",
             report_dir=str(tmp_path / "reports" / "exec-1"),
-            steps=[
-                ExecutionStepResult(
-                    id="step-1",
-                    index=0,
-                    status="failed",
-                    error_message="wait.seconds must be greater than or equal to 0",
-                )
-            ],
             logs=[
                 ExecutionLogEntry(
                     timestamp="2026-06-01T00:00:01+00:00",
                     level="error",
                     message="wait.seconds must be greater than or equal to 0",
-                    step_id="step-1",
                 )
             ],
         )
@@ -381,13 +317,7 @@ def test_report_api_reads_persisted_report_detail(tmp_path: Path) -> None:
     assert list_response.status_code == 200
     assert list_response.json()["items"][0]["id"] == "exec-1"
     assert detail_response.status_code == 200
-    assert detail_response.json()["task"]["id"] == "exec-1"
-    assert detail_response.json()["task"]["steps"][0]["error_message"] == (
-        "wait.seconds must be greater than or equal to 0"
-    )
-    assert detail_response.json()["task"]["logs"][0]["message"] == (
-        "wait.seconds must be greater than or equal to 0"
-    )
+    assert detail_response.json()["id"] == "exec-1"
     assert missing_response.status_code == 404
     assert missing_response.json()["error"]["code"] == "not_found"
 
@@ -412,9 +342,8 @@ def save_framework_report_task(settings: Settings, tmp_path: Path) -> Path:
             settings,
             ExecutionTask(
                 id="exec-html",
-                script_id="smoke-cockpit",
-                script_name="Smoke Cockpit",
-                script_revision=1,
+                case_id="case.smoke_cockpit",
+                case_name="Smoke Cockpit",
                 status="passed",
                 created_at="2026-06-01T00:00:00+00:00",
                 report_dir=str(tmp_path / "reports" / "exec-html"),

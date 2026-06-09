@@ -1,19 +1,19 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    cases,
     commands,
     executions,
     framework,
     reports,
     scp,
-    scripts,
     terminal,
     websockets,
 )
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(reports.router, prefix="")
-api_router.include_router(scripts.router, prefix="")
+api_router.include_router(cases.router, prefix="")
 api_router.include_router(executions.router, prefix="")
 api_router.include_router(commands.router, prefix="")
 api_router.include_router(framework.router, prefix="")

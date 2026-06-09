@@ -2,23 +2,17 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
-from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import Any
 
 from app.core.config import Settings
 from app.modules.executions.events import ExecutionEventBus
 from app.modules.executions.repository import save_execution_report
 from app.modules.executions.schemas import (
     ExecutionEventMessage,
-    ExecutionFrameworkReport,
     ExecutionLogEntry,
-    ExecutionStepResult,
     ExecutionTask,
-    ExecutionTaskCreate,
     ExecutionTaskSummary,
-    TaskStatus,
     utc_now,
 )
 from autotest.contracts import (
@@ -27,7 +21,7 @@ from autotest.contracts import (
     FrameworkEvent,
     FrameworkRunRequest,
 )
-from autotest.entry import run_script
+from autotest.entry import run_case
 
 TERMINAL_STATUSES = {"passed", "failed", "canceled", "error"}
 
@@ -75,28 +69,24 @@ class ExecutionRunner:
         message: str,
         *,
         level: str = "info",
-        step_id: str | None = None,
         timestamp: str | None = None,
     ) -> None:
         entry = ExecutionLogEntry(
             timestamp=timestamp or utc_now(),
             level=level,
             message=message,
-            step_id=step_id,
         )
         task.logs.append(entry)
 
         log_path = Path(task.log_path)
         log_path.parent.mkdir(parents=True, exist_ok=True)
         with log_path.open("a", encoding="utf-8") as log_file:
-            step_label = f" [{step_id}]" if step_id else ""
-            log_file.write(f"{entry.timestamp} {entry.level}{step_label} {message}\n")
+            log_file.write(f"{entry.timestamp} {entry.level} {message}\n")
 
         await self.events.publish(
             ExecutionEventMessage(
-                type="log",
+                type="task_status",
                 task_id=task.id,
-                step_id=step_id,
                 level=level,
                 message=message,
             )
@@ -139,75 +129,22 @@ class ExecutionRunner:
         task: ExecutionTask,
         event: FrameworkEvent,
     ) -> None:
-        if event.type == "run_started":
-            return
-
-        if event.type == "step_started":
-            step = _find_step(task, event.step_id)
-            if step is None:
-                return
-            step.status = "running"
-            step.started_at = event.timestamp.isoformat()
-            await self.events.publish(
-                ExecutionEventMessage(
-                    type="step_status",
-                    task_id=task.id,
-                    step_id=step.id,
-                    status=step.status,
-                    step=step,
-                )
-            )
-            return
-
         if event.type == "log":
             await self.append_log(
                 task,
                 event.message or "",
                 level=event.level or "info",
-                step_id=event.step_id,
                 timestamp=event.timestamp.isoformat(),
             )
             return
 
-        if event.type == "step_finished":
-            step = _find_step(task, event.step_id)
-            if step is None:
-                return
-            step.status = event.status or _final_status_from_steps(task)
-            step.finished_at = event.timestamp.isoformat()
-            step.duration_ms = _duration_ms(step.started_at, step.finished_at)
-            step.output = deepcopy(event.output) if event.output is not None else {}
-            step.error_message = event.error_message or ""
-            step.error_detail = _stringify_error_detail(event.error_detail)
-            await self.events.publish(
-                ExecutionEventMessage(
-                    type="step_status",
-                    task_id=task.id,
-                    step_id=step.id,
-                    status=step.status,
-                    step=step,
-                )
-            )
-            return
-
-        if event.type == "attachment":
-            step = _find_step(task, event.step_id)
-            if step is not None and event.attachment_path is not None:
-                step.attachments.append(str(event.attachment_path))
-            return
-
         if event.type == "framework_report":
-            if event.report_kind == "html" and event.report_entry is not None:
-                report_source = event.report_source or "file"
-                report_root_dir = event.report_root_dir
-                if report_source == "file" and report_root_dir is None:
-                    report_root_dir = Path(event.report_entry).parent
-                task.framework_report = ExecutionFrameworkReport(
-                    kind="html",
-                    title=event.report_title or "框架报告",
-                    source=report_source,
-                    root_dir=str(report_root_dir or ""),
-                    entry=str(event.report_entry),
+            if event.message:
+                await self.append_log(
+                    task,
+                    event.message,
+                    level="info",
+                    timestamp=event.timestamp.isoformat(),
                 )
             return
 
@@ -228,7 +165,7 @@ class ExecutionRunner:
             if event.status == "canceled":
                 _mark_task_canceled(task)
                 return
-            task.status = event.status or _final_status_from_steps(task)
+            task.status = event.status or "error"
 
     async def _worker_loop(self) -> None:
         while True:
@@ -260,7 +197,7 @@ class ExecutionRunner:
             )
 
             request = _framework_request(task, token)
-            async for event in run_script(request):
+            async for event in run_case(request):
                 await self.handle_framework_event(task, event)
         except asyncio.CancelledError:
             token.cancel()
@@ -273,51 +210,36 @@ class ExecutionRunner:
             await self.append_log(task, str(error), level="error")
         finally:
             if task.status not in TERMINAL_STATUSES:
-                task.status = _final_status_from_steps(task)
+                task.status = "error"
             await self.finish_task(task)
             self.tokens.pop(task.id, None)
 
 
 def task_from_case(
     case: FrameworkCaseSummary,
-    payload: ExecutionTaskCreate,
     task_id: str,
     log_path: Path,
     report_dir: Path,
 ) -> ExecutionTask:
     return ExecutionTask(
         id=task_id,
-        script_id=case.id,
-        script_name=case.name,
-        script_revision=1,
-        environment=payload.environment,
-        target_device=payload.target_device,
-        variables=deepcopy(payload.variables),
-        executor=payload.executor,
+        case_id=case.id,
+        case_name=case.name,
         log_path=str(log_path),
         report_dir=str(report_dir),
-        steps=[],
     )
-
 
 
 def task_summary(task: ExecutionTask) -> ExecutionTaskSummary:
     return ExecutionTaskSummary(
         id=task.id,
-        script_id=task.script_id,
-        script_name=task.script_name,
-        script_revision=task.script_revision,
+        case_id=task.case_id,
+        case_name=task.case_name,
         status=task.status,
-        environment=task.environment,
-        target_device=task.target_device,
-        executor=task.executor,
         created_at=task.created_at,
         started_at=task.started_at,
         finished_at=task.finished_at,
         duration_ms=task.duration_ms,
-        step_count=len(task.steps),
-        passed_step_count=sum(1 for step in task.steps if step.status == "passed"),
-        failed_step_count=sum(1 for step in task.steps if step.status == "failed"),
     )
 
 
@@ -328,15 +250,8 @@ def _framework_request(
     report_dir = Path(task.report_dir)
     return FrameworkRunRequest(
         task_id=task.id,
-        script_id=task.script_id,
-        script_name=task.script_name,
-        script_revision=task.script_revision,
-        variables=deepcopy(task.variables),
-        environment={"name": task.environment} if task.environment else {},
-        target_device={"id": task.target_device} if task.target_device else None,
-        log_path=Path(task.log_path),
+        case_id=task.case_id,
         report_dir=report_dir,
-        artifact_dir=report_dir / "artifacts",
         cancellation_token=cancellation_token,
     )
 
@@ -348,30 +263,6 @@ def _mark_task_started(task: ExecutionTask) -> None:
 
 def _mark_task_canceled(task: ExecutionTask) -> None:
     task.status = "canceled"
-    for step in task.steps:
-        if step.status in {"pending", "running"}:
-            step.status = "canceled"
-            step.error_message = step.error_message or "Execution canceled"
-            step.finished_at = step.finished_at or utc_now()
-            step.duration_ms = _duration_ms(step.started_at, step.finished_at)
-
-
-def _find_step(task: ExecutionTask, step_id: str | None) -> ExecutionStepResult | None:
-    if step_id is None:
-        return None
-    return next((step for step in task.steps if step.id == step_id), None)
-
-
-def _final_status_from_steps(task: ExecutionTask) -> TaskStatus:
-    if any(step.status == "error" for step in task.steps):
-        return "error"
-    if any(step.status == "failed" for step in task.steps):
-        return "failed"
-    if any(step.status == "canceled" for step in task.steps):
-        return "canceled"
-    if all(step.status == "passed" for step in task.steps):
-        return "passed"
-    return "failed"
 
 
 def _duration_ms(started_at: str | None, finished_at: str | None) -> int | None:
@@ -380,11 +271,3 @@ def _duration_ms(started_at: str | None, finished_at: str | None) -> int | None:
     started = datetime.fromisoformat(started_at)
     finished = datetime.fromisoformat(finished_at)
     return int((finished - started).total_seconds() * 1000)
-
-
-def _stringify_error_detail(error_detail: dict[str, Any] | str | None) -> str:
-    if error_detail is None:
-        return ""
-    if isinstance(error_detail, str):
-        return error_detail
-    return str(error_detail)

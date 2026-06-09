@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.modules.executions.schemas import ExecutionReport
+from app.modules.executions.schemas import ExecutionTask
 
 
 class FrameworkReportFileMissing(Exception):
@@ -14,10 +14,10 @@ class FrameworkReportFileForbidden(Exception):
 
 
 def resolve_framework_report_file(
-    report: ExecutionReport,
+    task: ExecutionTask,
     asset_path: str | None = None,
 ) -> Path:
-    framework_report = report.framework_report
+    framework_report = task.framework_report
     if (
         framework_report is None
         or framework_report.kind != "html"

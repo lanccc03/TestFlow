@@ -1,10 +1,10 @@
 from pydantic import BaseModel, ConfigDict
 
 
-class FrameworkCaseSummary(BaseModel):
+class CaseSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     id: str
     name: str
     description: str = ""
-    steps: list[str] = []
+    test_steps: list[str] = []
