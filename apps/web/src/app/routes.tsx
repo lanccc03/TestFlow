@@ -75,7 +75,7 @@ export const appRoutes: AppRoute[] = [
   {
     path: '/reports',
     label: '报告详情',
-    description: '展示执行报告、步骤结果和日志片段。',
+    description: '展示执行报告、任务结果和日志片段。',
     navGroup: 'execution',
     icon: FileText,
     element: <ReportListPage />,
@@ -83,7 +83,7 @@ export const appRoutes: AppRoute[] = [
   {
     path: '/reports/:taskId',
     label: '报告详情',
-    description: '展示执行报告、步骤结果和日志片段。',
+    description: '展示执行报告、任务结果和日志片段。',
     navGroup: 'execution',
     icon: FileText,
     element: <ReportDetailPage />,

@@ -49,10 +49,10 @@ export function TaskControlPanel({
       <CardContent className="grid gap-4">
         <div className="grid gap-3">
           <label className="grid gap-1.5">
-            <span className="text-xs font-semibold text-muted-foreground">选择脚本</span>
+            <span className="text-xs font-semibold text-muted-foreground">选择用例</span>
             <Select value={selectedScriptId} onValueChange={onSelectedScriptIdChange}>
-              <SelectTrigger aria-label="选择脚本">
-                <SelectValue placeholder="选择已发布脚本" />
+              <SelectTrigger aria-label="选择用例">
+                <SelectValue placeholder="选择框架用例" />
               </SelectTrigger>
               <SelectContent>
                 {publishedScripts.map((script) => (
@@ -85,11 +85,11 @@ export function TaskControlPanel({
         </div>
         {scriptsQueryIsError ? (
           <Alert variant="destructive">
-            <AlertDescription>脚本列表不可用</AlertDescription>
+            <AlertDescription>用例列表不可用</AlertDescription>
           </Alert>
         ) : null}
         {publishedScripts.length === 0 && !scriptsQueryIsPending ? (
-          <EmptyState title="暂无已发布脚本" />
+          <EmptyState title="暂无可用用例" />
         ) : null}
         {selectedScript ? <SelectedScriptSummary script={selectedScript} /> : null}
       </CardContent>
