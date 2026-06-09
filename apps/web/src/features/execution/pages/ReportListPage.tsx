@@ -35,9 +35,8 @@ export function ReportListPage() {
       <Table aria-label="最近报告">
         <TableHeader>
           <TableRow>
-            <TableHead>脚本</TableHead>
+            <TableHead>用例</TableHead>
             <TableHead>状态</TableHead>
-            <TableHead className="text-right">步骤</TableHead>
             <TableHead className="text-right">耗时</TableHead>
             <TableHead className="text-right">操作</TableHead>
           </TableRow>
@@ -45,13 +44,13 @@ export function ReportListPage() {
         <TableBody>
           {reportsQuery.isPending ? (
             <TableRow>
-              <TableCell colSpan={5}>
+              <TableCell colSpan={4}>
                 <EmptyState title="正在加载报告" />
               </TableCell>
             </TableRow>
           ) : reports.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5}>
+              <TableCell colSpan={4}>
                 <EmptyState title="暂无报告" />
               </TableCell>
             </TableRow>
@@ -60,7 +59,7 @@ export function ReportListPage() {
               <TableRow key={report.id}>
                 <TableCell className="max-w-[340px]">
                   <div className="grid gap-1">
-                    <div className="font-medium">{report.script_name}</div>
+                    <div className="font-medium">{report.case_name}</div>
                     <div className="truncate text-xs text-muted-foreground">
                       {report.id}
                     </div>
@@ -70,9 +69,6 @@ export function ReportListPage() {
                   <Badge variant={statusVariant(report.status)}>
                     {taskStatusLabel(report.status)}
                   </Badge>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  {report.passed_step_count}/{report.step_count}
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {report.duration_ms != null ? `${report.duration_ms} ms` : '-'}

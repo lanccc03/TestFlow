@@ -8,34 +8,34 @@ export function useScriptListPage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
 
-  const scriptsQuery = useQuery({
-    queryKey: ['scripts'],
-    queryFn: api.listScripts,
+  const casesQuery = useQuery({
+    queryKey: ['cases'],
+    queryFn: api.listCases,
   })
   const executeMutation = useMutation({
-    mutationFn: (scriptId: string) => api.createTask({ script_id: scriptId }),
+    mutationFn: (caseId: string) => api.createTask({ case_id: caseId }),
     onSuccess: (task) => {
       navigate(`/tasks?taskId=${encodeURIComponent(task.id)}`)
     },
   })
 
-  const scripts = scriptsQuery.data?.items ?? []
+  const cases = casesQuery.data?.items ?? []
   const query = search.trim().toLowerCase()
-  const filteredScripts = query
-    ? scripts.filter((script) =>
-        [script.id, script.name, script.description, ...script.steps]
+  const filteredCases = query
+    ? cases.filter((caseItem) =>
+        [caseItem.id, caseItem.name, caseItem.description, ...caseItem.test_steps]
           .join(' ')
           .toLowerCase()
           .includes(query),
       )
-    : scripts
+    : cases
 
   return {
     executeMutation,
-    filteredScripts,
+    filteredCases,
     search,
-    scripts,
-    scriptsQuery,
+    cases,
+    casesQuery,
     setSearch,
   }
 }

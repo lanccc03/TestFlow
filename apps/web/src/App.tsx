@@ -53,7 +53,7 @@ function App() {
     <MotionConfig reducedMotion="user">
       <AppShell backendStatus={backendStatus} websocketStatus={websocketStatus}>
         <Routes>
-          <Route element={<Navigate replace to="/scripts" />} path="/" />
+          <Route element={<Navigate replace to="/cases" />} path="/" />
           {appRoutes.map((route) => (
             <Route
               element={route.element}
@@ -61,7 +61,7 @@ function App() {
               path={route.path}
             />
           ))}
-          <Route element={<Navigate replace to="/scripts" />} path="*" />
+          <Route element={<Navigate replace to="/cases" />} path="*" />
         </Routes>
       </AppShell>
     </MotionConfig>

@@ -24,7 +24,7 @@ vi.mock('axios', () => ({
 
 import App from './App'
 
-function renderApp(initialEntries = ['/scripts']) {
+function renderApp(initialEntries = ['/cases']) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
@@ -69,7 +69,7 @@ describe('App', () => {
         })
       }
 
-      if (path === '/api/scripts') {
+      if (path === '/api/cases') {
         return Promise.resolve({
           data: {
             items: [
@@ -77,7 +77,7 @@ describe('App', () => {
                 id: 'case.smoke_cockpit',
                 name: '座舱冒烟测试',
                 description: '基础稳定性巡检',
-                steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
+                test_steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
               },
             ],
           },

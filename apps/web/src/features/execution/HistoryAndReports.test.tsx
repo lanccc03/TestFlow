@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const apiMock = vi.hoisted(() => ({
   getReport: vi.fn(),
+  listCases: vi.fn(),
   listReports: vi.fn(),
-  listScripts: vi.fn(),
   listTasks: vi.fn(),
 }))
 
@@ -37,19 +37,13 @@ function renderWithProviders(ui: React.ReactElement) {
 
 describe('HistoryPage', () => {
   beforeEach(() => {
-    apiMock.listScripts.mockResolvedValue({
+    apiMock.listCases.mockResolvedValue({
       items: [
         {
           id: 'smoke-cockpit',
           name: '座舱冒烟测试',
           description: '基础稳定性巡检',
-          step_count: 1,
-          enabled_step_count: 1,
-          revision: 1,
-          updated_at: '2026-06-01T00:00:00+00:00',
-          status: 'published',
-          tags: [],
-          group: 'stability',
+          test_steps: ['启动系统', '确认首页加载'],
         },
       ],
     })
@@ -57,20 +51,14 @@ describe('HistoryPage', () => {
       items: [
         {
           id: 'exec-1',
-          script_id: 'smoke-cockpit',
-          script_name: '座舱冒烟测试',
-          script_revision: 1,
+          case_id: 'smoke-cockpit',
+          case_name: '座舱冒烟测试',
+          case_revision: 1,
           status: 'failed',
-          environment: 'local',
-          target_device: 'bench-1',
-          executor: 'alice',
           created_at: '2026-06-01T00:00:00+00:00',
           started_at: '2026-06-01T00:00:01+00:00',
           finished_at: '2026-06-01T00:00:02+00:00',
           duration_ms: 1000,
-          step_count: 1,
-          passed_step_count: 0,
-          failed_step_count: 1,
         },
       ],
     })
@@ -86,10 +74,9 @@ describe('HistoryPage', () => {
 
     expect(await screen.findByLabelText('搜索执行历史')).toBeInTheDocument()
     expect(screen.getByRole('table', { name: '任务记录' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: '脚本' })).toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: '用例' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '耗时' })).toBeInTheDocument()
-    expect(screen.queryByRole('columnheader', { name: '执行人' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('columnheader', { name: '环境' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: '步骤' })).not.toBeInTheDocument()
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     fireEvent.change(screen.getByLabelText('搜索执行历史'), {
@@ -110,42 +97,21 @@ describe('HistoryPage', () => {
 
 const reportTask = {
   id: 'exec-1',
-  script_id: 'smoke-cockpit',
-  script_name: '座舱冒烟测试',
-  script_revision: 1,
+  case_id: 'smoke-cockpit',
+  case_name: '座舱冒烟测试',
+  case_revision: 1,
   status: 'failed',
-  environment: 'local',
-  target_device: 'bench-1',
-  variables: {},
-  executor: 'alice',
   created_at: '2026-06-01T00:00:00+00:00',
   started_at: '2026-06-01T00:00:01+00:00',
   finished_at: '2026-06-01T00:00:02+00:00',
   duration_ms: 1000,
   log_path: 'data/logs/executions/exec-1.log',
   report_dir: 'data/reports/exec-1',
-  steps: [
-    {
-      id: 'step-1',
-      index: 0,
-      description: 'Bad wait',
-      status: 'failed',
-      started_at: '2026-06-01T00:00:01+00:00',
-      finished_at: '2026-06-01T00:00:02+00:00',
-      duration_ms: 1000,
-      input: { seconds: -1 },
-      output: {},
-      error_message: 'wait.seconds must be greater than or equal to 0',
-      error_detail: '',
-      attachments: ['data/reports/exec-1/failure.txt'],
-    },
-  ],
   logs: [
     {
       timestamp: '2026-06-01T00:00:01+00:00',
       level: 'error',
       message: 'wait.seconds must be greater than or equal to 0',
-      step_id: 'step-1',
     },
   ],
   error_message: '',
@@ -157,34 +123,18 @@ describe('Report pages', () => {
       items: [
         {
           id: 'exec-1',
-          script_id: 'smoke-cockpit',
-          script_name: '座舱冒烟测试',
-          script_revision: 1,
+          case_id: 'smoke-cockpit',
+          case_name: '座舱冒烟测试',
+          case_revision: 1,
           status: 'failed',
-          environment: 'local',
-          target_device: 'bench-1',
-          executor: 'alice',
           created_at: '2026-06-01T00:00:00+00:00',
           started_at: '2026-06-01T00:00:01+00:00',
           finished_at: '2026-06-01T00:00:02+00:00',
           duration_ms: 1000,
-          step_count: 1,
-          passed_step_count: 0,
-          failed_step_count: 1,
         },
       ],
     })
-    apiMock.getReport.mockResolvedValue({
-      task: reportTask,
-      attachments: [
-        {
-          path: 'data/reports/exec-1/failure.txt',
-          name: 'failure.txt',
-          step_id: 'step-1',
-        },
-      ],
-      raw_framework_report: null,
-    })
+    apiMock.getReport.mockResolvedValue(reportTask)
   })
 
   afterEach(() => {
@@ -195,9 +145,7 @@ describe('Report pages', () => {
     renderWithProviders(<ReportListPage />)
 
     expect(await screen.findByRole('table', { name: '最近报告' })).toBeInTheDocument()
-    expect(screen.getByRole('columnheader', { name: '脚本' })).toBeInTheDocument()
-    expect(screen.queryByRole('columnheader', { name: '执行人' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('columnheader', { name: '环境' })).not.toBeInTheDocument()
+    expect(screen.getByRole('columnheader', { name: '用例' })).toBeInTheDocument()
     expect(screen.getByRole('columnheader', { name: '操作' })).toBeInTheDocument()
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看报告' })).toHaveAttribute(
@@ -206,7 +154,7 @@ describe('Report pages', () => {
     )
   })
 
-  it('shows report summary, failed step, logs, and attachments', async () => {
+  it('shows report summary and logs without step results or attachments', async () => {
     render(
       <MemoryRouter initialEntries={['/reports/exec-1']}>
         <QueryClientProvider
@@ -226,24 +174,14 @@ describe('Report pages', () => {
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.queryByText('目标设备:')).not.toBeInTheDocument()
     expect(screen.queryByText('执行人:')).not.toBeInTheDocument()
-    expect(screen.getByText('wait.seconds must be greater than or equal to 0')).toBeInTheDocument()
-    expect(screen.getByText('failure.txt')).toBeInTheDocument()
+    expect(screen.getByText(/wait\.seconds must be greater than or equal to 0/)).toBeInTheDocument()
+    expect(screen.queryByText('failure.txt')).not.toBeInTheDocument()
+    expect(screen.queryByText('步骤结果')).not.toBeInTheDocument()
   })
 
   it('prefers the framework HTML report when one is available', async () => {
     apiMock.getReport.mockResolvedValue({
-      task: {
-        ...reportTask,
-        framework_report: {
-          kind: 'html',
-          title: '自动化框架报告',
-          source: 'file',
-          root_dir: 'C:/framework/reports/exec-1',
-          entry: 'index.html',
-        },
-      },
-      attachments: [],
-      raw_framework_report: null,
+      ...reportTask,
       framework_report: {
         kind: 'html',
         title: '自动化框架报告',

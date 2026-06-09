@@ -5,7 +5,7 @@ import { appRoutes } from './routes'
 describe('appRoutes', () => {
   it('defines the MVP page routes through phase five', () => {
     expect(appRoutes.map((route) => route.path)).toEqual([
-      '/scripts',
+      '/cases',
       '/framework-config',
       '/tasks',
       '/history',

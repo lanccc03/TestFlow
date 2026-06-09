@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const apiMock = vi.hoisted(() => ({
   createTask: vi.fn(),
-  listScripts: vi.fn(),
+  listCases: vi.fn(),
 }))
 
 vi.mock('@/app/backend', () => ({
@@ -15,11 +15,11 @@ vi.mock('@/app/backend', () => ({
 
 import { ScriptListPage } from '@/features/scripts'
 
-const scriptSummary = {
+const caseSummary = {
   id: 'case.smoke_cockpit',
   name: '座舱冒烟测试',
   description: '基础稳定性巡检',
-  steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
+  test_steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
 }
 
 function LocationProbe() {
@@ -49,7 +49,7 @@ function renderWithQuery(ui: React.ReactElement, initialEntries: string[]) {
 describe('script run navigation', () => {
   beforeEach(() => {
     apiMock.createTask.mockResolvedValue({ id: 'exec-123' })
-    apiMock.listScripts.mockResolvedValue({ items: [scriptSummary] })
+    apiMock.listCases.mockResolvedValue({ items: [caseSummary] })
   })
 
   afterEach(() => {
@@ -71,7 +71,7 @@ describe('script run navigation', () => {
 
     await waitFor(() =>
       expect(apiMock.createTask).toHaveBeenCalledWith({
-        script_id: 'case.smoke_cockpit',
+        case_id: 'case.smoke_cockpit',
       }),
     )
     expect(await screen.findByLabelText('location')).toHaveTextContent('/tasks?taskId=exec-123')

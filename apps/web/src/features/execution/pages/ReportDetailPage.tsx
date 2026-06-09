@@ -2,7 +2,6 @@ import { ExternalLink } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router'
 
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,7 +14,6 @@ import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import { api, backendUrls } from '@/app/backend'
 import {
   type ExecutionFrameworkReport,
-  type ExecutionReportAttachment,
   type ExecutionTask,
 } from '@/lib/api'
 
@@ -46,13 +44,13 @@ export function ReportDetailPage() {
     )
   }
 
-  const { task, attachments } = reportQuery.data
-  const frameworkReport = reportQuery.data.framework_report ?? task.framework_report ?? null
+  const task: ExecutionTask = reportQuery.data
+  const frameworkReport = task.framework_report ?? null
 
   return (
     <PagePanel>
       <PageHeader
-        title={task.script_name}
+        title={task.case_name}
         subtitle={`任务 ${task.id}`}
       />
 
@@ -64,7 +62,7 @@ export function ReportDetailPage() {
         <div className="text-sm font-medium text-muted-foreground">平台记录</div>
       ) : null}
 
-      <StructuredReportDetail task={task} attachments={attachments} />
+      <StructuredReportDetail task={task} />
     </PagePanel>
   )
 }
@@ -110,10 +108,8 @@ function FrameworkHtmlReport({
 
 function StructuredReportDetail({
   task,
-  attachments,
 }: {
   task: ExecutionTask
-  attachments: ExecutionReportAttachment[]
 }) {
   return (
     <div className="grid grid-cols-[minmax(280px,0.78fr)_minmax(0,1.22fr)] gap-5 max-lg:grid-cols-1">
@@ -159,59 +155,7 @@ function StructuredReportDetail({
       </div>
 
       <div className="grid content-start gap-4">
-        <section className="overflow-hidden rounded-lg border border-border/80 bg-card/60">
-          <div className="border-b border-border/75 bg-muted/25 px-4 py-2">
-            <h2 className="m-0 text-sm font-semibold">步骤结果</h2>
-          </div>
-          <div className="divide-y divide-border/75">
-            {task.steps.map((step, index) => (
-              <div key={step.id} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 px-4 py-3">
-                <span className="flex size-7 items-center justify-center rounded-md bg-secondary text-xs font-semibold text-secondary-foreground">
-                  {index + 1}
-                </span>
-                <div className="grid gap-2 text-sm">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={statusVariant(step.status)}>
-                      {taskStatusLabel(step.status)}
-                    </Badge>
-                    <strong className="font-semibold">
-                      {step.description || `步骤 ${index + 1}`}
-                    </strong>
-                  </div>
-                  <div className="text-muted-foreground">
-                    耗时 {step.duration_ms != null ? `${step.duration_ms} ms` : '-'}
-                  </div>
-                  {step.error_message && (
-                    <Alert variant="destructive">
-                      <AlertDescription>
-                        {step.error_message}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {attachments.length > 0 && (
-          <section className="rounded-lg border border-border/80 bg-card/60 p-4">
-            <h2 className="m-0 mb-3 text-sm font-semibold">附件</h2>
-            <div className="grid gap-2 text-sm">
-              {attachments.map((attachment, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-card/50 px-3 py-2"
-                >
-                  <span className="font-medium">{attachment.name}</span>
-                  <span className="min-w-0 truncate text-xs text-muted-foreground">
-                    {attachment.path}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* Step results and attachments removed */}
       </div>
     </div>
   )

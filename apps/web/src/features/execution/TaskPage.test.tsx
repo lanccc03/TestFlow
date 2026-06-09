@@ -8,7 +8,6 @@ const apiMock = vi.hoisted(() => ({
   cancelTask: vi.fn(),
   createTask: vi.fn(),
   getTask: vi.fn(),
-  listScripts: vi.fn(),
   listTasks: vi.fn(),
 }))
 const webSocketMock = vi.hoisted(() => ({
@@ -37,21 +36,16 @@ import { TaskPage } from '@/features/execution'
 
 const pendingTask = {
   id: 'task-1',
-  script_id: 'smoke-cockpit',
-  script_name: '座舱冒烟测试',
-  script_revision: 1,
+  case_id: 'smoke-cockpit',
+  case_name: '座舱冒烟测试',
+  case_revision: 1,
   status: 'pending',
-  environment: 'local',
-  target_device: 'bench-1',
-  variables: {},
-  executor: 'local',
   created_at: '2026-06-01T00:00:00+00:00',
   started_at: null,
   finished_at: null,
   duration_ms: null,
   log_path: '',
   report_dir: '',
-  steps: [],
   logs: [],
   error_message: '',
 }
@@ -96,37 +90,25 @@ const canceledTask = {
 const taskSummaries = [
   {
     id: 'task-running',
-    script_id: 'smoke-cockpit',
-    script_name: '座舱冒烟测试',
-    script_revision: 1,
+    case_id: 'smoke-cockpit',
+    case_name: '座舱冒烟测试',
+    case_revision: 1,
     status: 'running',
-    environment: 'local',
-    target_device: 'bench-1',
-    executor: 'local',
     created_at: '2026-06-01T00:00:02+00:00',
     started_at: '2026-06-01T00:00:03+00:00',
     finished_at: null,
     duration_ms: null,
-    step_count: 1,
-    passed_step_count: 0,
-    failed_step_count: 0,
   },
   {
     id: 'task-passed',
-    script_id: 'smoke-cockpit',
-    script_name: '座舱冒烟测试',
-    script_revision: 1,
+    case_id: 'smoke-cockpit',
+    case_name: '座舱冒烟测试',
+    case_revision: 1,
     status: 'passed',
-    environment: 'local',
-    target_device: 'bench-1',
-    executor: 'local',
     created_at: '2026-06-01T00:00:01+00:00',
     started_at: '2026-06-01T00:00:01+00:00',
     finished_at: '2026-06-01T00:00:03+00:00',
     duration_ms: 2000,
-    step_count: 1,
-    passed_step_count: 1,
-    failed_step_count: 0,
   },
 ]
 
@@ -149,7 +131,6 @@ function renderWithQuery(
 
 describe('TaskPage', () => {
   beforeEach(() => {
-    apiMock.listScripts.mockResolvedValue({ items: [] })
     apiMock.listTasks.mockResolvedValue({ items: [] })
     apiMock.createTask.mockResolvedValue(pendingTask)
     apiMock.cancelTask.mockResolvedValue({})
@@ -239,7 +220,7 @@ describe('TaskPage', () => {
     expect(apiMock.cancelTask).not.toHaveBeenCalled()
   })
 
-  it('appends matching websocket log events to realtime logs', async () => {
+  it('does not handle log-type websocket events', async () => {
     apiMock.listTasks.mockResolvedValue({ items: taskSummaries })
     apiMock.getTask.mockResolvedValue(runningTask)
 
@@ -255,17 +236,9 @@ describe('TaskPage', () => {
         level: 'info',
         message: 'boot completed',
       })
-      webSocketMock.emit?.({
-        type: 'log',
-        task_id: 'task-passed',
-        timestamp: '2026-06-01T00:00:05+00:00',
-        level: 'info',
-        message: 'unrelated output',
-      })
     })
 
-    expect(await screen.findByText(/boot completed/)).toBeInTheDocument()
-    expect(screen.queryByText(/unrelated output/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/boot completed/)).not.toBeInTheDocument()
   })
 
   it('updates selected task details from matching websocket task events', async () => {

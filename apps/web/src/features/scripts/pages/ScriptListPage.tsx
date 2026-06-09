@@ -19,9 +19,9 @@ import { useScriptListPage } from '../hooks/useScriptListPage'
 export function ScriptListPage() {
   const {
     executeMutation,
-    filteredScripts,
+    filteredCases,
     search,
-    scriptsQuery,
+    casesQuery,
     setSearch,
   } = useScriptListPage()
 
@@ -50,13 +50,13 @@ export function ScriptListPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {scriptsQuery.isPending ? (
+          {casesQuery.isPending ? (
             <TableRow>
               <TableCell colSpan={3}>
                 <EmptyState title="正在加载" />
               </TableCell>
             </TableRow>
-          ) : scriptsQuery.isError ? (
+          ) : casesQuery.isError ? (
             <TableRow>
               <TableCell colSpan={3}>
                 <Alert variant="destructive">
@@ -64,30 +64,30 @@ export function ScriptListPage() {
                 </Alert>
               </TableCell>
             </TableRow>
-          ) : filteredScripts.length === 0 ? (
+          ) : filteredCases.length === 0 ? (
             <TableRow>
               <TableCell colSpan={3}>
                 <EmptyState title={search.trim() ? '没有匹配的用例' : '没有用例'} />
               </TableCell>
             </TableRow>
           ) : (
-            filteredScripts.map((script) => (
-              <TableRow key={script.id}>
+            filteredCases.map((caseItem) => (
+              <TableRow key={caseItem.id}>
                 <TableCell className="max-w-[360px] align-top">
                   <div className="grid gap-1">
-                    <div className="font-medium">{script.name}</div>
+                    <div className="font-medium">{caseItem.name}</div>
                     <div className="text-xs text-muted-foreground">
-                      {script.description || script.id}
+                      {caseItem.description || caseItem.id}
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="align-top">
-                  {script.steps.length === 0 ? (
+                  {caseItem.test_steps.length === 0 ? (
                     <span className="text-sm text-muted-foreground">暂无步骤说明</span>
                   ) : (
                     <ol className="m-0 grid gap-1 pl-5 text-sm">
-                      {script.steps.map((step, index) => (
-                        <li key={`${script.id}-${index}`}>{step}</li>
+                      {caseItem.test_steps.map((step, index) => (
+                        <li key={`${caseItem.id}-${index}`}>{step}</li>
                       ))}
                     </ol>
                   )}
@@ -95,9 +95,9 @@ export function ScriptListPage() {
                 <TableCell className="align-top">
                   <div className="flex justify-end">
                     <Button
-                      aria-label={`运行 ${script.name}`}
+                      aria-label={`运行 ${caseItem.name}`}
                       disabled={executeMutation.isPending}
-                      onClick={() => executeMutation.mutate(script.id)}
+                      onClick={() => executeMutation.mutate(caseItem.id)}
                       size="icon-sm"
                       type="button"
                       variant="ghost"

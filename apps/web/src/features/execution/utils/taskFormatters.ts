@@ -1,7 +1,6 @@
 import type {
   ExecutionTask,
   ExecutionUpdateEvent,
-  StepStatus,
   TaskStatus,
 } from '@/lib/api'
 
@@ -15,18 +14,17 @@ export function formatEventLog(event: ExecutionUpdateEvent) {
   return `${timestamp} [${level}] ${event.message ?? ''}`
 }
 
-export function statusVariant(status: TaskStatus | StepStatus) {
+export function statusVariant(status: TaskStatus) {
   if (status === 'passed') return 'success'
   if (status === 'failed' || status === 'error') return 'destructive'
   return 'secondary'
 }
 
-export function taskStatusLabel(status: TaskStatus | StepStatus) {
+export function taskStatusLabel(status: TaskStatus) {
   if (status === 'pending') return '等待中'
   if (status === 'running') return '运行中'
   if (status === 'passed') return '已通过'
   if (status === 'failed') return '失败'
-  if (status === 'skipped') return '已跳过'
   if (status === 'canceled') return '已取消'
   return '异常'
 }

@@ -77,7 +77,9 @@ export function useTaskPage() {
         if (isPageTask && message.task) {
           queryClient.setQueryData(['task', messageTaskId], message.task)
         }
-        if (isPageTask && message.type === 'log' && message.message) {
+        // Log entries arrive as task_status events with a message field
+        // (no 'log' event type exists anymore)
+        if (isPageTask && message.type === 'task_status' && message.message && !message.task) {
           setLiveLogs((current) => [...current, formatEventLog(message)])
         }
         if (shouldRefreshTasks(message.type)) {

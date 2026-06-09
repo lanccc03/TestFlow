@@ -10,15 +10,15 @@ import {
 } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EmptyState } from '@/components/layout/page'
-import type { ExecutionTask, ScriptSummary } from '@/lib/api'
+import type { CaseSummary, ExecutionTask } from '@/lib/api'
 import { canCancelTask } from '../utils/taskGuards'
 import { SelectedScriptSummary } from './SelectedScriptSummary'
 
 export interface TaskControlPanelProps {
   selectedScriptId: string
   onSelectedScriptIdChange: (value: string) => void
-  publishedScripts: ScriptSummary[]
-  selectedScript: ScriptSummary | undefined
+  publishedScripts: CaseSummary[]
+  selectedScript: CaseSummary | undefined
   activeTask: ExecutionTask | null
   createMutationIsPending: boolean
   cancelMutationIsPending: boolean

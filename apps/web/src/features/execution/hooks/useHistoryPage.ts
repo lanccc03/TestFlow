@@ -22,8 +22,8 @@ export function useHistoryPage() {
     return items.filter((task) =>
       [
         task.id,
-        task.script_id,
-        task.script_name,
+        task.case_id,
+        task.case_name,
         task.status,
       ]
         .filter(Boolean)

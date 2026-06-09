@@ -15,7 +15,6 @@ export function isExecutionEventMessage(value: unknown): value is ExecutionEvent
 export function shouldRefreshTasks(type: ExecutionUpdateEvent['type']) {
   return (
     type === 'task_status' ||
-    type === 'step_status' ||
     type === 'task_finished'
   )
 }

@@ -41,7 +41,7 @@ export type AppRoute = {
 
 export const appRoutes: AppRoute[] = [
   {
-    path: '/scripts',
+    path: '/cases',
     label: '框架用例库',
     description: '从测试框架读取用例名称、描述和测试步骤。',
     navGroup: 'scripts',

@@ -9,43 +9,14 @@ export type TaskStatus =
   | 'canceled'
   | 'error'
 
-export type StepStatus =
-  | 'pending'
-  | 'running'
-  | 'passed'
-  | 'failed'
-  | 'canceled'
-  | 'error'
-  | 'skipped'
-
 export type ExecutionTaskCreate = {
-  script_id: string
-  environment?: string
-  target_device?: string
-  variables?: Record<string, unknown>
-  executor?: string
+  case_id: string
 }
 
 export type ExecutionLogEntry = {
   timestamp: string
   level: string
   message: string
-  step_id: string | null
-}
-
-export type ExecutionStepResult = {
-  id: string
-  index: number
-  description: string
-  status: StepStatus
-  started_at: string | null
-  finished_at: string | null
-  duration_ms: number | null
-  input: Record<string, unknown>
-  output: Record<string, unknown>
-  error_message: string
-  error_detail: string
-  attachments: string[]
 }
 
 export type ExecutionFrameworkReport = {
@@ -58,14 +29,10 @@ export type ExecutionFrameworkReport = {
 
 export type ExecutionTask = {
   id: string
-  script_id: string
-  script_name: string
-  script_revision: number
+  case_id: string
+  case_name: string
+  case_revision: number
   status: TaskStatus
-  environment: string
-  target_device: string
-  variables: Record<string, unknown>
-  executor: string
   created_at: string
   started_at: string | null
   finished_at: string | null
@@ -73,47 +40,37 @@ export type ExecutionTask = {
   log_path: string
   report_dir: string
   framework_report?: ExecutionFrameworkReport | null
-  steps: ExecutionStepResult[]
   logs: ExecutionLogEntry[]
   error_message: string
 }
 
 export type ExecutionTaskSummary = {
   id: string
-  script_id: string
-  script_name: string
-  script_revision: number
+  case_id: string
+  case_name: string
+  case_revision: number
   status: TaskStatus
-  environment: string
-  target_device: string
-  executor: string
   created_at: string
   started_at: string | null
   finished_at: string | null
   duration_ms: number | null
-  step_count: number
-  passed_step_count: number
-  failed_step_count: number
 }
 
 export type ExecutionTaskFilters = {
-  script_id?: string
+  case_id?: string
   status?: TaskStatus
   created_from?: string
   created_to?: string
-  executor?: string
 }
 
 export type ExecutionUpdateEvent = {
-  type: 'task_status' | 'step_status' | 'log' | 'task_finished'
+  type: 'task_status' | 'task_finished'
   task_id?: string
-  status?: TaskStatus | StepStatus | null
-  step_id?: string | null
+  status?: TaskStatus | null
   message?: string
   level?: string
   timestamp?: string
   task?: ExecutionTask | null
-  step?: ExecutionStepResult | null
 }
 
 export type ConnectionExecutionEvent = {

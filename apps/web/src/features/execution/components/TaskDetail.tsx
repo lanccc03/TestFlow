@@ -7,7 +7,7 @@ export function TaskDetail({ task }: { task: ExecutionTask }) {
   return (
     <div className="grid gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <h3 className="m-0 text-base font-semibold">{task.script_name}</h3>
+        <h3 className="m-0 text-base font-semibold">{task.case_name}</h3>
         <Badge variant={statusVariant(task.status)}>
           {taskStatusLabel(task.status)}
         </Badge>
@@ -16,14 +16,6 @@ export function TaskDetail({ task }: { task: ExecutionTask }) {
         <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
           <dt className="text-xs font-medium text-muted-foreground">任务 ID</dt>
           <dd className="m-0 min-w-0 text-sm wrap-anywhere">{task.id}</dd>
-        </div>
-        <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
-          <dt className="text-xs font-medium text-muted-foreground">执行器</dt>
-          <dd className="m-0 min-w-0 text-sm">{task.executor}</dd>
-        </div>
-        <div className="grid grid-cols-[88px_minmax(0,1fr)] gap-2">
-          <dt className="text-xs font-medium text-muted-foreground">环境</dt>
-          <dd className="m-0 min-w-0 text-sm">{task.environment}</dd>
         </div>
       </dl>
       {task.error_message ? (

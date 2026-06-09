@@ -19,7 +19,7 @@ export function TaskSummaryItem({
     <>
       <div className="min-w-0">
         <div className="mb-1 flex flex-wrap items-center gap-2">
-          <h3 className="m-0 text-sm font-semibold">{task.script_name}</h3>
+          <h3 className="m-0 text-sm font-semibold">{task.case_name}</h3>
           <Badge variant={statusVariant(task.status)}>
             {taskStatusLabel(task.status)}
           </Badge>
@@ -28,13 +28,7 @@ export function TaskSummaryItem({
           <p className="m-0 text-xs text-muted-foreground">{task.id}</p>
         ) : null}
       </div>
-      <dl className="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <dt className="text-xs text-muted-foreground">步骤</dt>
-          <dd className="m-0 font-semibold text-foreground">
-            {task.passed_step_count}/{task.step_count}
-          </dd>
-        </div>
+      <dl className="grid grid-cols-1 gap-2 text-sm">
         <div>
           <dt className="text-xs text-muted-foreground">耗时</dt>
           <dd className="m-0 font-semibold text-foreground">

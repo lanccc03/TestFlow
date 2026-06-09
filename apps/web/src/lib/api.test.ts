@@ -39,7 +39,7 @@ describe('createApiClient', () => {
               id: 'case.smoke_cockpit',
               name: '座舱冒烟测试',
               description: '基础稳定性巡检',
-              steps: ['启动系统', '确认首页加载'],
+              test_steps: ['启动系统', '确认首页加载'],
             },
           ],
         },
@@ -47,17 +47,17 @@ describe('createApiClient', () => {
     } as unknown as AxiosInstance
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
-    await expect(api.listScripts()).resolves.toEqual({
+    await expect(api.listCases()).resolves.toEqual({
       items: [
         {
           id: 'case.smoke_cockpit',
           name: '座舱冒烟测试',
           description: '基础稳定性巡检',
-          steps: ['启动系统', '确认首页加载'],
+          test_steps: ['启动系统', '确认首页加载'],
         },
       ],
     })
-    expect(httpClient.get).toHaveBeenCalledWith('/api/scripts')
+    expect(httpClient.get).toHaveBeenCalledWith('/api/cases')
   })
 
   it('returns a framework case detail from the backend', async () => {
@@ -67,17 +67,17 @@ describe('createApiClient', () => {
           id: 'case.smoke_cockpit',
           name: '座舱冒烟测试',
           description: '基础稳定性巡检',
-          steps: ['启动系统', '确认首页加载'],
+          test_steps: ['启动系统', '确认首页加载'],
         },
       }),
     } as unknown as AxiosInstance
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
-    await expect(api.getScript('case.smoke_cockpit')).resolves.toMatchObject({
+    await expect(api.getCase('case.smoke_cockpit')).resolves.toMatchObject({
       id: 'case.smoke_cockpit',
-      steps: ['启动系统', '确认首页加载'],
+      test_steps: ['启动系统', '确认首页加载'],
     })
-    expect(httpClient.get).toHaveBeenCalledWith('/api/scripts/case.smoke_cockpit')
+    expect(httpClient.get).toHaveBeenCalledWith('/api/cases/case.smoke_cockpit')
   })
 
   it('exposes command template CRUD endpoints', async () => {
@@ -183,54 +183,27 @@ describe('createApiClient', () => {
   it('exposes execution task endpoints', async () => {
     const task = {
       id: 'task-1',
-      script_id: 'smoke-cockpit',
-      script_name: '座舱冒烟测试',
-      script_revision: 2,
+      case_id: 'smoke-cockpit',
+      case_name: '座舱冒烟测试',
+      case_revision: 2,
       status: 'running',
-      environment: 'staging',
-      target_device: 'bench-1',
-      variables: { region: 'cn-north' },
-      executor: 'local',
       created_at: '2026-06-01T00:00:00+00:00',
       started_at: '2026-06-01T00:00:01+00:00',
       finished_at: null,
       duration_ms: 1000,
       log_path: 'data/reports/task-1/task.log',
       report_dir: 'data/reports/task-1',
-      steps: [
-        {
-          id: 'step-1',
-          description: '等待启动',
-          status: 'passed',
-          started_at: '2026-06-01T00:00:01+00:00',
-          finished_at: '2026-06-01T00:00:02+00:00',
-          duration_ms: 1000,
-          index: 0,
-          input: {},
-          output: {},
-          error_message: '',
-          error_detail: '',
-          attachments: [],
-        },
-      ],
       logs: [
         {
           timestamp: '2026-06-01T00:00:01+00:00',
           level: 'info',
           message: 'Task started',
-          step_id: 'step-1',
         },
       ],
       error_message: '',
     } satisfies ExecutionTask
     const createPayload = {
-      script_id: 'smoke-cockpit',
-      environment: 'staging',
-      target_device: 'bench-1',
-      variables: { region: 'cn-north' },
-    } satisfies ExecutionTaskCreate
-    const defaultedCreatePayload = {
-      script_id: 'smoke-cockpit',
+      case_id: 'smoke-cockpit',
     } satisfies ExecutionTaskCreate
     const connectionEvent = {
       type: 'connection',
@@ -249,17 +222,12 @@ describe('createApiClient', () => {
 
     await expect(api.listTasks()).resolves.toEqual({ items: [task] })
     await expect(api.createTask(createPayload)).resolves.toEqual(task)
-    await expect(api.createTask(defaultedCreatePayload)).resolves.toEqual(task)
     await expect(api.cancelTask('task-1')).resolves.toEqual(task)
     expect(connectionEvent.status).toBe('connected')
     expect(taskStatusEvent.status).toBe('running')
 
     expect(httpClient.get).toHaveBeenCalledWith('/api/tasks', { params: {} })
     expect(httpClient.post).toHaveBeenCalledWith('/api/tasks', createPayload)
-    expect(httpClient.post).toHaveBeenCalledWith(
-      '/api/tasks',
-      defaultedCreatePayload,
-    )
     expect(httpClient.post).toHaveBeenCalledWith('/api/tasks/task-1/cancel', {})
   })
 
@@ -276,11 +244,11 @@ describe('createApiClient', () => {
     } as unknown as AxiosInstance
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
-    await expect(api.listItems('/api/scripts')).rejects.toMatchObject({
+    await expect(api.listCases()).rejects.toMatchObject({
       message: 'No route',
       status: 404,
     })
-    await expect(api.listItems('/api/scripts')).rejects.toBeInstanceOf(ApiError)
+    await expect(api.listCases()).rejects.toBeInstanceOf(ApiError)
   })
 
   it('normalizes common backend error responses into ApiError', async () => {
@@ -290,8 +258,8 @@ describe('createApiClient', () => {
         response: {
           data: {
             error: {
-              code: 'script_validation_error',
-              message: 'Script validation failed',
+              code: 'case_validation_error',
+              message: 'Case validation failed',
               details: [],
             },
           },
@@ -302,8 +270,8 @@ describe('createApiClient', () => {
     } as unknown as AxiosInstance
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
-    await expect(api.listScripts()).rejects.toMatchObject({
-      message: 'Script validation failed',
+    await expect(api.listCases()).rejects.toMatchObject({
+      message: 'Case validation failed',
       status: 422,
       details: [],
     })
@@ -312,21 +280,16 @@ describe('createApiClient', () => {
   it('calls execution history and report endpoints with filters', async () => {
     const executionTask: ExecutionTask = {
       id: 'task-1',
-      script_id: 'smoke-cockpit',
-      script_name: '座舱冒烟测试',
-      script_revision: 2,
+      case_id: 'smoke-cockpit',
+      case_name: '座舱冒烟测试',
+      case_revision: 2,
       status: 'failed',
-      environment: 'staging',
-      target_device: 'bench-1',
-      variables: {},
-      executor: 'alice',
       created_at: '2026-06-01T10:00:00+00:00',
       started_at: '2026-06-01T10:00:01+00:00',
       finished_at: '2026-06-01T10:10:00+00:00',
       duration_ms: 599000,
       log_path: 'data/reports/task-1/task.log',
       report_dir: 'data/reports/task-1',
-      steps: [],
       logs: [],
       error_message: '',
     }
@@ -335,11 +298,7 @@ describe('createApiClient', () => {
         .fn()
         .mockResolvedValueOnce({ data: { items: [] } })
         .mockResolvedValueOnce({
-          data: {
-            task: executionTask,
-            attachments: [],
-            raw_framework_report: null,
-          },
+          data: executionTask,
         }),
     } as unknown as AxiosInstance
     const client = createApiClient({
@@ -348,21 +307,19 @@ describe('createApiClient', () => {
     })
 
     await client.listTasks({
-      script_id: 'smoke-cockpit',
+      case_id: 'smoke-cockpit',
       status: 'failed',
       created_from: '2026-06-01T00:00:00+00:00',
       created_to: '2026-06-01T23:59:59+00:00',
-      executor: 'alice',
     })
     await client.getReport('task-1')
 
     expect(httpClient.get).toHaveBeenNthCalledWith(1, '/api/tasks', {
       params: {
-        script_id: 'smoke-cockpit',
+        case_id: 'smoke-cockpit',
         status: 'failed',
         created_from: '2026-06-01T00:00:00+00:00',
         created_to: '2026-06-01T23:59:59+00:00',
-        executor: 'alice',
       },
     })
     expect(httpClient.get).toHaveBeenNthCalledWith(2, '/api/reports/task-1')
@@ -381,8 +338,8 @@ describe('createApiClient', () => {
         response: {
           data: {
             error: {
-              code: 'script_validation_error',
-              message: 'Script validation failed',
+              code: 'case_validation_error',
+              message: 'Case validation failed',
               details,
             },
           },
@@ -393,9 +350,9 @@ describe('createApiClient', () => {
     } as unknown as AxiosInstance
     const api = createApiClient({ baseUrl: 'http://backend.test', httpClient })
 
-    await expect(api.listScripts()).rejects.toMatchObject({
+    await expect(api.listCases()).rejects.toMatchObject({
       details,
-      message: 'Script validation failed',
+      message: 'Case validation failed',
       status: 422,
     })
   })

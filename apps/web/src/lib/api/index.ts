@@ -5,13 +5,13 @@ import {
   createRequestClient,
   type ApiRequestClient,
 } from './client'
+import { createCasesApi } from './cases'
 import { createCommandsApi } from './commands'
 import { createExecutionsApi } from './executions'
 import { createFrameworkApi } from './framework'
 import { createHealthApi } from './health'
 import { createReportsApi } from './reports'
 import { createScpApi } from './scp'
-import { createScriptsApi } from './scripts'
 import type { ItemList } from './types'
 
 export type ApiClientOptions = {
@@ -28,7 +28,7 @@ export function createApiClient({
   return {
     ...createHealthApi(client),
     ...createFrameworkApi(client),
-    ...createScriptsApi(client),
+    ...createCasesApi(client),
     ...createCommandsApi(client),
     ...createExecutionsApi(client),
     ...createReportsApi(client),
@@ -39,23 +39,21 @@ export function createApiClient({
 
 export type { ApiRequestClient }
 export { ApiError, compactParams, createRequestClient } from './client'
+export type { CaseSummary } from './cases'
 export type { CommandTemplate, CommandTemplatePayload } from './commands'
 export type {
   ConnectionExecutionEvent,
   ExecutionEventMessage,
   ExecutionFrameworkReport,
   ExecutionLogEntry,
-  ExecutionStepResult,
   ExecutionTask,
   ExecutionTaskCreate,
   ExecutionTaskFilters,
   ExecutionTaskSummary,
   ExecutionUpdateEvent,
-  StepStatus,
   TaskStatus,
 } from './executions'
 export type { HealthResponse } from './health'
-export type { ExecutionReport, ExecutionReportAttachment } from './reports'
 export type {
   ScpFileNode,
   ScpFileTree,
@@ -63,9 +61,5 @@ export type {
   ScpTransferPayload,
   ScpTransferTask,
 } from './scp'
-export type {
-  ScriptSummary,
-  TestScript,
-} from './scripts'
 export type { ItemList, JsonValue } from './types'
 export { frameworkReportUrl } from './urls'

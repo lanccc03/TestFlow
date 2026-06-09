@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 
+import { createCasesApi } from './cases'
 import { createCommandsApi } from './commands'
 import { createExecutionsApi } from './executions'
 import { createFrameworkApi } from './framework'
 import { createHealthApi } from './health'
 import { createReportsApi } from './reports'
-import { createScriptsApi } from './scripts'
 import type { ApiRequestClient } from './client'
 import type { CommandTemplatePayload } from './commands'
 import type { ExecutionTaskCreate } from './executions'
@@ -39,16 +39,13 @@ describe('api endpoint modules', () => {
 
   it('keeps framework case endpoints in a focused module', async () => {
     const client = createClientMock()
-    const scriptsApi = createScriptsApi(client)
+    const casesApi = createCasesApi(client)
 
-    await scriptsApi.listScripts()
-    await scriptsApi.getScript('case.smoke_cockpit')
+    await casesApi.listCases()
+    await casesApi.getCase('case.smoke_cockpit')
 
-    expect(client.get).toHaveBeenNthCalledWith(1, '/api/scripts')
-    expect(client.get).toHaveBeenNthCalledWith(
-      2,
-      '/api/scripts/case.smoke_cockpit',
-    )
+    expect(client.get).toHaveBeenNthCalledWith(1, '/api/cases')
+    expect(client.get).toHaveBeenNthCalledWith(2, '/api/cases/case.smoke_cockpit')
     expect(client.remove).not.toHaveBeenCalled()
   })
 
@@ -80,27 +77,27 @@ describe('api endpoint modules', () => {
     const client = createClientMock()
     const executionsApi = createExecutionsApi(client)
     const reportsApi = createReportsApi(client)
-    const payload = { script_id: 'smoke-cockpit' } satisfies ExecutionTaskCreate
+    const payload = { case_id: 'case.smoke_cockpit' } satisfies ExecutionTaskCreate
 
     await executionsApi.listTasks({
       created_from: '',
-      executor: 'alice',
+      case_id: 'case.smoke_cockpit',
       status: undefined,
     })
     await executionsApi.getTask('task-1')
     await executionsApi.createTask(payload)
     await executionsApi.cancelTask('task-1')
-    await reportsApi.listReports({ executor: 'alice' })
+    await reportsApi.listReports({ case_id: 'case.smoke_cockpit' })
     await reportsApi.getReport('task-1')
 
     expect(client.get).toHaveBeenNthCalledWith(1, '/api/tasks', {
-      params: { executor: 'alice' },
+      params: { case_id: 'case.smoke_cockpit' },
     })
     expect(client.get).toHaveBeenNthCalledWith(2, '/api/tasks/task-1')
     expect(client.post).toHaveBeenCalledWith('/api/tasks', payload)
     expect(client.postEmpty).toHaveBeenCalledWith('/api/tasks/task-1/cancel')
     expect(client.get).toHaveBeenNthCalledWith(3, '/api/reports', {
-      params: { executor: 'alice' },
+      params: { case_id: 'case.smoke_cockpit' },
     })
     expect(client.get).toHaveBeenNthCalledWith(4, '/api/reports/task-1')
   })
