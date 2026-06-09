@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 import { Play } from 'lucide-react'
 
 import { ListToolbar } from '@/components/layout/list'
@@ -25,6 +27,8 @@ export function ScriptListPage() {
     casesQuery,
     setSearch,
   } = useScriptListPage()
+
+  const [expandedCaseId, setExpandedCaseId] = useState<string | null>(null)
 
   return (
     <PagePanel>
@@ -90,15 +94,48 @@ export function ScriptListPage() {
                     <span className="text-sm text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className="align-top">
+                <TableCell className="max-w-[420px] whitespace-normal align-top">
                   {caseItem.test_steps.length === 0 ? (
                     <span className="text-sm text-muted-foreground">暂无步骤说明</span>
                   ) : (
-                    <ol className="m-0 grid gap-1 pl-5 text-sm">
-                      {caseItem.test_steps.map((step, index) => (
-                        <li key={`${caseItem.id}-${index}`}>{step}</li>
-                      ))}
-                    </ol>
+                    <div className="grid min-w-0 gap-2">
+                      {expandedCaseId === caseItem.id ? (
+                        <ol className="m-0 grid gap-1 pl-5 text-sm leading-relaxed">
+                          {caseItem.test_steps.map((step, index) => (
+                            <li className="break-words" key={`${caseItem.id}-${index}`}>
+                              {step}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <div className="min-w-0 text-sm leading-relaxed">
+                          <span className="font-medium text-muted-foreground">1. </span>
+                          <span className="break-words">{caseItem.test_steps[0]}</span>
+                        </div>
+                      )}
+                      {caseItem.test_steps.length > 1 ? (
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>共 {caseItem.test_steps.length} 步</span>
+                          <Button
+                            aria-label={
+                              expandedCaseId === caseItem.id
+                                ? `收起 ${caseItem.name} 的测试步骤`
+                                : `查看 ${caseItem.name} 的全部测试步骤`
+                            }
+                            className="h-auto px-0 text-xs"
+                            onClick={() =>
+                              setExpandedCaseId((current) =>
+                                current === caseItem.id ? null : caseItem.id,
+                              )
+                            }
+                            type="button"
+                            variant="link"
+                          >
+                            {expandedCaseId === caseItem.id ? '收起' : '查看全部'}
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
                   )}
                 </TableCell>
                 <TableCell className="align-top">

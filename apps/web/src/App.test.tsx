@@ -122,6 +122,8 @@ describe('App', () => {
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
     expect(screen.getByText('启动系统')).toBeInTheDocument()
+    expect(screen.queryByText('确认首页加载')).not.toBeInTheDocument()
+    expect(screen.getByText('共 3 步')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /新建脚本/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /删除/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /复制/ })).not.toBeInTheDocument()

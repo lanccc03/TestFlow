@@ -20,7 +20,11 @@ const caseSummary = {
   name: '座舱冒烟测试',
   description: '基础稳定性巡检',
   tag: 'smoke',
-  test_steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
+  test_steps: [
+    '启动系统',
+    '确认首页加载并检查关键状态正常',
+    '采集运行状态',
+  ],
 }
 
 function LocationProbe() {
@@ -66,6 +70,9 @@ describe('script run navigation', () => {
     expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
     expect(screen.getByText('smoke')).toBeInTheDocument()
     expect(screen.getByText('启动系统')).toBeInTheDocument()
+    expect(screen.queryByText('确认首页加载并检查关键状态正常')).not.toBeInTheDocument()
+    expect(screen.getByText('共 3 步')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '查看 座舱冒烟测试 的全部测试步骤' })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /新建脚本/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /删除/ })).not.toBeInTheDocument()
 
@@ -77,5 +84,22 @@ describe('script run navigation', () => {
       }),
     )
     expect(await screen.findByLabelText('location')).toHaveTextContent('/tasks?taskId=exec-123')
+  })
+
+  it('shows only the first test step until the row is expanded', async () => {
+    renderWithQuery(<ScriptListPage />, ['/scripts'])
+
+    expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
+    expect(screen.getByText('启动系统')).toBeInTheDocument()
+    expect(screen.queryByText('确认首页加载并检查关键状态正常')).not.toBeInTheDocument()
+    expect(screen.queryByText('采集运行状态')).not.toBeInTheDocument()
+
+    fireEvent.click(
+      screen.getByRole('button', { name: '查看 座舱冒烟测试 的全部测试步骤' }),
+    )
+
+    expect(screen.getByText('确认首页加载并检查关键状态正常')).toBeInTheDocument()
+    expect(screen.getByText('采集运行状态')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '收起 座舱冒烟测试 的测试步骤' })).toBeInTheDocument()
   })
 })
