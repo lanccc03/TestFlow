@@ -73,6 +73,21 @@ def test_registry_rejects_unknown_runtime(monkeypatch) -> None:
     get_runtime.cache_clear()
 
 
+def test_registry_rejects_real_runtime_until_integrated(monkeypatch) -> None:
+    from app.core.config import get_settings
+    from autotest.registry import get_runtime
+
+    monkeypatch.setenv("TESTFLOW_AUTOTEST_RUNTIME", "real")
+    get_settings.cache_clear()
+    get_runtime.cache_clear()
+
+    with pytest.raises(RuntimeError, match="Real autotest runtime is not integrated"):
+        get_runtime()
+
+    get_settings.cache_clear()
+    get_runtime.cache_clear()
+
+
 def test_entry_delegates_case_listing_to_configured_runtime() -> None:
     from autotest import registry
     from autotest.contracts import FrameworkCaseSummary
