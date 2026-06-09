@@ -3,6 +3,7 @@ import { Play } from 'lucide-react'
 import { ListToolbar } from '@/components/layout/list'
 import { EmptyState, PageHeader, PagePanel } from '@/components/layout/page'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -45,6 +46,7 @@ export function ScriptListPage() {
         <TableHeader>
           <TableRow>
             <TableHead>用例</TableHead>
+            <TableHead>标签</TableHead>
             <TableHead>测试步骤</TableHead>
             <TableHead className="text-right">操作</TableHead>
           </TableRow>
@@ -52,13 +54,13 @@ export function ScriptListPage() {
         <TableBody>
           {casesQuery.isPending ? (
             <TableRow>
-              <TableCell colSpan={3}>
+              <TableCell colSpan={4}>
                 <EmptyState title="正在加载" />
               </TableCell>
             </TableRow>
           ) : casesQuery.isError ? (
             <TableRow>
-              <TableCell colSpan={3}>
+              <TableCell colSpan={4}>
                 <Alert variant="destructive">
                   <AlertDescription>后端用例数据不可用</AlertDescription>
                 </Alert>
@@ -66,7 +68,7 @@ export function ScriptListPage() {
             </TableRow>
           ) : filteredCases.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={3}>
+              <TableCell colSpan={4}>
                 <EmptyState title={search.trim() ? '没有匹配的用例' : '没有用例'} />
               </TableCell>
             </TableRow>
@@ -80,6 +82,13 @@ export function ScriptListPage() {
                       {caseItem.description || caseItem.id}
                     </div>
                   </div>
+                </TableCell>
+                <TableCell className="align-top">
+                  {caseItem.tag ? (
+                    <Badge variant="secondary">{caseItem.tag}</Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell className="align-top">
                   {caseItem.test_steps.length === 0 ? (

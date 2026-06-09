@@ -5,6 +5,7 @@ export type CaseSummary = {
   id: string
   name: string
   description: string
+  tag: string
   test_steps: string[]
 }
 

@@ -39,6 +39,7 @@ describe('createApiClient', () => {
               id: 'case.smoke_cockpit',
               name: '座舱冒烟测试',
               description: '基础稳定性巡检',
+              tag: 'smoke',
               test_steps: ['启动系统', '确认首页加载'],
             },
           ],
@@ -53,6 +54,7 @@ describe('createApiClient', () => {
           id: 'case.smoke_cockpit',
           name: '座舱冒烟测试',
           description: '基础稳定性巡检',
+          tag: 'smoke',
           test_steps: ['启动系统', '确认首页加载'],
         },
       ],
@@ -67,6 +69,7 @@ describe('createApiClient', () => {
           id: 'case.smoke_cockpit',
           name: '座舱冒烟测试',
           description: '基础稳定性巡检',
+          tag: 'smoke',
           test_steps: ['启动系统', '确认首页加载'],
         },
       }),
@@ -75,6 +78,7 @@ describe('createApiClient', () => {
 
     await expect(api.getCase('case.smoke_cockpit')).resolves.toMatchObject({
       id: 'case.smoke_cockpit',
+      tag: 'smoke',
       test_steps: ['启动系统', '确认首页加载'],
     })
     expect(httpClient.get).toHaveBeenCalledWith('/api/cases/case.smoke_cockpit')

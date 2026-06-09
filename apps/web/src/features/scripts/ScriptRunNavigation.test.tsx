@@ -19,6 +19,7 @@ const caseSummary = {
   id: 'case.smoke_cockpit',
   name: '座舱冒烟测试',
   description: '基础稳定性巡检',
+  tag: 'smoke',
   test_steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
 }
 
@@ -63,6 +64,7 @@ describe('script run navigation', () => {
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByRole('table', { name: '用例列表' })).toBeInTheDocument()
     expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
+    expect(screen.getByText('smoke')).toBeInTheDocument()
     expect(screen.getByText('启动系统')).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /新建脚本/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /删除/ })).not.toBeInTheDocument()

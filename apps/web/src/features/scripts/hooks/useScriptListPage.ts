@@ -23,7 +23,7 @@ export function useScriptListPage() {
   const query = search.trim().toLowerCase()
   const filteredCases = query
     ? cases.filter((caseItem) =>
-        [caseItem.id, caseItem.name, caseItem.description, ...caseItem.test_steps]
+        [caseItem.id, caseItem.name, caseItem.description, caseItem.tag, ...caseItem.test_steps]
           .join(' ')
           .toLowerCase()
           .includes(query),

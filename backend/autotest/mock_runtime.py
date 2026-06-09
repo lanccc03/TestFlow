@@ -12,6 +12,7 @@ CASE_DEFINITIONS: list[FrameworkCaseSummary] = [
         id="case.smoke_cockpit",
         name="座舱冒烟测试",
         description="基础稳定性巡检",
+        tag="smoke",
         steps=("启动系统", "确认首页加载", "检查关键状态正常"),
     )
 ]

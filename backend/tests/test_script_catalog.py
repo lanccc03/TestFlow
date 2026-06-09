@@ -15,6 +15,7 @@ class CaseRuntime:
                 id="case.smoke_cockpit",
                 name="座舱冒烟测试",
                 description="基础稳定性巡检",
+                tag="smoke",
                 steps=("启动系统", "确认首页加载", "检查关键状态正常"),
             )
         ]
@@ -56,6 +57,7 @@ def test_lists_framework_cases_from_runtime(tmp_path: Path) -> None:
                 "id": "case.smoke_cockpit",
                 "name": "座舱冒烟测试",
                 "description": "基础稳定性巡检",
+                "tag": "smoke",
                 "test_steps": ["启动系统", "确认首页加载", "检查关键状态正常"],
             }
         ]
@@ -71,6 +73,7 @@ def test_reads_framework_case_detail_from_runtime(tmp_path: Path) -> None:
 
     assert response.status_code == 200
     assert response.json()["name"] == "座舱冒烟测试"
+    assert response.json()["tag"] == "smoke"
     assert response.json()["test_steps"] == [
         "启动系统", "确认首页加载", "检查关键状态正常"
     ]
@@ -84,5 +87,4 @@ def test_returns_404_for_missing_framework_case(tmp_path: Path) -> None:
 
     assert response.status_code == 404
     assert response.json()["error"]["code"] == "not_found"
-
 

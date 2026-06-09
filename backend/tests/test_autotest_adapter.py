@@ -67,6 +67,7 @@ def test_list_cases_returns_framework_case_metadata() -> None:
     assert cases[0].id == "case.smoke_cockpit"
     assert cases[0].name == "座舱冒烟测试"
     assert cases[0].description == "基础稳定性巡检"
+    assert cases[0].tag == "smoke"
     assert cases[0].steps == ("启动系统", "确认首页加载", "检查关键状态正常")
 
 

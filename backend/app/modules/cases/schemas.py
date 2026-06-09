@@ -7,4 +7,5 @@ class CaseSummary(BaseModel):
     id: str
     name: str
     description: str = ""
+    tag: str = ""
     test_steps: list[str] = []

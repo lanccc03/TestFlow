@@ -44,6 +44,7 @@ class FrameworkCaseSummary:
     id: str
     name: str
     description: str = ""
+    tag: str = ""
     steps: tuple[str, ...] = ()
 
 

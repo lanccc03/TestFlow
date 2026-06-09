@@ -8,6 +8,7 @@ def list_all_cases() -> list[CaseSummary]:
             id=case.id,
             name=case.name,
             description=case.description,
+            tag=case.tag,
             test_steps=list(case.steps),
         )
         for case in sorted(list_cases(), key=lambda item: item.name)
@@ -20,5 +21,6 @@ def read_case(case_id: str) -> CaseSummary:
         id=case.id,
         name=case.name,
         description=case.description,
+        tag=case.tag,
         test_steps=list(case.steps),
     )

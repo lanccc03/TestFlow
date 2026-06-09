@@ -43,6 +43,7 @@ describe('HistoryPage', () => {
           id: 'smoke-cockpit',
           name: '座舱冒烟测试',
           description: '基础稳定性巡检',
+          tag: 'smoke',
           test_steps: ['启动系统', '确认首页加载'],
         },
       ],

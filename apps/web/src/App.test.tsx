@@ -77,6 +77,7 @@ describe('App', () => {
                 id: 'case.smoke_cockpit',
                 name: '座舱冒烟测试',
                 description: '基础稳定性巡检',
+                tag: 'smoke',
                 test_steps: ['启动系统', '确认首页加载', '检查关键状态正常'],
               },
             ],
@@ -112,6 +113,7 @@ describe('App', () => {
 
     expect(await screen.findByText('座舱冒烟测试')).toBeInTheDocument()
     expect(screen.getByText('基础稳定性巡检')).toBeInTheDocument()
+    expect(screen.getByText('smoke')).toBeInTheDocument()
   })
 
   it('renders framework case catalog without script maintenance controls', async () => {
