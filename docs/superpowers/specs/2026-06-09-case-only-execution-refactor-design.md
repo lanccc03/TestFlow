@@ -57,6 +57,8 @@ to:
 }
 ```
 
+Task creation only accepts `case_id`. Environment, target device, variables, and executor selection are outside this refactor and should not remain on the create payload unless a future runtime integration proves they are needed.
+
 Task list and report filters use `case_id` instead of `script_id`.
 
 ## Runtime Contract
@@ -70,13 +72,7 @@ Task list and report filters use `case_id` instead of `script_id`.
 class FrameworkRunRequest:
     task_id: str
     case_id: str
-    case_name: str
-    variables: dict[str, Any]
-    environment: dict[str, Any]
-    target_device: dict[str, Any] | None
-    log_path: Path | str | None
     report_dir: Path | str | None
-    artifact_dir: Path | str | None
     cancellation_token: CancellationToken
 ```
 
@@ -123,10 +119,6 @@ It should not read `data/scripts`, validate keywords, create scripts, copy scrip
 ```python
 class ExecutionTaskCreate(BaseModel):
     case_id: str
-    environment: str = "local"
-    target_device: str = ""
-    variables: dict[str, Any] = Field(default_factory=dict)
-    executor: str = "local"
 ```
 
 `ExecutionTask` uses:
@@ -134,9 +126,6 @@ class ExecutionTaskCreate(BaseModel):
 - `case_id`
 - `case_name`
 - final `status`
-- environment and target device
-- variables
-- executor
 - timestamps and duration
 - log path and report directory
 - optional framework report
@@ -148,6 +137,10 @@ It removes:
 - `script_id`
 - `script_name`
 - `script_revision`
+- `environment`
+- `target_device`
+- `variables`
+- `executor`
 - `steps`
 
 `ExecutionTaskSummary` removes step counts and uses `case_id` / `case_name`.
