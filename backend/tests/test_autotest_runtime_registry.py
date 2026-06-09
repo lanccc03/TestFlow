@@ -10,9 +10,9 @@ from autotest.contracts import (
 
 
 async def collect_events(request: FrameworkRunRequest) -> list[FrameworkEvent]:
-    from autotest.entry import run_script
+    from autotest.entry import run_case
 
-    return [event async for event in run_script(request)]
+    return [event async for event in run_case(request)]
 
 
 def make_request() -> FrameworkRunRequest:
@@ -20,25 +20,17 @@ def make_request() -> FrameworkRunRequest:
 
     return FrameworkRunRequest(
         task_id="task-1",
-        script_id="script-1",
-        script_name="Smoke Test",
-        script_revision=1,
-        variables={},
-        environment={},
-        target_device=None,
-        log_path=None,
+        case_id="case.smoke_cockpit",
         report_dir=None,
-        artifact_dir=None,
         cancellation_token=CancellationToken(),
     )
 
 
 class FakeRuntime:
-    async def run_script(
+    async def run_case(
         self,
         request: FrameworkRunRequest,
     ) -> AsyncIterator[FrameworkEvent]:
-        yield FrameworkEvent(type="run_started", task_id=request.task_id)
         yield FrameworkEvent(
             type="run_finished",
             task_id=request.task_id,
@@ -62,7 +54,7 @@ def test_entry_delegates_script_execution_to_configured_runtime() -> None:
 
     events = asyncio.run(collect_events(make_request()))
 
-    assert [event.type for event in events] == ["run_started", "run_finished"]
+    assert [event.type for event in events] == ["run_finished"]
     assert events[-1].status == "passed"
 
 

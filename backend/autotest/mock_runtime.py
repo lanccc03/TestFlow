@@ -37,18 +37,16 @@ class MockAutotestRuntime:
         self._config = config
         return self._config
 
-    def run_script(
+    def run_case(
         self,
         request: FrameworkRunRequest,
     ) -> AsyncIterator[FrameworkEvent]:
-        return _run_script(request)
+        return _run_case(request)
 
 
-async def _run_script(
+async def _run_case(
     request: FrameworkRunRequest,
 ) -> AsyncIterator[FrameworkEvent]:
-    yield FrameworkEvent(type="run_started", task_id=request.task_id)
-
     if request.cancellation_token.is_canceled:
         yield FrameworkEvent(
             type="run_finished",

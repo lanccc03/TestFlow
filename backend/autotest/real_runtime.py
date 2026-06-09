@@ -34,7 +34,7 @@ class RealAutotestRuntime:
             status_code=501,
         )
 
-    def run_script(
+    def run_case(
         self,
         request: FrameworkRunRequest,
     ) -> AsyncIterator[FrameworkEvent]:

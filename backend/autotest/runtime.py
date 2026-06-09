@@ -26,9 +26,9 @@ class AutotestRuntime(Protocol):
         """Replace and return the automation framework configuration."""
         ...
 
-    def run_script(
+    def run_case(
         self,
         request: FrameworkRunRequest,
     ) -> AsyncIterator[FrameworkEvent]:
-        """Run a script and stream framework events."""
+        """Run a test case and stream framework events."""
         ...

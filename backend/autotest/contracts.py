@@ -6,13 +6,9 @@ from typing import Any, Literal
 type JsonValue = dict[str, Any] | list[Any] | str | int | float | bool | None
 
 FrameworkEventType = Literal[
-    "run_started",
-    "step_started",
     "log",
-    "step_finished",
-    "run_finished",
-    "attachment",
     "framework_report",
+    "run_finished",
     "run_error",
 ]
 FrameworkStatus = Literal["passed", "failed", "canceled", "error"]
@@ -54,15 +50,8 @@ class FrameworkCaseSummary:
 @dataclass(frozen=True)
 class FrameworkRunRequest:
     task_id: str
-    script_id: str
-    script_name: str
-    script_revision: int
-    variables: dict[str, Any]
-    environment: dict[str, Any]
-    target_device: dict[str, Any] | None
-    log_path: Path | str | None
+    case_id: str
     report_dir: Path | str | None
-    artifact_dir: Path | str | None
     cancellation_token: CancellationToken
 
 
@@ -71,18 +60,7 @@ class FrameworkEvent:
     type: FrameworkEventType
     task_id: str
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
-    step_id: str | None = None
-    step_index: int | None = None
     message: str | None = None
     level: FrameworkLogLevel | None = None
     status: FrameworkStatus | None = None
-    output: dict[str, Any] | None = None
     error_message: str | None = None
-    error_detail: dict[str, Any] | str | None = None
-    attachment_path: Path | str | None = None
-    attachment_name: str | None = None
-    report_kind: Literal["html"] | None = None
-    report_source: Literal["file", "url"] | None = None
-    report_root_dir: Path | str | None = None
-    report_entry: Path | str | None = None
-    report_title: str | None = None

@@ -8,11 +8,11 @@ from autotest.contracts import (
     FrameworkRunRequest,
     FrameworkStatus,
 )
-from autotest.entry import run_script
+from autotest.entry import run_case
 
 
 async def collect_events(request: FrameworkRunRequest) -> list[FrameworkEvent]:
-    return [event async for event in run_script(request)]
+    return [event async for event in run_case(request)]
 
 
 def make_request(
@@ -20,15 +20,8 @@ def make_request(
 ) -> FrameworkRunRequest:
     return FrameworkRunRequest(
         task_id="task-1",
-        script_id="script-1",
-        script_name="Smoke Test",
-        script_revision=1,
-        variables={},
-        environment={},
-        target_device=None,
-        log_path=None,
+        case_id="case.smoke_cockpit",
         report_dir=None,
-        artifact_dir=None,
         cancellation_token=cancellation_token or CancellationToken(),
     )
 
@@ -39,13 +32,9 @@ def event_types(events: list[FrameworkEvent]) -> list[str]:
 
 def test_contract_event_types_include_adapter_surface() -> None:
     assert set(get_args(FrameworkEventType)) == {
-        "run_started",
-        "step_started",
         "log",
-        "step_finished",
-        "run_finished",
-        "attachment",
         "framework_report",
+        "run_finished",
         "run_error",
     }
 
@@ -66,8 +55,8 @@ def test_cancellation_before_framework_case_starts_finishes_canceled() -> None:
 
     events = asyncio.run(collect_events(request))
 
-    assert event_types(events) == ["run_started", "run_finished"]
-    assert events[1].status == "canceled"
+    assert event_types(events) == ["run_finished"]
+    assert events[0].status == "canceled"
 
 
 def test_list_cases_returns_framework_case_metadata() -> None:
@@ -106,6 +95,6 @@ def test_case_execution_streams_framework_logs() -> None:
 
     events = asyncio.run(collect_events(request))
 
-    assert event_types(events) == ["run_started", "log", "run_finished"]
-    assert events[1].message == "框架用例日志：座舱冒烟测试开始执行"
-    assert events[2].status == "passed"
+    assert event_types(events) == ["log", "run_finished"]
+    assert events[0].message == "框架用例日志：座舱冒烟测试开始执行"
+    assert events[1].status == "passed"

@@ -25,5 +25,9 @@ def write_config(config: JsonValue) -> JsonValue:
     return get_runtime().write_config(config)
 
 
-def run_script(request: FrameworkRunRequest) -> AsyncIterator[FrameworkEvent]:
-    return get_runtime().run_script(request)
+def run_case(request: FrameworkRunRequest) -> AsyncIterator[FrameworkEvent]:
+    return get_runtime().run_case(request)
+
+
+# Legacy alias for backward compatibility during staged refactor
+run_script = run_case
